@@ -1,0 +1,20 @@
+#!/bin/bash
+#SBATCH --job-name=unilid-prior
+#SBATCH --account=infra01
+#SBATCH --partition=normal
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=64
+#SBATCH --mem=400G
+#SBATCH --time=04:00:00
+#SBATCH --output=/capstor/scratch/cscs/cmeister747/unilid_analysis/logs/prior_%j.out
+#SBATCH --error=/capstor/scratch/cscs/cmeister747/unilid_analysis/logs/prior_%j.err
+
+set -euo pipefail
+PYTHON="/users/cmeister747/.pyenv/versions/3.11.5/bin/python3"
+export RAYON_NUM_THREADS=64
+cd /users/cmeister747/unilid_analysis
+
+echo "=== per-language prior sweep at $(date) on $(hostname) ==="
+${PYTHON} -c "from analysis.prior_sweep import run; run(sample_size=500_000)"
+echo "=== Finished at $(date) ==="
