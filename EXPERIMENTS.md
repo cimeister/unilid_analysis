@@ -34,21 +34,21 @@ Scientific evaluation of UniLID, a language identification system based on a Uni
 
 **Full dataset** (45.6M samples) tables were generated via SLURM job 1747558 (completed in 16 min). Outputs in `outputs/tables/table{1-7}_*.{md,tex}`.
 
-### 1.2 Key findings by analysis axis
+### 1.2 Observations by analysis axis
 
 **By text length**: Strong monotonic trend — accuracy drops sharply for short texts (<30 chars: 79.2% for UniLID) and converges above 99% for texts >300 chars. All models follow the same pattern.
 
 **By resource level** (6 bins: <500, 500-1k, 1k-12k, 12k-18k, 18k-35k, 35k+):
-- Sweet spot at 12k-18k training samples: 99.5% accuracy
-- High-resource bin (35k+) has lower accuracy (95.8%) but dominates the data (92.8% of samples)
-- Very low resource (<500, 96 languages) has high variance due to tiny sample sizes
+- Peak accuracy at 12k-18k training samples: 99.5%
+- High-resource bin (35k+): 95.8% accuracy, 92.8% of test samples
+- Very low resource (<500, 96 languages): high run-to-run variance, small per-language N
 
-**By script**: Scripts with unique character sets (Hangul, Tamil, Gujarati, etc.) achieve 100% accuracy. Latin script (76% of data, 1,659 languages) is the hardest at 96.3%. Devanagari (89.6%) and Arabic (90.7%) also challenging due to dialect continua.
+**By script**: Scripts with unique character sets (Hangul, Tamil, Gujarati, etc.) achieve 100% accuracy. Latin script (76% of data, 1,659 languages): 96.3%. Devanagari 89.6%, Arabic 90.7%.
 
 ### 1.3 Cross-system comparison
 
 **Error overlap** (500k sample):
-- All 5 wrong: 28.9% of any-wrong — these are likely genuinely ambiguous samples
+- All 5 wrong: 28.9% of any-wrong
 - UniLID-DeepSeek and UniLID-Qwen are highly correlated (r=0.93); UniLID is more distinct (r≈0.80)
 
 **Notable per-language divergences**:
@@ -139,9 +139,11 @@ SLURM job 1795556 (completed in 2.5 min). Modified the Rust Unigram tokenizer to
 | 75-150 | 0.978 | 0.925 | -0.053 |
 | 300+ | 0.995 | 0.991 | -0.004 |
 
-### 2.6 Interpretation
+### 2.6 Pairwise counterfactual vs full re-classification
 
-The pairwise counterfactual was misleading. While normalization does lift the true language above the predicted language in 18.6% of error cases, it simultaneously lifts many *other* incorrect languages above the correct one. The unnormalized sum-of-log-probs scoring carries genuine signal: languages that tokenize a text into fewer tokens often genuinely fit the text better. Simple length normalization destroys this signal, especially for short texts where the per-token average is noisy.
+Of the misclassifications the pairwise counterfactual (§2.4) flagged as correctable (332,034 of 1,789,423, 18.6%), the full re-classification (§2.5) changed 10% of predictions: 79.6% of changes broke previously correct predictions and 4.4% corrected previous errors (net −37,740 predictions, −7.5pp overall accuracy). The largest accuracy drop is on the <30 char bin (0.792 → 0.566) and the smallest on 300+ chars (0.995 → 0.991), while §2.3 records the largest mean token-count delta in the 300+ bin (−2.71).
+
+Possible (unconfirmed) conclusion: the unnormalized sum-of-log-probs scoring carries signal that simple length normalization removes, with the per-token average noisiest for short texts.
 
 ---
 
@@ -196,7 +198,7 @@ Computed KL(lang || base) for all 1,940 languages using proper probability norma
 
 **Most divergent from base** (KL ~1.2–1.3): Languages with unique scripts — Lisu (`lis_Lisu`, KL=1.28), Hebrew (`ydd_Hebr`, KL=1.27), Tamil (`tam_Taml`, KL=1.25), Myanmar (`ksw_Mymr`, KL=1.24). These concentrate probability mass on script-specific tokens that the base assigns low probability to.
 
-**Closest to base** (KL ~0.20–0.24): All low-resource Latin-script languages with <500 training samples — e.g., `ldn_Latn` (106 samples, KL=0.20), `otw_Latn` (85 samples, KL=0.22). The EM barely moved these from the base, suggesting insufficient data for meaningful distribution estimation.
+**Closest to base** (KL ~0.20–0.24): All low-resource Latin-script languages with <500 training samples — e.g., `ldn_Latn` (106 samples, KL=0.20), `otw_Latn` (85 samples, KL=0.22). The EM-estimated distributions for these languages remain close to the base distribution.
 
 **By resource level:**
 
@@ -217,7 +219,7 @@ For each language, computed per-token KL contribution: `p_lang(i) * log(p_lang(i
 
 **High-resource English (100k samples):** Top tokens are English function words and multi-word units: `Ġsaid` (+5.69), `Ġwith` (+4.84), `ĠofĠthe` (+4.61), `ĠinĠthe` (+4.57). These are genuinely discriminative — clear signal, not noise.
 
-**Low-resource Ojibwe (otw_Latn, 85 samples):** Top tokens are recognizable Ojibwe morphemes: `zhi` (+3.38), `waa` (+2.24), `gii` (+3.68), `maa` (+2.07). The EM did learn real signal even with 85 samples, but the deltas are 2–4x smaller than high-resource languages (+2–4 vs +5–12), suggesting the distribution is only partially specialized.
+**Low-resource Ojibwe (otw_Latn, 85 samples):** Top tokens are recognizable Ojibwe morphemes: `zhi` (+3.38), `waa` (+2.24), `gii` (+3.68), `maa` (+2.07). Per-token deltas are 2–4x smaller than for high-resource languages (+2–4 vs +5–12).
 
 **Low-resource Ladin (ldn_Latn, 106 samples):** Similar pattern — small deltas, tokens partially shifted from base but not strongly.
 
@@ -243,21 +245,23 @@ For 15 related language pairs, computed symmetric KL divergence, Pearson correla
 
 ### 3.5 Evidence of EM Noise
 
-**Hindi / Angika (hin_Deva vs anp_Deva)**: The most suspicious pair. Correlation is high (0.884) — comparable to Indonesian/Malay (0.896) — yet MAD is 2.218, which is **6x higher** than Indonesian/Malay (0.364). Angika has only 4,499 training samples. The top divergent tokens are common Hindi function words and punctuation (`Ġ,`, delta +7.95; `Ġà¤¤à¥ģà¤®` = "tum"/you, delta +4.67) that the Angika EM over-suppressed. The scatter plot shows a horizontal band at anp ≈ -17, indicating many tokens collapsed to near-floor probability — a signature of insufficient EM data.
+**Hindi / Angika (hin_Deva vs anp_Deva)**: The most suspicious pair. Correlation is high (0.884) — comparable to Indonesian/Malay (0.896) — yet MAD is 2.218, which is **6x higher** than Indonesian/Malay (0.364). Angika has only 4,499 training samples. The top divergent tokens are common Hindi function words and punctuation (`Ġ,`, delta +7.95; `Ġà¤¤à¥ģà¤®` = "tum"/you, delta +4.67) that the Angika EM over-suppressed. The scatter plot shows a horizontal band at anp ≈ -17, indicating many tokens collapsed to near-floor probability.
 
-**Persian / Gilaki (fas_Arab vs glk_Arab)**: Similar pattern. Correlation 0.839 but MAD = 1.279 (3x higher than expected for this correlation level). Gilaki has 22,263 samples — more than Angika but still showing noise.
+**Persian / Gilaki (fas_Arab vs glk_Arab)**: Correlation 0.839, MAD = 1.279. Gilaki has 22,263 samples.
 
-**Within-cluster pair KL vs training size**: r = -0.03, essentially zero. The divergence between related languages within confusion clusters is **not explained by training data size**, suggesting the pairwise KL mostly reflects genuine linguistic differences, with noise adding variance but not dominating.
+**Within-cluster pair KL vs training size**: r = -0.03, essentially zero. The divergence between related languages within confusion clusters is **not explained by training data size**.
 
-### 3.6 Key finding: noise vs signal
+### 3.6 Resource-level patterns
 
-The analysis reveals two regimes:
+Observations:
 
-1. **Low-resource languages (<500 samples)**: EM barely moves the distribution from the base (KL ~0.3, MAD ~1.2). The distributions are under-specialized. These languages are close to the base but also close to each other, making them hard to distinguish. The risk is **under-fitting**, not over-fitting.
+1. Low-resource languages (<500 samples): mean KL from base 0.32, mean MAD 1.17, mean per-language correlation with base 0.189.
 
-2. **Mid-to-high-resource languages (5k+ samples)**: EM produces well-separated distributions (KL ~0.7, MAD 4–6). For language pairs that are genuinely similar, the distributions are appropriately close (e.g., ind/zsm: KL=0.06). But when one member of a pair has much less data (e.g., anp with 4.5k vs hin with 100k), the lower-resource distribution shows noise: high MAD despite high correlation, with many tokens collapsed to near-floor probability.
+2. Mid-to-high-resource languages (5k+ samples): mean KL 0.68–0.71, mean MAD 4.84–5.90. Same-resource related pairs include ind/zsm (KL=0.06) and dan/nob (KL=0.19). For mixed-resource pairs such as hin/anp (100k vs 4,499 samples), the lower-resource distribution has MAD 2.218 at correlation 0.884, with a band of tokens near the probability floor visible in the scatter (§3.5).
 
-The EM process has **no explicit regularization** (no Dirichlet prior, no damping). The only implicit guards are the probability floor (1e-12) and convergence early stopping. For languages with <5k training samples, the lack of regularization allows the distribution to drift, particularly on tokens that appear rarely or never in the training corpus.
+EM training uses no explicit regularization (no Dirichlet prior, no damping); the only implicit guards are the probability floor (1e-12) and convergence early stopping.
+
+Possible (unconfirmed) conclusion: low-resource (<500 sample) distributions are under-fit (close to the base) rather than over-fit; for mixed-resource pairs the lower-resource distribution shows EM noise distinct from the higher-resource partner.
 
 ### 3.7 Output files
 
@@ -299,7 +303,9 @@ Eight categories defined by heuristic rules (priority order):
 | Domain/religious | 2 | 0.7% | 0.3% |
 | Script/encoding | 0 | 0.0% | 0.0% |
 
-**Key finding: The model's discriminative features are overwhelmingly linguistic, not artifactual.** Morphological affixes (32.6% of KL) and content words (22.8%) together account for 55.4% of the discriminative power. Function words add another 15.7%. Punctuation and formatting contribute 10.5% — noticeable but not dominant. Script/encoding artifacts contribute 0%, and domain/religious terms only 0.3%.
+Morphological affixes (32.6% of KL) and content words (22.8%) together account for 55.4% of the discriminative power. Function words add another 15.7%. Punctuation and formatting contribute 10.5%. Script/encoding artifacts contribute 0%, and domain/religious terms 0.3%.
+
+Possible (unconfirmed) conclusion: discriminative features in the top 20 KL-contributing tokens per pair are dominated by linguistic units (morphological affixes, content words, function words) rather than tokenization or encoding artifacts.
 
 ### 4.4 By resource level
 
@@ -322,7 +328,7 @@ Eight categories defined by heuristic rules (priority order):
 | Morph. affix | 10.0% |
 | Punctuation | 15.0% |
 
-The Hindi/Angika pair (the only mixed-resource pair in the analyzed set) shows a dramatically different profile: content words dominate at 75%, with no function words or character/phonotactic tokens. This is consistent with the EM noise hypothesis — the Angika distribution (4,499 samples) has collapsed many tokens to near-floor, leaving only content-word-level differences.
+The Hindi/Angika pair (the only mixed-resource pair in the analyzed set) shows a different profile: content words 75%, with no function words or character/phonotactic tokens. The Angika distribution (4,499 samples) has many tokens at or near the probability floor (§3.5).
 
 ### 4.5 Domain dependency
 
@@ -332,18 +338,20 @@ Only one pair shows significant domain/religious KL contribution:
 |------|----------------------|
 | Indonesian / Malay | 7.3% |
 
-The discriminative token is `ĠYehuwa` (Jehovah) — a marker of JW.org Bible translations that are common in Indonesian training data but rare in Malay. This suggests the Indonesian/Malay distinction is partially dependent on religious text domain, which may not generalize to secular text.
+The discriminative token is `ĠYehuwa` (Jehovah), associated with JW.org Bible translations and present in Indonesian training data at a higher rate than in Malay.
+
+Possible (unconfirmed) conclusion: the Indonesian/Malay distinction is partially dependent on religious-text domain markers.
 
 ### 4.6 Per-pair variation (stacked bar chart)
 
 The stacked bar chart (`outputs/figures/token_categories_stacked.png`) shows substantial variation across pairs:
 
-- **English/Scots**: dominated by function words (~65%) — the distinction is primarily syntactic
-- **Hindi/Angika**: dominated by content words (~75%) — EM noise signature
-- **Danish/Bokmål** and **Scandinavian pairs**: mix of morphological affixes and content words
-- **Arabic pairs**: morphological affixes and punctuation prominent
+- **English/Scots**: function words ~65%
+- **Hindi/Angika**: content words ~75% (the Angika distribution has many tokens near the probability floor, §3.5)
+- **Danish/Bokmål** and other Scandinavian pairs: mix of morphological affixes and content words
+- **Arabic pairs**: morphological affixes and punctuation most prominent
 - **Chinese pairs**: content words and character/phonotactic tokens
-- **Spanish/Portuguese** and **Slovak/Czech**: function words ~40% — closely related languages distinguished by common words
+- **Spanish/Portuguese** and **Slovak/Czech**: function words ~40%
 
 ### 4.7 Output files
 
@@ -385,7 +393,7 @@ SLURM job 1804584 (completed in 12 min, 400 GB memory).
 | 0.9 | 0.907 | 0.896 |
 | 1.0 | 0.885 | 0.875 |
 
-**Best alpha = 0.1**: marginal improvement (+0.1pp accuracy, +0.1pp macro F1). Only 1,749 predictions changed, net +114 corrections. The accuracy curve is monotonically decreasing after alpha=0.1, with short texts (<30 chars) degrading fastest. The 300+ char bin is nearly immune (0.995 → 0.991 even at alpha=1.0).
+At alpha = 0.1: accuracy 0.961 (+0.001 over alpha=0.0), macro F1 0.942 (+0.001). 1,749 predictions changed, net +114 corrections. The accuracy curve decreases monotonically for alpha > 0.1; the <30 char bin drops fastest (0.792 → 0.566 at alpha=1.0); the 300+ char bin drops from 0.995 to 0.991 across the full sweep.
 
 **By text length:**
 
@@ -396,7 +404,7 @@ SLURM job 1804584 (completed in 12 min, 400 GB memory).
 | 0.5 | 0.755 |  0.939 |   0.972 |    0.985 | 0.995 |
 | 1.0 | 0.566 |  0.842 |   0.925 |    0.966 | 0.991 |
 
-**Conclusion**: Partial normalization provides negligible benefit. The length bias is real but the raw scoring already captures genuine signal that normalization destroys.
+Possible (unconfirmed) conclusion: any benefit of partial length normalization is at most marginal; higher alpha reduces accuracy most on the inputs where the token-count bias (§2.3) is smallest in magnitude.
 
 ### 5.4 Output files
 
@@ -455,18 +463,159 @@ The zero-clamp result at -22 indicates all stored weight values are ≥ -22. The
 | -15 | 0.788 |  0.951 |   0.978 |    0.987 | 0.994 |
 | -10 | 0.608 |  0.887 |   0.954 |    0.976 | 0.992 |
 
-### 6.4 Interpretation
+### 6.4 Observations
 
-- **Floor=-22 is a no-op**: all weight values are already ≥ -22, so no clamping occurs.
-- **Floor=-15 is near-neutral**: despite clamping 90.7% of the weight matrix (mostly OOV tokens), only 3,372 of 500k predictions change. Macro F1 ticks up by 0.002 but accuracy is flat and the net effect is slightly negative (-109). Making OOV tokens accessible at probability exp(-15) ≈ 3×10⁻⁷ barely matters because Viterbi still prefers in-vocabulary tokens.
-- **Floor=-10 is destructive**: 4.4pp accuracy drop, driven by short texts (<30 chars: 79.2% → 60.8%). At exp(-10) ≈ 4.5×10⁻⁵, OOV tokens become competitive enough to distort the Viterbi segmentation. 25,485 predictions broken vs 3,390 corrected.
+- Floor=-22: 0 elements clamped; predictions identical to baseline (0/500k changed).
+- Floor=-15: 90.7% of the weight matrix clamped (176M of 194M elements); 3,372 of 500k predictions changed. Accuracy 0.960 (unchanged at three decimals), macro F1 +0.002 (0.941 → 0.943), net −109 predictions.
+- Floor=-10: 99.5% of the matrix clamped; accuracy 0.916 (−0.044), macro F1 0.837 (−0.104). The <30 char bin drops 0.792 → 0.608; 25,485 predictions broken vs 3,390 corrected.
+- Same monotonic pattern as the alpha sweep (Experiment 5): accuracy decreases as modification strength increases, with the largest reductions on the <30 char bin.
 
-The pattern mirrors the alpha sweep (Experiment 5): the model's existing parameterization is near-optimal for the current scoring approach. Modifications that reduce discriminative power — whether by normalizing scores or by raising the probability floor — hurt more than they help, especially for short texts where there is less signal to work with.
+Possible (unconfirmed) conclusion: the existing parameterization is near-optimal under sum-of-log-prob scoring; modifications that reduce per-token discrimination reduce accuracy most on short inputs.
 
 ### 6.5 Output files
 
 - `outputs/tables/floor_sweep.{md,tex}` — floor vs accuracy/macro-F1 (overall + by text length)
 - `outputs/figures/floor_sweep.png` — accuracy vs floor curve (overall + per text length bin)
+
+---
+
+## Experiment 7: Training Data Analysis
+
+### 7.1 Domain Distribution
+
+Streamed the full training corpus (60,683,151 lines, 1,940 languages) with heuristic domain classifiers. Ran on login node (~30 min single-pass).
+
+**Overall**: 98.1% of training data is classified as "other" (not religious, not Wikipedia); 1.9% detected as religious/Bible text; Wikipedia markers 0.002%.
+
+**By resource level:**
+
+| Resource bin | Religious % | Wikipedia % | Other % |
+|-------------|-------------|-------------|---------|
+| <500 | 2.5 | 0.0 | 97.5 |
+| 500-1k | 1.9 | 0.0 | 98.1 |
+| 1k-12k | 0.5 | 0.0 | 99.5 |
+| 12k-18k | 0.3 | 0.0 | 99.7 |
+| 18k-35k | 0.6 | 0.0 | 99.4 |
+| 35k+ | 2.7 | 0.0 | 97.3 |
+
+**Confusion cluster languages**: religious-domain share by language: Indonesian (ind_Latn) 2.2%, Malay (zsm_Latn) 0.2% (consistent with the `Yehuwa` finding from Experiment 4); Bokmål (nob_Latn) 6.2% (highest among the cluster languages).
+
+**Caveat**: The domain heuristics are conservative (keyword/pattern matching). Many Bible translations lack explicit markers like `Yehuwa` or verse references.
+
+### 7.4 Per-Language Corpus Quality
+
+| Resource bin | # Langs | Mean text len | Mean char entropy | Mean vocab size |
+|-------------|---------|---------------|-------------------|-----------------|
+| <500 | 56 | 83.8 | 4.47 | 1,447 |
+| 500-1k | 40 | 94.7 | 4.51 | 3,670 |
+| 1k-12k | 458 | 148.0 | 4.39 | 15,718 |
+| 12k-18k | 526 | 166.7 | 4.34 | 19,597 |
+| 18k-35k | 398 | 164.1 | 4.28 | 29,619 |
+| 35k+ | 462 | 104.6 | 4.55 | 102,776 |
+
+Low-resource languages (<500) have shorter texts (mean 84 chars vs 105-167 for larger bins) and much smaller vocabularies (~1.4k vs 100k+). Character entropy is similar across bins (~4.3-4.6 bits). The high-resource bin (35k+) has shorter mean text length (104.6) than the mid-resource bins (148-167).
+
+### 7.5 Script Verification
+
+20 languages flagged with >5% unexpected script characters:
+
+- **6 Canadian Aboriginal Syllabics languages** (`crk_Cans`, `crm_Cans`, etc.): 100% Latin, 0% Syllabics. These are written in Latin romanization despite the `_Cans` script label.
+- **Japanese** (`jpn_Jpan`): 35.4% Han, 52.3% Hiragana. Expected: `Jpan` maps to Han, but Japanese text naturally uses Hiragana/Katakana prominently. This is a script code mapping issue, not a data quality issue.
+- **Several Cyrillic languages** (`kca_Cyrl`, `kpv_Cyrl`, etc.): 91-95% Cyrillic with some Latin (transliterated content or code-switching).
+
+The vast majority of languages (1,901/1,921 = 99.0%) have >95% of their characters in the expected script.
+
+### 7 Output files
+
+- `outputs/tables/train_data_analysis.md` — all domain, quality, and script tables
+- `outputs/figures/train_domain_stacked.png` — domain distribution for cluster languages
+- `outputs/figures/train_quality_scatter.png` — entropy and vocab size vs training count
+- `outputs/figures/train_script_purity.png` — script purity histogram
+
+---
+
+## Experiment 8a: Heuristic Discriminative Weighting
+
+### 8a.1 Context
+
+Tested whether variance-based token weighting could improve within-cluster discrimination. For each confusion cluster, computed per-token variance across cluster languages and applied three setups: (A) additive upweighting of discriminative tokens, (B) additive rescaling with z-scored variance, (C) sigmoid gate replacing non-discriminative tokens with base distribution.
+
+### 8a.2 Results
+
+SLURM job 1808414 (completed in 13 min, 400 GB memory).
+
+**All setups reduce accuracy at every tested parameter:**
+
+| Setup | Param | Overall Acc | Overall Ma-F1 |
+|-------|-------|-------------|---------------|
+| Baseline | -- | 0.960 | 0.941 |
+| A (upweight) | α=0.5 | 0.866 | 0.914 |
+| B (rescale) | α=0.5 | 0.889 | 0.918 |
+| C (gate) | β=1.0 | 0.899 | 0.923 |
+
+Per-cluster accuracy collapses to near 0% for all clusters at α≥1.0 in setups A and B. Setup C is the least destructive but still drops from 96.0% to 89.9%.
+
+### 8a.3 Observations
+
+All three setups reduce accuracy at every parameter setting tested (A: α ∈ {0.5, 1.0, 2.0, 5.0}; B: α ∈ {0.5, 1.0, 2.0, 5.0}; C: β ∈ {1.0, 5.0, 10.0}). Best config across setups: A α=0.5, net −30,433 predictions. At α ≥ 1.0 in setups A and B, per-cluster accuracy is 0 across all seven clusters.
+
+Possible (unconfirmed) conclusion: variance-based token re-weighting at the granularity used here does not improve within-cluster discrimination; any improvement, if it exists, requires a mechanism other than per-token additive/multiplicative adjustments to the EM-trained weights.
+
+### 8a.4 Output files
+
+- `outputs/tables/discriminative_heuristic.md` — overall and per-cluster accuracy for all setups
+
+---
+
+## Experiment 9: Distribution Transfer for Low-Resource Languages
+
+### 9.1 Context
+
+Low-resource languages (<5k samples) are under-fit: barely diverged from the base distribution (KL~0.3). Tested two transfer approaches, both operating in probability space (arithmetic interpolation):
+
+- **9a**: Interpolate with the closest high-resource same-script language (223 transfer pairs identified)
+- **9b**: Interpolate with the script-average distribution (average of all languages sharing the same script)
+
+### 9.2 Results
+
+SLURM job 1808399 (completed in 25 min, 400 GB memory).
+
+**9a: Related language transfer**
+
+| Lambda | Overall | <500 | 500-5k | High-res |
+|--------|---------|------|--------|----------|
+| 1.0 (baseline) | 0.960 | 0.789 | 0.958 | 0.960 |
+| 0.9 | 0.959 | 0.789 | 0.964 | 0.959 |
+| 0.7 | 0.957 | 0.842 | 0.968 | 0.957 |
+| 0.3 | 0.947 | **0.895** | 0.965 | 0.947 |
+| 0.0 | 0.878 | 0.053 | 0.169 | 0.879 |
+
+Best for <500 group: λ=0.3 (89.5%, +10.6pp), but overall drops to 94.7%. The 500-5k group peaks at 96.8% at λ=0.7 (+1.0pp). Heavy transfer (λ<0.3) damages high-resource predictions because all 1940 languages compete in the argmax.
+
+**9b: Script-average transfer**
+
+| Lambda | Overall | <500 | 500-5k | High-res |
+|--------|---------|------|--------|----------|
+| 1.0 (baseline) | 0.960 | 0.789 | 0.958 | 0.960 |
+| 0.9 | 0.960 | 0.789 | 0.957 | 0.960 |
+| 0.7 | 0.960 | 0.789 | 0.952 | 0.960 |
+| 0.1 | **0.961** | 0.526 | 0.837 | 0.962 |
+| 0.0 | 0.961 | 0.053 | 0.083 | 0.962 |
+
+Script average is much more stable than related-language transfer: overall accuracy stays at 96.0-96.1% across all λ values. At λ=0.1, overall ticks up to 96.15% and high-resource improves to 96.2%. However, the <500 group degrades at any λ<1.0 — the script average washes out what little distinctive signal these tiny languages have.
+
+### 9.3 Observations
+
+- 9a (related-language transfer): <500 accuracy peaks at λ=0.3 (0.895, +10.6pp over baseline 0.789); 500-5k peaks at λ=0.7 (0.968, +1.0pp); overall drops from 0.960 (λ=1.0) to 0.947 at λ=0.3. For λ ≤ 0.3, accuracy on all three groups drops sharply (e.g. <500: 0.053 at λ=0.0).
+- 9b (script-average transfer): overall accuracy stays 0.960-0.961 across λ ∈ [0.1, 1.0]; <500 accuracy does not exceed 0.789 (baseline) at any λ < 1.0 and falls to 0.526 at λ=0.1.
+- Neither approach increases both overall and <500-group accuracy simultaneously in the tested range.
+
+Possible (unconfirmed) conclusion: probability-space interpolation of EM-trained per-language distributions toward a related-language or script-average distribution does not jointly improve overall and very-low-resource accuracy in the configurations tested.
+
+### 9.4 Output files
+
+- `outputs/tables/transfer_sweep.md` — λ vs accuracy (overall, <500, 500-5k, high-resource)
+- `outputs/figures/transfer_sweep.png` — accuracy curves for both approaches
 
 ---
 
@@ -484,11 +633,14 @@ The pattern mirrors the alpha sweep (Experiment 5): the model's existing paramet
 | 1795556 | unilid-norm | COMPLETED | 2.5 min | 400 GB | Normalized prediction on 500k sample |
 | 1804584 | unilid-alpha | COMPLETED | 12 min | 400 GB | Alpha sweep (11 values) on 500k sample |
 | 1806690 | unilid-floor | COMPLETED | 4.5 min | 400 GB | Floor sweep (3 values + baseline) on 500k sample |
+| 1808414 | unilid-disc8a | COMPLETED | 13 min | 400 GB | Heuristic discriminative weighting (3 setups) |
+| 1808399 | unilid-transfer | COMPLETED | 25 min | 400 GB | Transfer sweep (related + script avg, 22 configs) |
 
 ---
 
 ## Pending / Future Work
 
-1. **Regularized EM re-estimation** — add Dirichlet prior during per-language EM, evaluate on low-resource languages
-2. **Tokenization length bias for other models** — compare whether UniLID-Marg or fastText show similar biases
-3. **Per-script normalization** — different alpha values per script family, or normalize only within confusable groups
+1. **MMI discriminative fine-tuning (Experiment 8b)** — gradient-based optimization of per-language weight vectors within confusion clusters using softmax cross-entropy loss.
+2. **Training data mislabeling analysis** — run model on its own training data to identify systematic mislabeling (deferred from Experiment 7)
+3. **Training data overlap analysis** — exact duplicate and n-gram overlap between confusable pairs (deferred from Experiment 7)
+4. **Per-script normalization** — different alpha values per script family, or normalize only within confusable groups
