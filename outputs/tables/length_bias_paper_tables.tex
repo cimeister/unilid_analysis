@@ -1,0 +1,105 @@
+% =============================================================================
+% UniLID length-bias paper tables
+% =============================================================================
+% Generated 2026-05-27. Two tables:
+%   (1) Mean token-count delta by character-length bin   (Table~\ref{tab:lenbias-delta})
+%   (2) Length-normalization accuracy by text length     (Table~\ref{tab:lenbias-norm})
+%
+% Required packages in the including document:
+%   \usepackage{booktabs}
+% These are float fragments; \input this file inside a document body.
+%
+% -----------------------------------------------------------------------------
+% SETUP / PROVENANCE
+% -----------------------------------------------------------------------------
+% Model under test: UniLID. A single shared Unigram tokenizer (100k vocabulary)
+%   with 1,940 per-language log-probability weight vectors. A text is scored per
+%   language as score(lang) = sum_i log p(token_i | lang) under that language's
+%   own Viterbi segmentation; the prediction is the argmax over 1,940 languages.
+%   The likelihood has no explicit length term, so token counts differ across
+%   languages for the same text.
+%
+% Token-count delta: for each MISCLASSIFIED sample, delta = n_pred - n_true,
+%   the Viterbi segmentation length under the predicted language minus that under
+%   the true language (in tokens). Negative = predicted language uses fewer tokens.
+%
+% Length normalization: per-language log-likelihood divided by segmentation length,
+%   i.e. score / n_tokens^alpha. "Normalized" column is full normalization (alpha=1).
+%   "Raw rescore" re-runs the unnormalized scorer (alpha=0) through the same modified
+%   Rust code path; it reproduces the original predictions exactly (100% agreement),
+%   validating the implementation.
+%
+% Data / runs (artifacts of record):
+%   Table 1 (delta): full GlotLID test set, all 1,789,423 misclassifications out of
+%     45,627,279 test samples. SLURM job 1791511 (400 GB, ~5h).
+%     Source: outputs/tables/length_bias.md
+%   Table 2 (normalization accuracy): 500,000-sample uniform subset, seed 42,
+%     sampled without replacement. SLURM job 1795556 (400 GB).
+%     Source: outputs/tables/normalized_comparison.md
+%   Character-length bins (chars): [0,30,75,150,300,inf] -> <30, 30-75, 75-150,
+%     150-300, 300+.
+%   NOTE on scope: Table 1 is computed over the full test set; Table 2 is on the
+%     500k sample. State this distinction if the two are cited together.
+% =============================================================================
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{lrrrrrr}
+\toprule
+\textbf{Length (chars)} & \textbf{N} & \textbf{Mean $\Delta$} & \textbf{Median $\Delta$} & \textbf{\% fewer} & \textbf{\% same} & \textbf{\% more} \\
+\midrule
+All misclassified & 1,789,423 & $-0.17$ & $0.00$ & 24.94 & 61.08 & 13.99 \\
+\midrule
+$<$30    &   515,094 & $-0.11$ & $0.00$ & 17.69 & 74.62 &  7.69 \\
+30--75   &   771,812 & $-0.15$ & $0.00$ & 24.28 & 62.76 & 12.96 \\
+75--150  &   392,549 & $-0.21$ & $0.00$ & 32.10 & 47.71 & 20.19 \\
+150--300 &   102,497 & $-0.24$ & $0.00$ & 36.80 & 34.85 & 28.34 \\
+300+     &     7,471 & $-2.71$ & $-1.00$ & 53.09 & 15.11 & 31.80 \\
+\bottomrule
+\end{tabular}
+\caption{%
+  Token-count length bias on UniLID misclassifications, by input length.
+  For each misclassified sample, $\Delta = n_{\mathrm{pred}} - n_{\mathrm{true}}$ is the
+  difference in Viterbi segmentation length (in tokens) between the predicted and the true
+  language; negative values mean the predicted language uses fewer tokens. Computed over all
+  $1{,}789{,}423$ misclassifications in the full GlotLID test set ($45.6$M samples). The mean
+  $\Delta$ is negative and grows in magnitude with input length, while the median is zero and
+  $61\%$ of errors leave the token count unchanged: a small but systematic bias toward
+  fewer-token languages, driven by a minority of samples. \emph{\% fewer/same/more} give the
+  share of misclassifications where the predicted language uses fewer, equal, or more tokens
+  than the true language. Source: SLURM job 1791511.%
+}
+\label{tab:lenbias-delta}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{lrrrr}
+\toprule
+\textbf{Length (chars)} & \textbf{N} & \textbf{Original} & \textbf{Raw rescore} & \textbf{Normalized} \\
+\midrule
+$<$30    &  27,328 & 0.792 & 0.792 & 0.566 \\
+30--75   & 177,256 & 0.951 & 0.951 & 0.842 \\
+75--150  & 195,267 & 0.978 & 0.978 & 0.925 \\
+150--300 &  87,096 & 0.987 & 0.987 & 0.966 \\
+300+     &  13,053 & 0.995 & 0.995 & 0.991 \\
+\midrule
+Overall  & 500,000 & 0.960 & 0.960 & 0.885 \\
+\bottomrule
+\end{tabular}
+\caption{%
+  Effect of length-normalizing the per-language log-likelihood on UniLID accuracy, by input
+  length. Scores are normalized by dividing the summed token log-probabilities by the
+  segmentation length ($\mathrm{score}/n_{\mathrm{tokens}}^{\alpha}$ with $\alpha=1$).
+  \emph{Raw rescore} re-runs the unnormalized scorer ($\alpha=0$) through the same code path
+  and reproduces the original predictions exactly ($100\%$ agreement), validating the
+  implementation. Evaluated on a $500{,}000$-sample uniform subset (seed $42$, without
+  replacement). Full normalization lowers overall accuracy from $0.960$ to $0.885$, with the
+  largest degradation on short inputs ($<$30 chars: $0.792 \to 0.566$) and almost none on long
+  inputs: the opposite of where the token-count bias in Table~\ref{tab:lenbias-delta} is
+  largest. Source: SLURM job 1795556.%
+}
+\label{tab:lenbias-norm}
+\end{table}

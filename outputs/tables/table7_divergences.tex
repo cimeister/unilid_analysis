@@ -1,0 +1,55 @@
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{lrrrrrrrrr}
+\toprule
+\textbf{Language} & \textbf{Script} & \textbf{N} & \textbf{Resource} & \textbf{Err (UniLID)} & \textbf{Err (UniLID-DeepSeek)} & \textbf{Err (UniLID-Qwen)} & \textbf{Err (UniLID-Marg)} & \textbf{Err (fastText)} & \textbf{Gap} \\
+\midrule
+arc_Syrc & Syrc & 73 & <500 & 1.000 & 1.000 & 1.000 & 1.000 & 0.014 & 0.986 \\
+zsm_Arab & Arab & 50 & <500 & 0.880 & 0.940 & 0.980 & 0.940 & 0.140 & 0.740 \\
+lrc_Arab & Arab & 30 & <500 & 0.800 & 0.933 & 1.000 & 0.833 & 0.233 & 0.567 \\
+aeb_Arab & Arab & 4,551 & 18k--35k & 0.560 & 0.565 & 0.574 & 0.561 & 0.057 & 0.503 \\
+lad_Hebr & Hebr & 31 & <500 & 0.548 & 0.581 & 0.419 & 0.581 & 0.129 & 0.419 \\
+hbo_Hebr & Hebr & 21,124 & 35k+ & 0.367 & 0.369 & 0.447 & 0.372 & 0.008 & 0.359 \\
+cnk_Latn & Latn & 1,952 & 1k--12k & 0.405 & 0.090 & 0.095 & 0.402 & 0.049 & 0.357 \\
+arz_Arab & Arab & 29,429 & 35k+ & 0.341 & 0.358 & 0.397 & 0.343 & 0.035 & 0.306 \\
+bor_Latn & Latn & 27 & <500 & 0.444 & 0.519 & 0.667 & 0.370 & 0.148 & 0.296 \\
+max_Latn & Latn & 59 & <500 & 0.424 & 0.610 & 0.712 & 0.407 & 0.136 & 0.288 \\
+vot_Latn & Latn & 22 & <500 & 0.545 & 0.682 & 0.773 & 0.545 & 0.318 & 0.227 \\
+lzh_Hani & Hani & 12,722 & 35k+ & 0.239 & 0.066 & 0.068 & 0.228 & 0.016 & 0.222 \\
+lam_Latn & Latn & 7,648 & 35k+ & 0.210 & 0.343 & 0.363 & 0.210 & 0.021 & 0.189 \\
+lki_Arab & Arab & 38 & <500 & 0.632 & 0.816 & 1.000 & 0.684 & 0.447 & 0.184 \\
+dik_Latn & Latn & 5,342 & 35k+ & 0.199 & 0.177 & 0.184 & 0.198 & 0.016 & 0.183 \\
+\bottomrule
+\end{tabular}
+\caption{Languages where UniLID has higher error rate than the best alternative.}
+\label{tab:diverge-worse}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{lrrrrrrrrr}
+\toprule
+\textbf{Language} & \textbf{Script} & \textbf{N} & \textbf{Resource} & \textbf{Err (UniLID)} & \textbf{Err (UniLID-DeepSeek)} & \textbf{Err (UniLID-Qwen)} & \textbf{Err (UniLID-Marg)} & \textbf{Err (fastText)} & \textbf{Gap} \\
+\midrule
+kei_Latn & Latn & 38 & <500 & 0.053 & 0.105 & 0.158 & 0.079 & 0.105 & -0.026 \\
+asm_Latn & Latn & 81 & <500 & 0.123 & 0.160 & 0.148 & 0.148 & 0.160 & -0.025 \\
+lez_Cyrl & Cyrl & 60 & <500 & 0.033 & 0.650 & 0.767 & 0.050 & 0.050 & -0.017 \\
+anp_Deva & Deva & 654 & 1k--12k & 0.413 & 0.453 & 0.615 & 0.428 & 0.572 & -0.015 \\
+ory_Latn & Latn & 77 & <500 & 0.104 & 0.195 & 0.234 & 0.117 & 0.182 & -0.013 \\
+skr_Arab & Arab & 358 & 1k--12k & 0.087 & 0.142 & 0.229 & 0.098 & 0.112 & -0.011 \\
+tkl_Latn & Latn & 90 & 500--1k & 0.089 & 0.333 & 0.411 & 0.100 & 0.389 & -0.011 \\
+lud_Latn & Latn & 98 & 500--1k & 0.020 & 0.031 & 0.337 & 0.031 & 0.255 & -0.010 \\
+tig_Ethi & Ethi & 541 & 1k--12k & 0.242 & 0.921 & 0.856 & 0.251 & 0.255 & -0.009 \\
+vmk_Latn & Latn & 288 & 1k--12k & 0.128 & 0.264 & 0.302 & 0.135 & 0.312 & -0.007 \\
+qul_Latn & Latn & 3,700 & 18k--35k & 0.076 & 0.188 & 0.167 & 0.081 & 0.088 & -0.004 \\
+arq_Arab & Arab & 474 & 1k--12k & 0.190 & 0.264 & 0.270 & 0.198 & 0.194 & -0.004 \\
+swc_Latn & Latn & 66,941 & 35k+ & 0.098 & 0.120 & 0.124 & 0.101 & 0.780 & -0.003 \\
+pcm_Latn & Latn & 5,776 & 18k--35k & 0.157 & 0.220 & 0.231 & 0.159 & 0.301 & -0.002 \\
+ktu_Latn & Latn & 3,728 & 18k--35k & 0.099 & 0.185 & 0.176 & 0.101 & 0.958 & -0.002 \\
+\bottomrule
+\end{tabular}
+\caption{Languages where UniLID has lower error rate than the best alternative.}
+\label{tab:diverge-better}
+\end{table}

@@ -1,0 +1,76 @@
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{lrrr}
+\toprule
+\textbf{Model} & \textbf{N} & \textbf{Accuracy} & \textbf{Macro F1} \\
+\midrule
+UniLID (original) & 500,000 & 0.960 & 0.941 \\
+UniLID (raw rescore) & 500,000 & 0.960 & 0.941 \\
+UniLID (normalized) & 500,000 & 0.885 & 0.875 \\
+\bottomrule
+\end{tabular}
+\caption{Overall comparison: original vs length-normalized scoring.}
+\label{tab:norm-overall}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{lrrrrrrr}
+\toprule
+\textbf{Length} & \textbf{N} & \textbf{Acc (UniLID (original))} & \textbf{Ma-F1 (UniLID (original))} & \textbf{Acc (UniLID (raw rescore))} & \textbf{Ma-F1 (UniLID (raw rescore))} & \textbf{Acc (UniLID (normalized))} & \textbf{Ma-F1 (UniLID (normalized))} \\
+\midrule
+<30 & 27,328 & 0.792 & 0.656 & 0.792 & 0.656 & 0.566 & 0.425 \\
+30--75 & 177,256 & 0.951 & 0.927 & 0.951 & 0.927 & 0.842 & 0.777 \\
+75--150 & 195,267 & 0.978 & 0.971 & 0.978 & 0.971 & 0.925 & 0.928 \\
+150--300 & 87,096 & 0.987 & 0.984 & 0.987 & 0.984 & 0.966 & 0.964 \\
+300+ & 13,053 & 0.995 & 0.990 & 0.995 & 0.990 & 0.991 & 0.982 \\
+\bottomrule
+\end{tabular}
+\caption{Original vs Normalized by text length}
+\label{tab:norm-length}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{lrrrrrrr}
+\toprule
+\textbf{Resource} & \textbf{N} & \textbf{Acc (UniLID (original))} & \textbf{Ma-F1 (UniLID (original))} & \textbf{Acc (UniLID (raw rescore))} & \textbf{Ma-F1 (UniLID (raw rescore))} & \textbf{Acc (UniLID (normalized))} & \textbf{Ma-F1 (UniLID (normalized))} \\
+\midrule
+<500 & 19 & 0.789 & 0.810 & 0.789 & 0.810 & 0.316 & 0.357 \\
+500--1k & 51 & 0.961 & 0.952 & 0.961 & 0.952 & 0.863 & 0.852 \\
+1k--12k & 6,130 & 0.987 & 0.985 & 0.987 & 0.985 & 0.966 & 0.967 \\
+12k--18k & 12,785 & 0.995 & 0.997 & 0.995 & 0.997 & 0.985 & 0.990 \\
+18k--35k & 12,404 & 0.981 & 0.992 & 0.981 & 0.992 & 0.956 & 0.981 \\
+35k+ & 468,611 & 0.958 & 0.958 & 0.958 & 0.958 & 0.879 & 0.866 \\
+\bottomrule
+\end{tabular}
+\caption{Original vs Normalized by resource level}
+\label{tab:norm-resource}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{lrrrrrrr}
+\toprule
+\textbf{Script} & \textbf{N} & \textbf{Acc (UniLID (original))} & \textbf{Ma-F1 (UniLID (original))} & \textbf{Acc (UniLID (raw rescore))} & \textbf{Ma-F1 (UniLID (raw rescore))} & \textbf{Acc (UniLID (normalized))} & \textbf{Ma-F1 (UniLID (normalized))} \\
+\midrule
+Latn & 381,488 & 0.963 & 0.950 & 0.963 & 0.950 & 0.880 & 0.887 \\
+Cyrl & 38,179 & 0.960 & 0.873 & 0.960 & 0.873 & 0.877 & 0.759 \\
+Arab & 22,935 & 0.907 & 0.752 & 0.907 & 0.752 & 0.854 & 0.594 \\
+Grek & 7,663 & 0.972 & 0.874 & 0.972 & 0.874 & 0.945 & 0.785 \\
+Deva & 7,424 & 0.896 & 0.807 & 0.896 & 0.807 & 0.831 & 0.684 \\
+Hang & 5,115 & 1.000 & 1.000 & 1.000 & 1.000 & 1.000 & 1.000 \\
+Hebr & 3,951 & 0.952 & 0.854 & 0.952 & 0.854 & 0.919 & 0.686 \\
+Beng & 3,803 & 0.986 & 0.862 & 0.986 & 0.862 & 0.955 & 0.761 \\
+Jpan & 3,754 & 0.987 & 0.993 & 0.987 & 0.993 & 0.981 & 0.990 \\
+Armn & 3,563 & 0.976 & 0.973 & 0.976 & 0.973 & 0.900 & 0.890 \\
+Other & 22,125 & 0.972 & 0.957 & 0.972 & 0.957 & 0.952 & 0.923 \\
+\bottomrule
+\end{tabular}
+\caption{Original vs normalized by script.}
+\label{tab:norm-script}
+\end{table}

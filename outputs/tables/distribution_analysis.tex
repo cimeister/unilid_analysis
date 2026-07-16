@@ -1,0 +1,79 @@
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+\textbf{Language} & \textbf{Script} & \textbf{Train N} & \textbf{KL from base} & \textbf{Corr w/ base} & \textbf{MAD} \\
+\midrule
+lis_Lisu & Lisu & 6,732 & 1.28 & 0.0402 & 4.26 \\
+ydd_Hebr & Hebr & 38,324 & 1.27 & 0.1212 & 5.69 \\
+heb_Hebr & Hebr & 100,000 & 1.26 & 0.2119 & 6.66 \\
+div_Thaa & Thaa & 33,933 & 1.26 & 0.1138 & 6.01 \\
+ttq_Tfng & Tfng & 4,277 & 1.25 & 0.0253 & 3.71 \\
+tam_Taml & Taml & 100,000 & 1.25 & 0.2179 & 6.81 \\
+ksw_Mymr & Mymr & 100,000 & 1.24 & 0.0537 & 6.62 \\
+kan_Knda & Knda & 100,000 & 1.24 & 0.0920 & 6.94 \\
+mni_Beng & Beng & 41,766 & 1.23 & 0.0328 & 6.25 \\
+sin_Sinh & Sinh & 100,000 & 1.23 & 0.2015 & 6.98 \\
+mal_Mlym & Mlym & 100,000 & 1.23 & 0.1778 & 6.97 \\
+kff_Telu & Telu & 6,762 & 1.22 & 0.0209 & 4.32 \\
+grt_Beng & Beng & 13,469 & 1.22 & 0.0332 & 4.95 \\
+ike_Cans & Cans & 30,725 & 1.22 & 0.0588 & 5.97 \\
+cmo_Khmr & Khmr & 11,062 & 1.22 & 0.0200 & 4.96 \\
+kyu_Mymr & Mymr & 13,476 & 1.21 & 0.0371 & 5.26 \\
+asm_Beng & Beng & 100,000 & 1.21 & 0.1597 & 6.74 \\
+kxm_Thai & Thai & 13,492 & 1.21 & 0.0243 & 4.91 \\
+ojb_Cans & Cans & 33,721 & 1.21 & 0.1458 & 5.97 \\
+sus_Arab & Arab & 30,707 & 1.21 & 0.0475 & 5.67 \\
+\bottomrule
+\end{tabular}
+\caption{Top 20 languages most divergent from base.}
+\label{tab:kl-top}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+\textbf{Resource bin} & \textbf{# Langs} & \textbf{Mean KL} & \textbf{Median KL} & \textbf{Mean corr} & \textbf{Mean MAD} \\
+\midrule
+<500 & 56 & 0.32 & 0.27 & 0.1888 & 1.17 \\
+500--1k & 40 & 0.50 & 0.43 & 0.2061 & 1.78 \\
+1k--12k & 458 & 0.70 & 0.67 & 0.2583 & 3.86 \\
+12k--18k & 526 & 0.71 & 0.69 & 0.2773 & 4.84 \\
+18k--35k & 398 & 0.70 & 0.69 & 0.2892 & 5.23 \\
+35k+ & 462 & 0.68 & 0.62 & 0.3214 & 5.90 \\
+\bottomrule
+\end{tabular}
+\caption{KL from base by resource level.}
+\label{tab:kl-resource}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+\textbf{Pair} & \textbf{Sym KL} & \textbf{Corr} & \textbf{MAD} & \textbf{Train A} & \textbf{Train B} \\
+\midrule
+Indonesian / Malay & 0.06 & 0.8955 & 0.364 & 100,000 & 100,000 \\
+Hindi / Angika & 0.08 & 0.8835 & 2.218 & 100,000 & 4,499 \\
+Danish / Bokmal & 0.19 & 0.8525 & 0.450 & 100,000 & 100,000 \\
+English / Scots & 0.22 & 0.8109 & 0.466 & 100,000 & 87,458 \\
+MSA / Egyptian Arabic & 0.26 & 0.7527 & 0.620 & 100,000 & 100,000 \\
+MSA / Moroccan Arabic & 0.16 & 0.8813 & 0.591 & 100,000 & 100,000 \\
+Persian / Gilaki & 0.16 & 0.8388 & 1.279 & 100,000 & 22,263 \\
+Mandarin / Wu & 0.03 & 0.7474 & 0.569 & 100,000 & 74,364 \\
+Mandarin / Cantonese & 0.06 & 0.7852 & 0.411 & 100,000 & 100,000 \\
+Kinyarwanda / Kirundi & 0.08 & 0.8695 & 0.439 & 100,000 & 100,000 \\
+Bokmal / Nynorsk & 0.14 & 0.8679 & 0.370 & 100,000 & 100,000 \\
+Hebrew / Biblical Hebrew & 0.26 & 0.6396 & 0.457 & 100,000 & 100,000 \\
+Russian / Ukrainian & 0.48 & 0.7881 & 0.522 & 100,000 & 100,000 \\
+Spanish / Portuguese & 0.42 & 0.7654 & 0.628 & 100,000 & 100,000 \\
+Slovak / Czech & 0.30 & 0.7980 & 0.555 & 100,000 & 100,000 \\
+\bottomrule
+\end{tabular}
+\caption{Related language pair divergence.}
+\label{tab:pairwise-kl}
+\end{table}

@@ -1,0 +1,17 @@
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{lrrrrrrrrrrrrrrrrr}
+\toprule
+\textbf{Length} & \textbf{# Langs} & \textbf{N} & \textbf{Acc (UniLID)} & \textbf{Ma-F1 (UniLID)} & \textbf{Ma-FPR x1e5 (UniLID)} & \textbf{Acc (UniLID-DeepSeek)} & \textbf{Ma-F1 (UniLID-DeepSeek)} & \textbf{Ma-FPR x1e5 (UniLID-DeepSeek)} & \textbf{Acc (UniLID-Qwen)} & \textbf{Ma-F1 (UniLID-Qwen)} & \textbf{Ma-FPR x1e5 (UniLID-Qwen)} & \textbf{Acc (UniLID-Marg)} & \textbf{Ma-F1 (UniLID-Marg)} & \textbf{Ma-FPR x1e5 (UniLID-Marg)} & \textbf{Acc (fastText)} & \textbf{Ma-F1 (fastText)} & \textbf{Ma-FPR x1e5 (fastText)} \\
+\midrule
+<30 & 1,491 & 2,495,019 & 0.794 & 0.430 & 12.8 & 0.812 & 0.357 & 11.4 & 0.790 & 0.335 & 12.8 & 0.797 & 0.439 & 12.6 & 0.866 & 0.615 & 8.9 \\
+30--75 & 1,930 & 16,130,153 & 0.952 & 0.913 & 2.4 & 0.951 & 0.877 & 2.4 & 0.940 & 0.869 & 2.9 & 0.953 & 0.915 & 2.4 & 0.936 & 0.918 & 3.3 \\
+75--150 & 1,930 & 17,843,812 & 0.978 & 0.960 & 1.1 & 0.975 & 0.947 & 1.3 & 0.967 & 0.941 & 1.7 & 0.978 & 0.960 & 1.1 & 0.957 & 0.956 & 2.2 \\
+150--300 & 1,888 & 7,970,491 & 0.987 & 0.972 & 0.7 & 0.985 & 0.966 & 0.8 & 0.980 & 0.962 & 1.0 & 0.987 & 0.972 & 0.7 & 0.971 & 0.962 & 1.5 \\
+300+ & 1,773 & 1,187,804 & 0.994 & 0.980 & 0.3 & 0.994 & 0.977 & 0.3 & 0.993 & 0.974 & 0.4 & 0.994 & 0.980 & 0.3 & 0.981 & 0.968 & 1.0 \\
+\bottomrule
+\end{tabular}
+\caption{Accuracy by text length (characters)}
+\label{tab:by-length}
+\end{table}

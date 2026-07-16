@@ -1,0 +1,23 @@
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{lrrrrrrrrrr}
+\toprule
+\textbf{Script} & \textbf{# Langs} & \textbf{N} & \textbf{Best (Acc)} & \textbf{Acc} & \textbf{2nd Acc} & \textbf{Delta} & \textbf{Best (Ma-F1)} & \textbf{Ma-F1} & \textbf{2nd Ma-F1} & \textbf{Delta} \\
+\midrule
+Latn & 1,700 & 34,772,360 & UniLID-Marg & 0.964 & 0.963 & 0.001 & fastText & 0.946 & 0.942 & 0.004 \\
+Cyrl & 70 & 3,488,437 & fastText & 0.991 & 0.973 & 0.018 & fastText & 0.970 & 0.880 & 0.090 \\
+Arab & 38 & 2,106,331 & UniLID-DeepSeek & 0.913 & 0.907 & 0.006 & fastText & 0.747 & 0.693 & 0.054 \\
+Grek & 4 & 707,397 & fastText & 0.993 & 0.973 & 0.020 & fastText & 0.925 & 0.686 & 0.240 \\
+Deva & 32 & 683,863 & fastText & 0.977 & 0.900 & 0.077 & fastText & 0.932 & 0.814 & 0.117 \\
+Hang & 1 & 474,974 & UniLID & 1.000 & 1.000 & 0.000 & UniLID & 1.000 & 1.000 & 0.000 \\
+Hebr & 4 & 359,581 & fastText & 0.997 & 0.947 & 0.049 & fastText & 0.967 & 0.775 & 0.192 \\
+Beng & 6 & 342,565 & fastText & 0.997 & 0.988 & 0.009 & fastText & 0.985 & 0.915 & 0.070 \\
+Jpan & 1 & 341,301 & UniLID-DeepSeek & 0.994 & 0.993 & 0.001 & UniLID-DeepSeek & 0.997 & 0.996 & 0.001 \\
+Armn & 2 & 315,463 & fastText & 0.987 & 0.978 & 0.009 & fastText & 0.986 & 0.975 & 0.010 \\
+Other & 82 & 2,035,007 & UniLID & 0.973 & 0.973 & 0.000 & fastText & 0.973 & 0.938 & 0.034 \\
+\bottomrule
+\end{tabular}
+\caption{Per-script best model comparison.}
+\label{tab:per-script-winner}
+\end{table}

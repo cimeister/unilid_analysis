@@ -1,0 +1,25 @@
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{lrr}
+\toprule
+\textbf{Category} & \textbf{Count} & \textbf{% of any-wrong} \\
+\midrule
+UniLID errors & 1789423 & 37.8% \\
+UniLID-DeepSeek errors & 1833798 & 38.8% \\
+UniLID-Qwen errors & 2252956 & 47.7% \\
+UniLID-Marg errors & 1756646 & 37.2% \\
+fastText errors & 2389811 & 50.5% \\
+Only UniLID wrong & 51659 & 1.1% \\
+Only UniLID-DeepSeek wrong & 185722 & 3.9% \\
+Only UniLID-Qwen wrong & 543768 & 11.5% \\
+Only UniLID-Marg wrong & 24475 & 0.5% \\
+Only fastText wrong & 1497021 & 31.7% \\
+All 5 wrong & 432545 & 9.1% \\
+All 5 wrong, same pred & 185019 & 3.9% \\
+Any wrong & 4728027 & 100.0% \\
+\bottomrule
+\end{tabular}
+\caption{Error overlap across models.}
+\label{tab:error-overlap}
+\end{table}
