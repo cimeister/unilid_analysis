@@ -2,8 +2,18 @@
 
 The working tree contains two nested git repositories that this repository does not
 track (see `.gitignore`): `UNILID/` and its submodule `UNILID/tokenizers/`. Both carry
-uncommitted local modifications that are required to reproduce the results in
+local modifications that are required to reproduce the results in
 `EXPERIMENTS_RESULTS.md`. Those modifications are recorded here as patches.
+
+As of 2026-07-16 the same modifications are also committed and pushed to forks, which
+are the preferred way to obtain them:
+
+- https://github.com/cimeister/UNILID, branch `bias-scoring`, commit `1d26844`
+  (based on `816189e`; also points the tokenizers submodule at the fork below)
+- https://github.com/cimeister/tokenizers, branch `unilid-scorers`, commit `156f6c51`
+  (based on `b1c1c736`)
+
+The patches are retained so this repository stays self-contained.
 
 - `unilid.patch`: against UNILID commit `816189e`
   (clone of https://github.com/Ahmetcanyvz/UNILID). Makes the `transformers` import in
