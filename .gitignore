@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+
+# Nested git repositories (third-party remotes); local modifications are
+# recorded in patches/ instead of being tracked here.
+UNILID/
