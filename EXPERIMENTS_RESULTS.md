@@ -341,6 +341,34 @@ inputs). **Status:** drives the hierarchical-pooling program (`EXPERIMENTS_PLAN.
 
 ---
 
+## Experiment 36: gt_margin_adaptive judged; both pre-run predictions confirmed; floor-21 retains selection 5/5 (2026-07-25, job 2895821)
+
+**Verdict: ELIGIBLE, flagged (ota_Arab only); not selected.** Both on-record
+predictions confirmed: reassignments 325,546 (down from round 3's 407,562;
+207,241 to the true label) and ota_Arab remains the sole flag (its FPs are
+high-margin weight-side flips no quantile catches; mechanism unchanged from
+Exp 34). Rows: balanced-val 0.9798 / 0.9580 / 0.9503 / 0.9408 / 0.9808
+(overall/tail/magnets/twins/head); veto overall 0.9334, the best of all eleven
+configurations tested (floor-21 0.9309).
+
+**Selection.** The natural-track ranking margin over floor-21 is 0.0002 of
+balanced-val overall. Stability check across all five val draws (the instrument
+built for exactly this): floor-21 leads 5/5 with margins 0.0000-0.0002,
+consistently signed, so floor-21 retains selection under the standing rule and
+the margin is not draw noise. The two candidates are near-equivalent on the
+selection instrument while gt_margin_adaptive is better on the veto and on
+balanced-val tail (0.9580 vs 0.8942). Open rule-design question for the user,
+recorded not decided: whether near-ties on the selection instrument (margin
+below, say, 0.001) should break on the veto overall, which would select
+gt_margin_adaptive here.
+
+**Family arc closed (four rounds).** gt_min (rejected, FP explosion) ->
+runner-up gate (szy mechanism) -> head-targeted (lowmid class) -> 100k bar
+(barely-head class closed, ota residue) -> N-adaptive strength (boundary cliff
+removed, val cost recovered from 0.9744 to 0.9798). Each rejection produced the
+next candidate's mechanism; the family ends with two eligible compositions and
+the reassignment law as a documented result.
+
 ## Experiment 35: the EM-degeneracy question bounded (2026-07-25, analysis)
 
 **User concern:** if per-language EM occasionally degenerates, previous "failures"
