@@ -42,12 +42,26 @@ OUT_TAU = "outputs/diagnostic/tau_per_lang_gtmin.csv"
 OUT_MD = "outputs/tables/gt_margin_build.md"
 
 
-def run() -> str:
+def run(gate: str = "tail") -> str:
+    """gate="tail": the Exp 31 candidate gt_margin (gated labels = tail, N<1k).
+    gate="nonhead": the Exp 32 pre-registered candidate gt_margin_all (gated labels
+    = every language with N < HEAD_N; the dig-in showed every victim suffers FP
+    inflow at a non-head label, so the defense must cover tail AND lowmid)."""
+    if gate not in ("tail", "nonhead"):
+        raise ValueError(f"unknown gate {gate!r}")
     prf = pd.read_csv(PRF_CSV)
     langs = prf.lang.tolist()
     n_lang = len(langs)
     N = prf.N.values
-    tail_idx = np.where(N < 1_000)[0]
+    tail_idx = (np.where(N < 1_000)[0] if gate == "tail"
+                else np.where(N < HEAD_N)[0])
+    name = "gt_margin" if gate == "tail" else "gt_margin_all"
+    out_pred = (OUT_PRED if gate == "tail"
+                else os.path.join(SCRATCH_DIR, "pred_gt_margin_all.npy"))
+    out_tau = (OUT_TAU if gate == "tail"
+               else "outputs/diagnostic/tau_per_lang_gtmin_all.csv")
+    out_md = (OUT_MD if gate == "tail"
+              else "outputs/tables/gt_margin_all_build.md")
 
     weights, langs_m, _m = _load_model_data()
     if langs_m != langs:
@@ -69,7 +83,7 @@ def run() -> str:
     pg = np.asarray(np.lib.format.open_memmap(
         os.path.join(SCRATCH_DIR, "pred_gt_min.npy"), mode="r"))
     affected = np.where((pg >= 0) & np.isin(pg, tail_idx))[0]
-    print(f"{len(affected):,} lines carry a tail gt_min prediction")
+    print(f"{len(affected):,} lines carry a gated gt_min prediction")
 
     model = _load_unilid_model()
     print("Caching gt_min weights...", flush=True)
@@ -101,8 +115,8 @@ def run() -> str:
         calib_rows.append({"lang": lang, "n_scoreable": len(ctopk),
                            "n_self_won": len(wins), "tau": tau[int(li)],
                            "excluded": excluded})
-    os.makedirs(os.path.dirname(OUT_TAU), exist_ok=True)
-    pd.DataFrame(calib_rows).to_csv(OUT_TAU, index=False)
+    os.makedirs(os.path.dirname(out_tau), exist_ok=True)
+    pd.DataFrame(calib_rows).to_csv(out_tau, index=False)
     n_excluded = sum(r["excluded"] for r in calib_rows)
 
     # --- score affected lines and apply the head-targeted gate ---
@@ -145,24 +159,24 @@ def run() -> str:
         pred[line] = np.int16(head_cands[0])
         n_reassigned += 1
         n_to_true += int(head_cands[0] == int(y[line]))
-    np.save(OUT_PRED, pred)
+    np.save(out_pred, pred)
 
-    L = ["# gt_margin candidate build (pre-registered composition, Exp 28 + Exp 26)\n",
+    L = [f"# {name} candidate build (pre-registered composition; gate={gate})\n",
          f"- gt_min matrix rebuilt and fingerprint-verified (sha {sha[:16]}...).",
-         f"- tau recalibrated under gt_min: {n_excluded} of {len(tail_idx)} tail "
+         f"- tau recalibrated under gt_min: {n_excluded} of {len(tail_idx)} gated "
          f"languages excluded (< {MIN_CALIB_LINES} self-won train lines); values in "
-         f"{OUT_TAU}.",
-         f"- Tail gt_min-predicted lines scored: {len(affected):,} (top-1 agreement "
+         f"{out_tau}.",
+         f"- Gated gt_min-predicted lines scored: {len(affected):,} (top-1 agreement "
          f"{agree:.4f}; {n_disagree} disagreeing lines left ungated).",
          f"- Reassigned to a head candidate: {n_reassigned:,} of {n_gated:,} gated "
          f"lines; {n_to_true:,} land on the true label; {n_no_target:,} below-tau "
          f"lines kept for lack of a head candidate in the top-{TOPK_MARGIN}.",
-         f"- All other lines bit-identical to pred_gt_min.npy. Output: {OUT_PRED}."]
-    os.makedirs(os.path.dirname(OUT_MD), exist_ok=True)
-    with open(OUT_MD, "w") as f:
+         f"- All other lines bit-identical to pred_gt_min.npy. Output: {out_pred}."]
+    os.makedirs(os.path.dirname(out_md), exist_ok=True)
+    with open(out_md, "w") as f:
         f.write("\n".join(L) + "\n")
     print("\n".join(L))
-    return OUT_PRED
+    return out_pred
 
 
 if __name__ == "__main__":
