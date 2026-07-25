@@ -196,6 +196,110 @@ def passes_guard(cand, base, prefix=""):
                for st in GUARD_STRATA)
 
 
+# Precision-primary adoption rule (user decisions 2026-07-23, incl. the symmetric
+# widening follow-up; rationale and provenance in EXPERIMENTAL_SETUP.md
+# "Precision-primary adoption rule"). Constants pre-registered, not swept.
+TAIL_RECALL_TOL = 0.03      # widened within-stratum tolerance for tail and magnets
+PREC_TOL = 0.0              # veto: tail/magnet global mean F1 may not drop
+LANG_COLLAPSE_BOUND = 0.10  # veto: max allowed per-language global F1 drop
+# The collapse clause judges only languages with at least this many true lines on the
+# veto instrument: at n=4 a single line flip moves F1 by 0.11-0.14 and would
+# false-trip the bound (2026-07-23 delta review). Sub-floor languages are reported
+# informationally by the caller, never silently dropped.
+MIN_COLLAPSE_SUPPORT = 10
+# Outlier tolerance (user decision 2026-07-24): the collapse bound exists to catch
+# methods that harm a (sub)class of languages as a whole; one or two outlier
+# languages flag a required dig-in instead of rejecting the method. Three or more
+# supported collapses reject.
+MAX_LANG_COLLAPSE_OUTLIERS = 2
+WIDENED_STRATA = ("tail", "magnets")
+
+
+def passes_uniform(cand, base, prefix=""):
+    """Uniform-prior track selection (added 2026-07-24, gating reconsideration):
+    balanced-val overall must improve and no stratum may drop more than GUARD_TOL.
+    Within-stratum macro-F1 on language-balanced data IS the uniform-prior
+    deployment view, so this track needs no separate precision veto; per-language
+    collapse is checked at confirmation on the balanced test draw (support >=
+    MIN_COLLAPSE_SUPPORT there). One candidate per round is confirmed on the test
+    draw: the highest balanced-val overall among track passers."""
+    if cand[f"{prefix}overall"] <= base[f"{prefix}overall"]:
+        return False
+    return all(cand[f"{prefix}{st}"] >= base[f"{prefix}{st}"] - GUARD_TOL
+               for st in GUARD_STRATA)
+
+
+def passes_shortlist(cand, base, prefix=""):
+    """Sweep-time shortlist on balanced val only. The global (precision) view cannot be
+    measured on 188k balanced lines, so sweeps shortlist with the widened tolerances
+    unconditionally (tail/magnets at TAIL_RECALL_TOL, overall may drop GUARD_TOL) and
+    every shortlisted candidate must then pass passes_two_sided on a full-pool pass
+    before adoption. Shortlisting uses selection data only."""
+    if cand[f"{prefix}overall"] < base[f"{prefix}overall"] - GUARD_TOL:
+        return False
+    return all(
+        cand[f"{prefix}{st}"] >= base[f"{prefix}{st}"]
+        - (TAIL_RECALL_TOL if st in WIDENED_STRATA else GUARD_TOL)
+        for st in GUARD_STRATA)
+
+
+def passes_two_sided(cand_val, base_val, cand_f1, base_f1, strata_masks, support,
+                     prefix=""):
+    """Full precision-primary adoption rule; returns (adopted, reasons).
+
+    support: per-language true-line counts on the veto instrument. The collapse
+    clause (C) judges only languages with support >= MIN_COLLAPSE_SUPPORT; the caller
+    reports sub-floor languages informationally.
+
+    cand_val/base_val: within-stratum macro-F1 dicts on balanced-val draw 101 (same
+    keying as passes_guard). cand_f1/base_f1: global per-language F1 vectors on the
+    veto instrument (pool minus the selection and headline draws; a candidate fit on
+    any stability draw must additionally exclude the draws it was fit on: see
+    EXPERIMENTAL_SETUP.md). strata_masks: boolean per-language masks with keys "tail"
+    and "magnets".
+
+    (A) Balanced-val stage: overall may drop at most GUARD_TOL; twins/head bounded by
+        GUARD_TOL; tail and magnets bounded by TAIL_RECALL_TOL when that stratum's
+        global mean F1 gain exceeds its within-stratum loss, else GUARD_TOL.
+    (B) Veto stage: overall global macro-F1 must improve; tail and magnet global mean
+        F1 may not drop by more than PREC_TOL.
+    (C) No single language may lose more than LANG_COLLAPSE_BOUND global F1.
+    """
+    reasons = []
+    gains = {st: float(cand_f1[m].mean() - base_f1[m].mean())
+             for st, m in strata_masks.items()}
+    if cand_val[f"{prefix}overall"] < base_val[f"{prefix}overall"] - GUARD_TOL:
+        reasons.append(f"val overall drops more than {GUARD_TOL}")
+    for st in GUARD_STRATA:
+        loss = base_val[f"{prefix}{st}"] - cand_val[f"{prefix}{st}"]
+        if st in WIDENED_STRATA and gains[st] > max(loss, 0.0):
+            tol = TAIL_RECALL_TOL
+        else:
+            tol = GUARD_TOL
+        if loss > tol:
+            reasons.append(f"val {st} drops {loss:.4f} > {tol}")
+    # Amended 2026-07-24 (gating reconsideration, recorded in EXPERIMENTAL_SETUP):
+    # was "must improve"; a tail-repair candidate should not fail on a sub-noise
+    # overall dip. Ranking still rewards overall via the selection instrument.
+    if cand_f1.mean() < base_f1.mean() - GUARD_TOL:
+        reasons.append(f"veto overall global macro-F1 drops more than {GUARD_TOL}")
+    for st in WIDENED_STRATA:
+        if gains[st] < -PREC_TOL:
+            reasons.append(f"veto {st} global mean F1 drops {-gains[st]:.4f}")
+    drops = base_f1 - cand_f1
+    judged = np.asarray(support) >= MIN_COLLAPSE_SUPPORT
+    outlier_idx = np.where(judged & (drops > LANG_COLLAPSE_BOUND))[0]
+    n_collapse = len(outlier_idx)
+    if n_collapse > MAX_LANG_COLLAPSE_OUTLIERS:
+        worst = float(drops[judged].max())
+        reasons.append(f"{n_collapse} language(s) with support >= "
+                       f"{MIN_COLLAPSE_SUPPORT} lose more than "
+                       f"{LANG_COLLAPSE_BOUND} global F1 (worst {worst:.4f}); "
+                       f"more than {MAX_LANG_COLLAPSE_OUTLIERS} outliers is a "
+                       "class-level pattern")
+    return (len(reasons) == 0, reasons, outlier_idx.tolist())
+
+
 def _bootstrap_delta(y_true, y_base, y_new, mask, B=1000, seed=0):
     """Bootstrap 95% CI of macro-F1(new) - macro-F1(base) within mask."""
     rng = np.random.default_rng(seed)
