@@ -1,0 +1,62 @@
+{
+ "K": 100,
+ "fraction": 0.5,
+ "seeds": [
+  101,
+  102,
+  103,
+  104,
+  105
+ ],
+ "pool_lines": 45377279,
+ "draws": {
+  "101": {
+   "n_lines": 188061,
+   "languages_with_val": 1940
+  },
+  "102": {
+   "n_lines": 188061,
+   "languages_with_val": 1940,
+   "regenerated": "2026-07-23 excluding the seed-201 test draw",
+   "languages_with_reduced_k": 0
+  },
+  "103": {
+   "n_lines": 188061,
+   "languages_with_val": 1940,
+   "regenerated": "2026-07-23 excluding the seed-201 test draw",
+   "languages_with_reduced_k": 0
+  },
+  "104": {
+   "n_lines": 188061,
+   "languages_with_val": 1940,
+   "regenerated": "2026-07-23 excluding the seed-201 test draw",
+   "languages_with_reduced_k": 0
+  },
+  "105": {
+   "n_lines": 188061,
+   "languages_with_val": 1940,
+   "regenerated": "2026-07-23 excluding the seed-201 test draw",
+   "languages_with_reduced_k": 0
+  }
+ },
+ "coverage_seed0": {
+  "tail (N<1k)": {
+   "median_support": 33,
+   "ge10": 89,
+   "ge30": 57
+  },
+  "all": {
+   "median_support": 100,
+   "ge10": 1933,
+   "ge30": 1901
+  }
+ },
+ "test_draw": {
+  "seed": 201,
+  "n_lines": 185204,
+  "languages_with_test": 1940,
+  "tail_median_support": 16,
+  "tail_ge10": 70,
+  "excludes": "val draw seed 101 only (see TEST_SEED comment)"
+ }
+}
