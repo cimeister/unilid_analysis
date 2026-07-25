@@ -15,6 +15,7 @@ Rule constants: GUARD_TOL=0.01, TAIL_RECALL_TOL=0.03 (tail and magnets, symmetri
 | margin_q5_head | 0.9799 | 0.8981 | 0.9036 | 0.9406 | 0.9814 |
 | gt_min | 0.9841 | 0.9769 | 0.9688 | 0.9409 | 0.9811 |
 | gt_margin | 0.9827 | 0.9507 | 0.9493 | 0.9410 | 0.9811 |
+| gt_margin_all | 0.9675 | 0.9507 | 0.9418 | 0.9380 | 0.9817 |
 
 ## Veto view: global per-language stats, pool minus the selection and headline draws
 
@@ -30,6 +31,7 @@ Levels here are not comparable to the full-pool Exp 24 numbers: the excluded dra
 | margin_q5_head | 0.9215 | 0.5321 | 0.4445 | 0.8271 | 0.4185 | 0.3250 | 0.8428 | 6,560 |
 | gt_min | 0.9114 | 0.2950 | 0.2205 | 0.9675 | 0.2533 | 0.1732 | 0.9565 | 79,113 |
 | gt_margin | 0.9230 | 0.5373 | 0.4774 | 0.9124 | 0.4135 | 0.3400 | 0.9159 | 19,390 |
+| gt_margin_all | 0.9331 | 0.5373 | 0.4774 | 0.9124 | 0.4942 | 0.4281 | 0.9002 | 19,390 |
 
 ## Verdicts
 
@@ -42,6 +44,7 @@ Collapse clause: more than 2 supported outliers rejects (class-level pattern); o
 - **margin_q5_head: ELIGIBLE**
 - **gt_min: REJECTED** (veto tail global mean F1 drops 0.0432; veto magnets global mean F1 drops 0.0358; 12 language(s) with support >= 10 lose more than 0.1 global F1 (worst 0.2123); more than 2 outliers is a class-level pattern)
 - **gt_margin: REJECTED** (4 language(s) with support >= 10 lose more than 0.1 global F1 (worst 0.2060); more than 2 outliers is a class-level pattern)
+- **gt_margin_all: REJECTED** (val overall drops more than 0.01; 4 language(s) with support >= 10 lose more than 0.1 global F1 (worst 0.3211); more than 2 outliers is a class-level pattern)
 
 Selected configuration: **floor21** (highest balanced-val overall among eligible)
 
@@ -57,6 +60,9 @@ Informational, exempt from clause (C) under gt_min (support < 10): abq_Cyrl -0.3
 
 Largest per-language global-F1 drops under gt_margin (with veto true-line support): lbe_Cyrl -0.566 (n=7), ldn_Latn -0.444 (n=5), abq_Cyrl -0.398 (n=7), sel_Cyrl -0.353 (n=5), bor_Latn -0.296 (n=7)
 Informational, exempt from clause (C) under gt_margin (support < 10): abq_Cyrl -0.398 (n=7), bor_Latn -0.296 (n=7), eto_Latn -0.240 (n=7), lbe_Cyrl -0.566 (n=7), ldn_Latn -0.444 (n=5), mgm_Latn -0.266 (n=8), mrv_Latn -0.215 (n=7), otw_Latn -0.148 (n=4), sby_Latn -0.135 (n=8), sel_Cyrl -0.353 (n=5), tzl_Latn -0.274 (n=9), vot_Latn -0.162 (n=6), xum_Latn -0.237 (n=4), zpj_Latn -0.202 (n=5)
+
+Largest per-language global-F1 drops under gt_margin_all (with veto true-line support): lbe_Cyrl -0.566 (n=7), ldn_Latn -0.444 (n=5), abq_Cyrl -0.398 (n=7), sel_Cyrl -0.353 (n=5), llb_Latn -0.321 (n=4181)
+Informational, exempt from clause (C) under gt_margin_all (support < 10): abq_Cyrl -0.398 (n=7), bor_Latn -0.296 (n=7), eto_Latn -0.240 (n=7), lbe_Cyrl -0.566 (n=7), ldn_Latn -0.444 (n=5), mgm_Latn -0.266 (n=8), mrv_Latn -0.215 (n=7), otw_Latn -0.148 (n=4), sby_Latn -0.135 (n=8), sel_Cyrl -0.353 (n=5), tzl_Latn -0.274 (n=9), vot_Latn -0.162 (n=6), xum_Latn -0.237 (n=4), zpj_Latn -0.202 (n=5)
 
 ## Uniform-prior track
 

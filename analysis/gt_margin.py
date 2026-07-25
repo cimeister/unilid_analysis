@@ -42,13 +42,16 @@ OUT_TAU = "outputs/diagnostic/tau_per_lang_gtmin.csv"
 OUT_MD = "outputs/tables/gt_margin_build.md"
 
 
-def run(gate: str = "tail") -> str:
+def run(gate: str = "tail", target_n: int = HEAD_N) -> str:
     """gate="tail": the Exp 31 candidate gt_margin (gated labels = tail, N<1k).
     gate="nonhead": the Exp 32 pre-registered candidate gt_margin_all (gated labels
     = every language with N < HEAD_N; the dig-in showed every victim suffers FP
     inflow at a non-head label, so the defense must cover tail AND lowmid)."""
     if gate not in ("tail", "nonhead"):
         raise ValueError(f"unknown gate {gate!r}")
+    if target_n < HEAD_N:
+        raise ValueError("reassignment-target bar below the head threshold would "
+                         "let gated labels receive lines")
     prf = pd.read_csv(PRF_CSV)
     langs = prf.lang.tolist()
     n_lang = len(langs)
@@ -56,12 +59,19 @@ def run(gate: str = "tail") -> str:
     tail_idx = (np.where(N < 1_000)[0] if gate == "tail"
                 else np.where(N < HEAD_N)[0])
     name = "gt_margin" if gate == "tail" else "gt_margin_all"
-    out_pred = (OUT_PRED if gate == "tail"
-                else os.path.join(SCRATCH_DIR, "pred_gt_margin_all.npy"))
-    out_tau = (OUT_TAU if gate == "tail"
-               else "outputs/diagnostic/tau_per_lang_gtmin_all.csv")
-    out_md = (OUT_MD if gate == "tail"
-              else "outputs/tables/gt_margin_all_build.md")
+    if target_n != HEAD_N:
+        # Exp 33 pre-registration: raise the target bar (round 3 uses RES_CAP)
+        name = f"{name}_{target_n // 1000}k"
+    if (gate, target_n) == ("tail", HEAD_N):
+        out_pred, out_tau, out_md = OUT_PRED, OUT_TAU, OUT_MD
+    elif (gate, target_n) == ("nonhead", HEAD_N):
+        out_pred = os.path.join(SCRATCH_DIR, "pred_gt_margin_all.npy")
+        out_tau = "outputs/diagnostic/tau_per_lang_gtmin_all.csv"
+        out_md = "outputs/tables/gt_margin_all_build.md"
+    else:
+        out_pred = os.path.join(SCRATCH_DIR, f"pred_{name}.npy")
+        out_tau = f"outputs/diagnostic/tau_{name}.csv"
+        out_md = f"outputs/tables/{name}_build.md"
 
     weights, langs_m, _m = _load_model_data()
     if langs_m != langs:
@@ -152,7 +162,7 @@ def run(gate: str = "tail") -> str:
         n_gated += 1
         if not (len(cands) >= 2 and _gap(cands) < t):
             continue
-        head_cands = [int(c[0]) for c in cands[1:] if N[int(c[0])] >= HEAD_N]
+        head_cands = [int(c[0]) for c in cands[1:] if N[int(c[0])] >= target_n]
         if not head_cands:
             n_no_target += 1
             continue

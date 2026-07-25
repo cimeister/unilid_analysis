@@ -341,6 +341,33 @@ inputs). **Status:** drives the hierarchical-pooling program (`EXPERIMENTS_PLAN.
 
 ---
 
+## Experiment 33: gt_margin_all judged; reassignment burden relocates to barely-head sinks (2026-07-25, job 2895566)
+
+**Verdict: REJECTED on both tracks** (val overall drop > 0.01; 4 supported
+collapses, worst -0.3211), with the best natural-veto aggregates of any candidate
+tested: overall 0.9121 to 0.9331 (above floor-21's 0.9309), tail global F1 0.5373,
+lowmid global F1 0.9267 to 0.9554, FPs into lowmid 451,042 to 139,506, FPs into
+tail 19,390. Build: 461,605 reassignments over 1,080 gated labels, 235,421 to the
+true label (`outputs/tables/gt_margin_all_build.md`).
+
+**Mechanism (new, third of its kind).** The four collapsed languages (aba_Latn
+N=18,107; bam_Latn N=18,697; llb_Latn N=25,228; twx_Latn N=26,573) are all
+barely-head languages just above the 18k threshold: valid reassignment targets
+that received the relocated burden. Pure precision loss (llb precision 0.878 to
+0.437; recall unchanged or improved in all four). Across three rounds the same
+law: runner-up targeting moved FP burden to small relatives (szy), tail-only
+gating moved it to lowmid sinks (arq/skr/llb/vmk), all-label gating moves it to
+barely-head sinks. Reassignment relocates FP burden to the lowest-capacity valid
+target near the cluster.
+
+**Pre-registration: round-3 candidate `gt_margin_all_100k` (recorded before any
+run).** Identical to gt_margin_all except the reassignment-target bar rises from
+HEAD_N=18,000 to RES_CAP=100,000 (the established resource cap; 98.9% of the
+original false positives come from sources with median N = 100,000, so the
+returned lines belong at top-resource labels). Gated set unchanged (N < 18,000);
+if the top-5 holds no candidate at the bar, keep the gt_min prediction. One
+candidate; both tracks; round closes on its verdict.
+
 ## Experiment 32: victim dig-ins, a degenerate-row finding in the 131k model, and the round-2 pre-registration (2026-07-24)
 
 **Dig-ins required by the outlier-tolerant clause
