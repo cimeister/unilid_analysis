@@ -245,7 +245,9 @@ def passes_shortlist(cand, base, prefix=""):
 
 def passes_two_sided(cand_val, base_val, cand_f1, base_f1, strata_masks, support,
                      prefix=""):
-    """Full precision-primary adoption rule; returns (adopted, reasons).
+    """Full precision-primary adoption rule; returns (adopted, reasons,
+    outlier_idx), where outlier_idx lists supported languages beyond the collapse
+    bound (dig-in targets when the verdict passes).
 
     support: per-language true-line counts on the veto instrument. The collapse
     clause (C) judges only languages with support >= MIN_COLLAPSE_SUPPORT; the caller
@@ -261,9 +263,12 @@ def passes_two_sided(cand_val, base_val, cand_f1, base_f1, strata_masks, support
     (A) Balanced-val stage: overall may drop at most GUARD_TOL; twins/head bounded by
         GUARD_TOL; tail and magnets bounded by TAIL_RECALL_TOL when that stratum's
         global mean F1 gain exceeds its within-stratum loss, else GUARD_TOL.
-    (B) Veto stage: overall global macro-F1 must improve; tail and magnet global mean
-        F1 may not drop by more than PREC_TOL.
-    (C) No single language may lose more than LANG_COLLAPSE_BOUND global F1.
+    (B) Veto stage: overall global macro-F1 may not drop more than GUARD_TOL
+        (amended 2026-07-24); tail and magnet global mean F1 may not drop by more
+        than PREC_TOL.
+    (C) At most MAX_LANG_COLLAPSE_OUTLIERS supported languages may lose more than
+        LANG_COLLAPSE_BOUND global F1; more rejects as a class-level pattern
+        (amended 2026-07-24).
     """
     reasons = []
     gains = {st: float(cand_f1[m].mean() - base_f1[m].mean())
