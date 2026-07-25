@@ -348,6 +348,48 @@ inputs). **Status:** drives the hierarchical-pooling program (`EXPERIMENTS_PLAN.
 
 ---
 
+## Experiment 39: CommonLID out-of-domain check of the carried leaders (2026-07-25, job 2898246)
+
+Web-domain evaluation (373,230 lines, Exp 12's macro-aware accuracy convention;
+baseline gate reproduced the recorded 0.8452 exactly;
+`outputs/tables/commonlid_carried.md`): floor-21 +0.0040, gt_margin_adaptive
++0.0070 over baseline. The adaptive gate ran with its training-calibrated tau
+values unchanged and fired on 9,886 lines: the no-refitting portability property
+holds mechanically, and the ordering matches the primary quantity (adaptive ahead
+of floor-21). Both gains are modest against the learned bias's +0.0427 (Exp 12),
+which fits the web domain's natural traffic prior but remains rejected for
+adoption on per-language grounds (Exp 25/31). Limitation recorded: macro-aware
+accuracy is line-weighted; a per-tag macro-averaged F1 (consistent with the
+project's primary quantity) would require persisting per-line predictions in a
+re-run and is the natural extension if CommonLID numbers enter the paper.
+
+## Experiment 38: the carried-forward set under the primary quantity (2026-07-25)
+
+Per-language F1 on the held-out remainder (45,004,014 lines outside draws 101 and
+201, natural distribution, all false positives counted), averaged unweighted over
+the 1,940 languages (`outputs/tables/carried_set_comparison.md`, per-language
+values in `outputs/diagnostic/carried_set_per_lang_f1.csv`):
+
+| config | all 1,940 | tail | lowmid | head | flat_magnet | twin |
+|---|---|---|---|---|---|---|
+| gt_margin_adaptive | 0.9334 | 0.4620 | 0.9567 | 0.9593 | 0.4206 | 0.8917 |
+| floor21 | 0.9309 | 0.6337 | 0.9352 | 0.9590 | 0.5345 | 0.8854 |
+| freq_prior | 0.9264 | 0.4816 | 0.9399 | 0.9605 | 0.4168 | 0.8892 |
+| learned_bias | 0.9254 | 0.3736 | 0.9405 | 0.9696 | 0.3562 | 0.9079 |
+| margin_q5_head | 0.9215 | 0.5321 | 0.9267 | 0.9590 | 0.4185 | 0.8856 |
+| margin_q5 | 0.9201 | 0.5125 | 0.9256 | 0.9592 | 0.4038 | 0.8847 |
+| baseline | 0.9121 | 0.3382 | 0.9267 | 0.9593 | 0.2890 | 0.8856 |
+
+The set is complementary, not redundant: gt_margin_adaptive leads overall through
+the lowmid band (0.9567), floor-21 leads tail (0.6337) and flat_magnets (0.5345),
+learned_bias leads head (0.9696) and twins (0.9079). Strict per-language leader
+counts (a configuration is counted only where it is the unique best; 326 of 1,940
+languages tie at the maximum and are excluded): learned_bias 602, gt_margin_adaptive
+587, freq_prior 211, floor21 173, margin_q5_head 21, baseline 10, margin_q5 10. No
+configuration dominates any other across all groups, supporting the keep-and-
+explore decision. An oracle upper bound (per-language best over the set) is a
+natural next measurement if method combination returns to the agenda.
+
 ## Experiment 37: the azj_Latn collapse is deterministic and numerically diagnosed (2026-07-25, isolated re-run)
 
 **Procedure:** azj_Latn's per-language training re-run in isolation (same corpus

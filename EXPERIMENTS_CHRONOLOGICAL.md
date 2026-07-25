@@ -26,6 +26,26 @@ for the infrastructure record.
 `EXPERIMENTAL_SETUP.md` (hierarchical pooling). Full plan:
 `~/.claude/plans/yes-do-both-then-giggly-sprout.md`.
 
+### 2026-07-25: Exp 36-39, adaptive verdict, azj re-run, user decisions, carried-set and CommonLID checks
+
+- Exp 36 (job 2895821): gt_margin_adaptive ELIGIBLE flagged (ota only); both
+  pre-run predictions confirmed; floor-21 retains top rank 5/5 draws at a 0.0002
+  margin. Exp 37 (login node): azj collapse reproduced byte-identically in
+  isolation; deterministic numerical breakdown in the fixed-vocab EM fork.
+- User decisions: near-tie co-selection (NEAR_TIE_BAND=0.001; six configurations
+  carried forward), primary quantity = macro-averaged per-language F1 on
+  natural-distribution test data (equal language weighting, extreme low-resource
+  exemptions allowed); precise terminology definitions committed to memory.
+- Exp 38 (login node): carried-set per-language comparison on the held-out
+  remainder; complementary structure (adaptive leads overall 0.9334 via lowmid,
+  floor-21 leads tail/magnets, learned_bias leads head/twins with 602 strict
+  per-language wins). `analysis/carried_set_comparison.py`.
+- Exp 39 (job 2898246; login-node attempt OOM-killed at exit 137, resubmitted via
+  SLURM): CommonLID check of the carried leaders, floor-21 +0.0040 and
+  gt_margin_adaptive +0.0070 over the reproduced 0.8452 baseline; gate portable
+  without refitting (9,886 firings). `analysis/commonlid_carried.py`, reviewed
+  with fingerprint and batch-length hardenings applied pre-run.
+
 ### 2026-07-25: Exp 34-35, round-3 verdict, EM-degeneracy bounded, adaptive variant launched
 
 - **2895683** `unilid-gt-margin-100k`: COMPLETED 08:37. gt_margin_all_100k
