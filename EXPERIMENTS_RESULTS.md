@@ -341,6 +341,27 @@ inputs). **Status:** drives the hierarchical-pooling program (`EXPERIMENTS_PLAN.
 
 ---
 
+## Experiment 37: the azj_Latn collapse is deterministic and numerically diagnosed (2026-07-25, isolated re-run)
+
+**Procedure:** azj_Latn's per-language training re-run in isolation (same corpus
+file, same 131k base tokenizer, same trainer call as job 2883222; output to a
+scratch directory, the packed model untouched; recipe in the chronological log).
+
+**Result: byte-identical reproduction.** 7 entries above the row minimum,
+entropy 1.609 nats, same EM trace. The collapse is DETERMINISTIC, not stochastic:
+across the whole project there is now zero evidence of random EM degeneration.
+The same corpus file produced a healthy azj row in the 200k retrain, so the
+trigger is the corpus-plus-131k-seed-vocabulary pair specifically.
+
+**Diagnosis.** The 7 surviving vocabulary entries are the four special tokens
+plus 'ĠMun' (all at probability 0.2) and 'gin'/'ayar' at trace level; the corpus
+is ordinary Azerbaijani prose. The EM objective WORSENS from its start (374 to
+2746 at sub-iteration 1, total distribution replacement, then frozen at machine
+zero deltas): a likelihood that deteriorates and freezes is a numerical breakdown
+in the fixed-vocab EM fork (cimeister/sentencepiece, branch fixed-vocab-em), not
+a legitimate optimum. Root cause inside the C++ E/M steps is an open item for the
+fork; the one-command reproduction is the handoff.
+
 ## Experiment 36: gt_margin_adaptive judged; both pre-run predictions confirmed; floor-21 retains selection 5/5 (2026-07-25, job 2895821)
 
 **Verdict: ELIGIBLE, flagged (ota_Arab only); not selected.** Both on-record
