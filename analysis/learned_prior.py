@@ -32,6 +32,14 @@ TOPK = 20
 # the guarded region's boundary lies between reg=3 (fails on magnets) and reg=10 (passes),
 # so the original grid would select its own endpoint. Recorded in EXPERIMENTAL_SETUP.md.
 REGS = [0.3, 1.0, 3.0, 5.0, 7.0, 10.0]
+# Prior-centered regularization (plan item 3, added 2026-07-18): penalize
+# ||b - gamma*log(N+1)||^2 so languages with few val examples shrink toward the
+# frequency-prior default instead of toward 0, and a newly added language gets the
+# starting bias gamma*log(N_new). gamma=0.0 reproduces the plain L2 of Exp 14.
+# Grid recorded in EXPERIMENTAL_SETUP.md. Caution from Exp 16: the anchor itself
+# (pure frequency prior) costs tail -0.0182 on the full test set, so large gamma is
+# not presumed safe; the guard decides.
+PRIOR_GAMMAS = [0.0, 0.25, 0.5]
 OUT_DIR = "outputs"
 
 
@@ -51,9 +59,18 @@ def _flatten_topk(topk_lists, y_true_idx, n_lang):
             np.asarray(seg, np.int64), true_flat_pos)
 
 
-def _make_loss(cand_idx, cand_score, seg, true_flat_pos, n_seg, n_lang, reg):
+def _make_loss(cand_idx, cand_score, seg, true_flat_pos, n_seg, n_lang, reg, c0):
+    """Regularized softmax NLL; the L2 penalty is centered on c0 (zeros = plain L2).
+
+    The loss conditions on the true label being inside the example's top-k (examples
+    where it is not have no defined candidate likelihood), so the softmax soft counts
+    in the gradient must be restricted to those same examples. The original Exp 14
+    code accumulated +P(L|x) over ALL examples' candidates, which is not the gradient
+    of this loss whenever top-k recall < 1 (found by review 2026-07-18, verified by
+    finite differences; recall here is 0.9971)."""
     present = true_flat_pos >= 0
     true_pos = true_flat_pos[present]
+    cand_present = present[seg]           # candidates of examples with the true label in top-k
 
     def loss_grad(b):
         logit = cand_score + b[cand_idx]
@@ -63,12 +80,13 @@ def _make_loss(cand_idx, cand_score, seg, true_flat_pos, n_seg, n_lang, reg):
         segsum = np.zeros(n_seg)
         np.add.at(segsum, seg, ex)
         p = ex / segsum[seg]                                  # softmax prob per candidate
-        # loss = -sum log p[true] over present examples + reg||b||^2
-        loss = -np.sum(np.log(np.maximum(p[true_pos], 1e-300))) + reg * np.dot(b, b)
+        d = b - c0
+        # loss = -sum log p[true] over present examples + reg||b - c0||^2
+        loss = -np.sum(np.log(np.maximum(p[true_pos], 1e-300))) + reg * np.dot(d, d)
         grad = np.zeros(n_lang)
-        np.add.at(grad, cand_idx, p)                          # +P(L|x)
+        np.add.at(grad, cand_idx[cand_present], p[cand_present])   # +P(L|x), present only
         np.add.at(grad, cand_idx[true_pos], -1.0)             # -1 for the true candidate
-        grad += 2.0 * reg * b
+        grad += 2.0 * reg * d
         return loss, grad
     return loss_grad
 
@@ -117,30 +135,34 @@ def run(sample_size: int = DEFAULT_SAMPLE_SIZE, out_dir: str = OUT_DIR):
         return {st: _macro_f1(yv, vp, val_masks[st]) for st in strata}
 
     val_base = val_strata_for_b(np.zeros(n_lang))   # b=0 reproduces the unbiased argmax
-    best = {"reg": None, "b": None, "val_overall": -1}
-    rows = [{"reg": 0.0, "val_recall@k": round(recall_at_k, 4),
+    best = {"reg": None, "gamma": None, "b": None, "val_overall": -1}
+    rows = [{"gamma": None, "reg": 0.0, "val_recall@k": round(recall_at_k, 4),
              **{f"val_{k}": round(v, 4) for k, v in val_base.items()}}]
-    for reg in REGS:
-        lg = _make_loss(ci, cs, seg, tfp, n_seg, n_lang, reg)
-        res = minimize(lg, np.zeros(n_lang), jac=True, method="L-BFGS-B",
-                       options={"maxiter": 200, "maxfun": 300})
-        b = res.x.astype(np.float64)
-        mvr = val_strata_for_b(b)
-        rows.append({"reg": reg, "val_recall@k": round(recall_at_k, 4),
-                     **{f"val_{k}": round(v, 4) for k, v in mvr.items()}})
-        if passes_guard(mvr, val_base) and mvr["overall"] > best["val_overall"]:
-            best = {"reg": reg, "b": b, "val_overall": mvr["overall"]}
-        print(f"  reg={reg}: val " + " ".join(f"{k}={mvr[k]:.4f}" for k in
-                                              ("overall", *GUARD_STRATA)))
+    for gamma in PRIOR_GAMMAS:
+        c0 = gamma * np.log(N + 1.0)
+        for reg in REGS:
+            lg = _make_loss(ci, cs, seg, tfp, n_seg, n_lang, reg, c0)
+            res = minimize(lg, np.zeros(n_lang), jac=True, method="L-BFGS-B",
+                           options={"maxiter": 200, "maxfun": 300})
+            b = res.x.astype(np.float64)
+            mvr = val_strata_for_b(b)
+            rows.append({"gamma": gamma, "reg": reg, "val_recall@k": round(recall_at_k, 4),
+                         **{f"val_{k}": round(v, 4) for k, v in mvr.items()}})
+            if passes_guard(mvr, val_base) and mvr["overall"] > best["val_overall"]:
+                best = {"reg": reg, "gamma": gamma, "b": b, "val_overall": mvr["overall"]}
+            print(f"  gamma={gamma} reg={reg}: val " +
+                  " ".join(f"{k}={mvr[k]:.4f}" for k in ("overall", *GUARD_STRATA)))
 
     if best["b"] is None:
-        # no reg is eligible: select the baseline (b = 0) and report the negative result,
-        # matching prior_sweep's gamma=0 behaviour (no silent fallback to a fitted b)
-        print("No reg passed the guard; selecting the baseline (b = 0).")
-        best = {"reg": None, "b": np.zeros(n_lang), "val_overall": val_base["overall"]}
+        # no (gamma, reg) is eligible: select the baseline (b = 0) and report the negative
+        # result, matching prior_sweep's gamma=0 behaviour (no silent fallback to a fitted b)
+        print("No (gamma, reg) passed the guard; selecting the baseline (b = 0).")
+        best = {"reg": None, "gamma": None, "b": np.zeros(n_lang),
+                "val_overall": val_base["overall"]}
 
     b = best["b"].astype(np.float32)
-    print(f"\nSelected reg={best['reg']}. Scoring test with the biased scorer...")
+    print(f"\nSelected gamma={best['gamma']} reg={best['reg']}. "
+          f"Scoring test with the biased scorer...")
     test_texts = [pre[i] for i in test_pos]
     base_batch = model.model.best_of_cached_weight_sets_biased_batch(test_texts, [0.0] * n_lang)
     learn_batch = model.model.best_of_cached_weight_sets_biased_batch(test_texts, b.tolist())
@@ -154,12 +176,15 @@ def run(sample_size: int = DEFAULT_SAMPLE_SIZE, out_dir: str = OUT_DIR):
     for j, (idx, _t, _s) in zip(test_pos, learn_batch):
         learn_pred[j] = langs[idx]
 
-    lines = ["# Learned per-language bias — TEST evaluation\n",
-             f"Top-{TOPK} val recall of true label: {recall_at_k:.4f}. Selected reg={best['reg']}"
-             " (None means no reg passed the guard; baseline b=0 evaluated).",
+    lines = ["# Learned per-language bias, prior-centered regularizer — TEST evaluation\n",
+             f"Regularizer: reg*||b - gamma*log(N+1)||^2; gamma=0 is the plain L2 of Exp 14.",
+             f"Top-{TOPK} val recall of true label: {recall_at_k:.4f}. Selected "
+             f"gamma={best['gamma']} reg={best['reg']}"
+             " (None/None means nothing passed the guard; baseline b=0 evaluated).",
              f"Selection guard: val overall must improve and no stratum "
              f"({'/'.join(GUARD_STRATA)}) may drop more than {GUARD_TOL} vs baseline.",
-             "Compare to the gamma=0.5 frequency prior (Exp 14): overall macro-F1 +0.0058.\n",
+             "Reference points: plain-L2 reg=5.0 gave test overall +0.0112 (Exp 14 revised); "
+             "full-test numbers for it are in Exp 16.\n",
              "| stratum | base macroF1 | learned macroF1 | delta | 95% CI |",
              "|---|---|---|---|---|"]
     for st in ["overall", "magnets", "tail", "twins", "head"]:
@@ -170,10 +195,12 @@ def run(sample_size: int = DEFAULT_SAMPLE_SIZE, out_dir: str = OUT_DIR):
     acc_b = (base_pred[test] == y_true[test]).mean()
     acc_l = (learn_pred[test] == y_true[test]).mean()
     lines.append(f"\nOverall accuracy: {acc_b:.4f} -> {acc_l:.4f} ({acc_l-acc_b:+.4f}).")
-    np.save(os.path.join(out_dir, "tables", "learned_bias.npy"), b)
+    # tagged filenames: the Exp 14 artifacts (learned_prior.md, learned_bias.npy) stay
+    # the record for the plain-L2 result; downstream scripts read learned_bias.npy
+    np.save(os.path.join(out_dir, "tables", "learned_bias_centered.npy"), b)
 
     md = pd.DataFrame(rows).to_markdown(index=False) + "\n\n" + "\n".join(lines)
-    out_path = os.path.join(out_dir, "tables", "learned_prior.md")
+    out_path = os.path.join(out_dir, "tables", "learned_prior_centered.md")
     with open(out_path, "w") as f:
         f.write(md)
     print("\n" + "\n".join(lines))
