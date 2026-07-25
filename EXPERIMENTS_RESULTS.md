@@ -341,6 +341,43 @@ inputs). **Status:** drives the hierarchical-pooling program (`EXPERIMENTS_PLAN.
 
 ---
 
+## Experiment 32: victim dig-ins, a degenerate-row finding in the 131k model, and the round-2 pre-registration (2026-07-24)
+
+**Dig-ins required by the outlier-tolerant clause
+(`outputs/tables/victim_digins.md`, `analysis/victim_digin.py`).** One mechanism
+covers every flagged or collapsed victim: false-positive INFLOW at a non-head
+label, never recall loss (recall lost is 0-9 lines in every case). llb_Latn gains
+1,356 FPs under the learned bias (many small Bantu sources whose suppression
+redirects their lines into the mid-sized Bantu sink) and 2,695 under gt_margin
+(ndo/kua/bem/nya/zul); arq_Arab gains 765 from the Arabic cluster (ary/arb/fas);
+skr_Arab 636 from pnb/urd; vmk_Latn 463 from vmw/ngl; sbs/mev on the balanced draw
+gain scattered small-language FPs. Conclusion: the flagged outliers and the
+rejected class share one addressable failure mode, and a margin gate that defends
+ALL non-head labels addresses every observed case.
+
+**Degenerate rows in the 131k model.** azj_Latn's 131k row collapsed in EM:
+entropy 1.609 nats, 131,065 of 131,072 entries at the floor (about 7 estimated
+tokens), recall 0.0000; its 229k test lines scatter to tly (161,886!), crh, tat,
+tur. A matrix scan finds 18 rows with fewer than 100 estimated tokens (0 such rows
+in the 100k model); most are unique-script languages where this is harmless
+(cop/lis/chr at F1 ~1.0), but azj_Latn (head, Latin) and the Cree-syllabics
+cluster (csw 0.088, cwd 0.542) are genuine per-language training failures.
+Counterfactual with azj-true lines removed: 131k FPs into tail fall from 51,926 to
+32,161 (the single failed row explains about two thirds of the FP increase);
+tail global F1 gap narrows to 0.5627 vs 0.4258 and overall to 0.9287 vs 0.9196.
+The Exp 29 verdict stands (the branch loses every aggregate even without azj) but
+its magnitude was overstated by one EM failure. Repair path if the branch is ever
+revived: delete the affected langspec files and re-run per-language EM with
+--skip-existing-langs (independent per language), then repack; not run now.
+
+**Pre-registration: round-2 candidate `gt_margin_all` (recorded before any run).**
+gt_min weights plus the margin gate extended to ALL predicted labels with
+N < 18,000 (tail and lowmid), tau recalibrated under gt_min per gated language on
+its own train lines, head-targeted reassignment, all constants unchanged
+(MARGIN_Q=5, MIN_CALIB_LINES=200 with exclusion logged, CALIB_MAX=2000,
+CALIB_SEED=0, TOPK_MARGIN=5, HEAD_N=18,000). Directly motivated by the dig-in
+mechanism. One candidate; judged on both tracks under the amended rule.
+
 ## Experiment 31: amended gating, dual-track verdicts, and the gt_margin composition (2026-07-24)
 
 **Gating amendments** (user-invited reconsideration; EXPERIMENTAL_SETUP.md

@@ -26,6 +26,21 @@ for the infrastructure record.
 `EXPERIMENTAL_SETUP.md` (hierarchical pooling). Full plan:
 `~/.claude/plans/yes-do-both-then-giggly-sprout.md`.
 
+### 2026-07-24: Exp 32, outlier-tolerant clause + victim dig-ins + round-2 launch (login node + SLURM)
+
+- Clause (C) revised per user decision (MAX_LANG_COLLAPSE_OUTLIERS=2; dig-in
+  instead of rejection for 1-2 outliers). Re-judged: learned_bias flagged-eligible
+  (llb), gt_min = uniform-track champion flagged (mev/sbs), gt_margin still
+  rejected (4 = class pattern). Commit series through Exp 31 pushed
+  (a3ff2c2..046e147, 13 commits).
+- Dig-ins (`analysis/victim_digin.py`, `outputs/tables/victim_digins.md`): every
+  victim is FP inflow at a non-head label, never recall loss. 131k pathology: azj's
+  row is a degenerate EM outcome (7 estimated tokens); 18 degenerate 131k rows vs 0
+  at 100k; azj alone explains ~2/3 of the 131k FP-into-tail increase
+  (counterfactual in Exp 32).
+- Round-2 candidate `gt_margin_all` pre-registered (gate all N<18k labels) and
+  built via `analysis/gt_margin.py run(gate='nonhead')`, `slurm_gt_margin_all.sh`.
+
 ### 2026-07-24: Exp 31, gating reconsideration + 131k error overlap + gt_margin build (login node)
 
 - User-directed gating review. Amendments (EXPERIMENTAL_SETUP.md, pending final
