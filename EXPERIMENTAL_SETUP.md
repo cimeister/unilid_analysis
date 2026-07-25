@@ -373,6 +373,22 @@ exactly one candidate per track is confirmed there per round.
    uniform-track champion (flagged: mev_Latn, sbs_Latn on the test draw); gt_margin
    remains rejected (4 supported collapses forming the lowmid-under-dominant
    pattern).
+5. Near-tie co-selection (user decision 2026-07-25): eligible configurations whose
+   balanced-val overall macro-F1 lies within NEAR_TIE_BAND=0.001 of the top one are
+   ALL carried forward as live candidates; selection does not narrow to a single
+   method when the selection data cannot separate them. Balanced-test reporting
+   stays restricted to the top-ranked candidate per track (confirmation
+   discipline). First application: six configurations carried
+   (freq_prior, learned_bias, floor21, margin_q5, margin_q5_head,
+   gt_margin_adaptive).
+6. Objective (user decision 2026-07-25): the project's primary quantity is
+   macro-averaged per-language score: every language weighted equally in the
+   average, within reason (an extreme low-resource set may be exempted as
+   unworkable and reported separately). Interpretation adopted pending
+   correction: primary evaluation = per-language F1 computed over the full
+   natural-distribution test data with all false positives counted, averaged
+   unweighted over languages; the balanced draws remain selection and
+   confirmation instruments.
 
 ## Reproducibility limitations of this record
 

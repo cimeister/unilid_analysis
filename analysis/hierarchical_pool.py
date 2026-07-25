@@ -212,6 +212,10 @@ MIN_COLLAPSE_SUPPORT = 10
 # languages flag a required dig-in instead of rejecting the method. Three or more
 # supported collapses reject.
 MAX_LANG_COLLAPSE_OUTLIERS = 2
+# Near-tie co-selection (user decision 2026-07-25): eligible configurations whose
+# balanced-val overall macro-F1 is within this band of the top one are CO-SELECTED
+# and both carried forward; no forced single choice at selection time.
+NEAR_TIE_BAND = 0.001
 WIDENED_STRATA = ("tail", "magnets")
 
 

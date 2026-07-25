@@ -52,7 +52,7 @@ Collapse clause: more than 2 supported outliers rejects (class-level pattern); o
 - **gt_margin_all_100k: ELIGIBLE, flagged** (outlier collapse(s) requiring dig-in: ota_Arab)
 - **gt_margin_adaptive: ELIGIBLE, flagged** (outlier collapse(s) requiring dig-in: ota_Arab)
 
-Selected configuration: **floor21** (highest balanced-val overall among eligible)
+Carried-forward set (all eligible within 0.001 of the top balanced-val overall; user decision 2026-07-25: near-tied methods are kept and explored, not narrowed to one): **freq_prior, learned_bias, floor21, margin_q5, margin_q5_head, gt_margin_adaptive**. Top-ranked: **floor21**. Balanced-test rows remain restricted to the top-ranked candidate per track to preserve the confirmation discipline.
 
 Largest per-language global-F1 drops under freq_prior (with veto true-line support): zsm_Arab -0.085 (n=13)
 

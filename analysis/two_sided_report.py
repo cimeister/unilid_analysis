@@ -42,7 +42,7 @@ from analysis.hierarchical_pool import (passes_two_sided, passes_uniform,
                                         GUARD_STRATA, GUARD_TOL,
                                         TAIL_RECALL_TOL, PREC_TOL,
                                         LANG_COLLAPSE_BOUND, MIN_COLLAPSE_SUPPORT,
-                                        MAX_LANG_COLLAPSE_OUTLIERS)
+                                        MAX_LANG_COLLAPSE_OUTLIERS, NEAR_TIE_BAND)
 
 PRF_CSV = "outputs/diagnostic/full_test_per_lang_prf.csv"
 OUT_MD = "outputs/tables/two_sided_selection.md"
@@ -162,6 +162,10 @@ def run(out_md: str = OUT_MD) -> str:
     eligible = [c for c in CONFIGS[1:] if verdicts[c][0]]
     selected = (max(eligible, key=lambda c: val_rows[c]["overall"])
                 if eligible else "baseline")
+    co_selected = ([c for c in eligible
+                    if val_rows[selected]["overall"] - val_rows[c]["overall"]
+                    <= NEAR_TIE_BAND]
+                   if eligible else ["baseline"])
     flagged = {c: v[2] for c, v in verdicts.items() if v[0] and v[2]}
 
     L = [
@@ -217,9 +221,17 @@ def run(out_md: str = OUT_MD) -> str:
             L.append(f"- **{c}: ELIGIBLE**")
         else:
             L.append(f"- **{c}: REJECTED** ({'; '.join(reasons)})")
-    L.append(f"\nSelected configuration: **{selected}**"
-             + ("" if selected == "baseline"
-                else " (highest balanced-val overall among eligible)"))
+    if len(co_selected) > 1:
+        L.append(f"\nCarried-forward set (all eligible within {NEAR_TIE_BAND} of "
+                 f"the top balanced-val overall; user decision 2026-07-25: near-tied "
+                 f"methods are kept and explored, not narrowed to one): **"
+                 + ", ".join(co_selected) + "**. Top-ranked: **" + selected + "**. "
+                 "Balanced-test rows remain restricted to the top-ranked candidate "
+                 "per track to preserve the confirmation discipline.")
+    else:
+        L.append(f"\nSelected configuration: **{selected}**"
+                 + ("" if selected == "baseline"
+                    else " (highest balanced-val overall among eligible)"))
 
     # per-language drops near or beyond the collapse bound, for the record
     base_f1 = veto_stats["baseline"][2]

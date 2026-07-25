@@ -42,10 +42,17 @@ uniform sample (`seed=42`, without replacement).
 - **Apertus 131k branch (Exp 29):** negative on both views (tail -0.0437
   within-stratum, FPs into tail 2.3x); the vocab-size regression is not an
   allocation problem. Discontinuation recommended, user decision pending.
-- **Dual-track status (Exp 31, outlier-tolerant clause):** natural-traffic champion
-  floor-21; uniform-prior champion gt_min (flagged: mev/sbs dig-ins required).
-  gt_margin repaired gt_min's FP explosion (79k to 19k) but is rejected on both
-  tracks for the lowmid-under-dominant class pattern (llb/arq/skr/vmk).
+- **Objective (user decision 2026-07-25):** the primary quantity is macro-averaged
+  per-language score, every language weighted equally within reason (extreme
+  low-resource exemptions allowed). Adopted interpretation, pending correction:
+  per-language F1 on the full natural-distribution test data (all false positives
+  counted), averaged unweighted over languages.
+- **Carried-forward set (near-tie co-selection, user decision 2026-07-25):** the
+  selection data cannot separate six eligible configurations (freq_prior,
+  learned_bias, floor21, margin_q5, margin_q5_head, gt_margin_adaptive; balanced-val
+  overall 0.9794-0.9800); all six stay live. Top-ranked floor-21; on the primary
+  quantity the order is gt_margin_adaptive 0.9334, floor-21 0.9309 (Exp 36).
+  Uniform-track champion gt_min (flagged: mev/sbs dig-ins done, Exp 32).
 - **Next-round candidate (recorded, not pre-registered):** extend the margin gate
   to all non-head predicted labels, or repair the gt mid-band redistribution at the
   weight level (Exp 31 mechanism).
