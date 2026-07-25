@@ -341,6 +341,73 @@ inputs). **Status:** drives the hierarchical-pooling program (`EXPERIMENTS_PLAN.
 
 ---
 
+## Experiment 35: the EM-degeneracy question bounded (2026-07-25, analysis)
+
+**User concern:** if per-language EM occasionally degenerates, previous "failures"
+are in question. **Finding: the concern is bounded to one language-run.** Scan of
+all three packed models (`analysis/degeneracy_scan.py`,
+`outputs/tables/degenerate_rows.md`, threshold 100 estimated tokens):
+- 100k model: 0 degenerate rows. Every adoption verdict and every method
+  experiment (Exp 1-28, 31-34) rests on this model; none is affected.
+- 200k: 17 flagged rows; 131k: 18. The two sets are near-identical (Syriac,
+  Cherokee, Coptic, Cree syllabics, Gothic, Kali, Limbu, Lisu, Meetei, Mongolian):
+  this class is DETERMINISTIC vocabulary coverage, not EM instability. The Apertus
+  BPE inventory holds no multi-byte merges for these scripts, so byte-level
+  pretokenized text exposes only the ~60-90 single-byte pieces and the fixed-vocab
+  EM correctly estimates only those (csw's EM log converges normally, L1 delta
+  0.4 to 0.03). Unique-script members are harmless (cop/lis/chr at F1 ~1.0); the
+  six Cree-syllabics languages share the script and byte-only pieces cannot
+  discriminate within it (csw 0.088, cwd 0.542). The same class was present,
+  undetected, in the Exp 15 200k retrain: its tail deficit includes this coverage
+  effect, a recorded caveat on the Exp 15 magnitude (direction unchanged).
+- azj_Latn at 131k is the ONLY anomaly outside that class in 3,880 Apertus
+  per-language EM runs (absent from the 200k and 100k flagged sets); the adjacent
+  EM trace freezes at machine-zero deltas from sub-iteration 2, a genuine collapse.
+  Open item: re-run azj's EM in isolation to test determinism, and attribute the
+  trace conclusively (batched logs interleave languages).
+
+**Process change:** `degeneracy_scan.py` is the post-training gate for any future
+retrain: run it on every new .unilid before evaluation; flagged rows outside the
+known unique-script exemption block the evaluation.
+
+**Pre-registration: candidate `gt_margin_adaptive` (recorded before any run;
+user-requested direction).** Identical to gt_margin_all_100k except the gate
+strength adapts to training size: the calibration quantile becomes
+q_L = MARGIN_Q * (1 - min(N_L, HEAD_N)/HEAD_N), so suppression strength decays
+linearly from q=5 at N=0 to zero at the head boundary. No new constants (reuses
+MARGIN_Q and HEAD_N); removes the threshold cliff that created boundary victims;
+gated set and the 100k target bar unchanged. One candidate; both tracks.
+
+## Experiment 34: gt_margin_all_100k, the first fully eligible gt-family candidate; floor-21 retains selection (2026-07-25, job 2895683)
+
+**Verdict: ELIGIBLE, flagged (single outlier ota_Arab); not selected.** Build:
+407,562 reassignments (251,419 to the true label, the highest recovery of the
+family; 94,462 below-tau lines kept for lack of a 100k-bar candidate in the
+top-5). Rows: balanced-val 0.9744 / 0.9579 / 0.9479 / 0.9392 / 0.9808
+(overall/tail/magnets/twins/head); veto overall 0.9330 (top tier, floor-21
+0.9309), tail global F1 0.4621, FPs into tail 28,743. Raising the target bar
+eliminated the barely-head collapses entirely (aba/bam/llb/twx all recover), and
+the natural-track ranking still selects floor-21 (balanced-val overall 0.9800 vs
+0.9744: the gate's suppression cost on balanced data). Not a uniform-track passer
+(val overall must improve there).
+
+**ota_Arab dig-in (required by the flag).** ota (N=674, tail, Ottoman Turkish)
+receives 395 new false positives, 295 from fas_Arab, 0 recall loss. It is NOT a
+reassignment receiver (below the target bar): these are gt-weight-side flips whose
+margins exceed tau_ota, i.e. confidently wrong under the GT floors. A quantile
+gate cannot catch high-margin flips without destroying recall; the fas/ota pair
+(Persian-influenced Ottoman orthography) is the gt-side residue class, distinct
+from the reassignment law of Exp 31/33.
+
+**Round and family summary.** Three margin-composition rounds converged: the
+reassignment law (burden relocates to the lowest-capacity valid target) is closed
+by the 100k bar at the cost of one gt-side residual flag. Final standings under
+the amended rule: natural-traffic champion floor-21 (selection margin 0.0056 of
+balanced-val overall over the fully-repaired composition); uniform-prior champion
+gt_min (flagged, mev/sbs dig-ins on record); gt_margin_all_100k stands as the
+eligible composition demonstrating that the two-correction decomposition
+(within-language calibration + FP-side repair) can be made per-language-safe.
+
 ## Experiment 33: gt_margin_all judged; reassignment burden relocates to barely-head sinks (2026-07-25, job 2895566)
 
 **Verdict: REJECTED on both tracks** (val overall drop > 0.01; 4 supported

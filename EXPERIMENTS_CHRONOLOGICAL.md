@@ -26,6 +26,37 @@ for the infrastructure record.
 `EXPERIMENTAL_SETUP.md` (hierarchical pooling). Full plan:
 `~/.claude/plans/yes-do-both-then-giggly-sprout.md`.
 
+### 2026-07-25: Exp 34-35, round-3 verdict, EM-degeneracy bounded, adaptive variant launched
+
+- **2895683** `unilid-gt-margin-100k`: COMPLETED 08:37. gt_margin_all_100k
+  ELIGIBLE, flagged (single outlier ota_Arab); not selected (balanced-val overall
+  0.9744 vs floor-21 0.9800); veto overall 0.9330 top-tier. ota dig-in: 395 new
+  FPs are gt-weight-side high-margin flips (fas->ota 295), not reassignment;
+  quantile gates cannot catch them. `EXPERIMENTS_RESULTS.md` Exp 34.
+- EM-degeneracy investigation (user-raised): `analysis/degeneracy_scan.py`,
+  `outputs/tables/degenerate_rows.md`: 0 flagged rows at 100k (main results
+  clean), 17/18 near-identical sets at 200k/131k = deterministic vocabulary
+  coverage (no multi-byte merges for those scripts; csw EM converges normally);
+  azj at 131k is the single anomalous run of 3,880. Scan adopted as the
+  post-training gate. Exp 15 magnitude caveat recorded. `EXPERIMENTS_RESULTS.md`
+  Exp 35.
+- Pre-registered `gt_margin_adaptive` (user-requested N-adaptive gate strength:
+  q_L = MARGIN_Q * (1 - min(N,HEAD_N)/HEAD_N), target bar unchanged), built via
+  `run(gate='nonhead', target_n=100_000, adaptive_q=True)`,
+  `slurm_gt_margin_adaptive.sh`.
+
+### 2026-07-25: Exp 33, gt_margin_all judged; round-3 launched (jobs 2895566, 2895683)
+
+- **2895566** `unilid-gt-margin-all`: COMPLETED (2026-07-25 08:13). Verdict REJECTED
+  on both tracks (4 barely-head collapses, worst llb_Latn -0.3211 precision-side)
+  despite the best natural-veto aggregates of any candidate (overall 0.9331, lowmid
+  FPs 451k -> 140k). Mechanism and the three-round reassignment law in
+  `EXPERIMENTS_RESULTS.md` Exp 33.
+- **2895683** `unilid-gt-margin-100k`: round-3 candidate `gt_margin_all_100k`
+  (pre-registered in Exp 33 before the run; reassignment-target bar raised to
+  RES_CAP=100,000, gated set unchanged; `run(gate='nonhead', target_n=100_000)`,
+  `slurm_gt_margin_all_100k.sh`). Verdict via `two_sided_report` when complete.
+
 ### 2026-07-24: Exp 32, outlier-tolerant clause + victim dig-ins + round-2 launch (login node + SLURM)
 
 - Clause (C) revised per user decision (MAX_LANG_COLLAPSE_OUTLIERS=2; dig-in
