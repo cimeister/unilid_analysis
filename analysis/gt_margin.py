@@ -1,20 +1,20 @@
-"""Composition candidate gt_margin (pre-registered 2026-07-24, EXPERIMENTS_RESULTS):
-gt_min weights (Exp 28) plus the head-targeted margin gate (Exp 26 rule) with tau_L
-recalibrated under the gt_min matrix.
+"""Margin-gate compositions over the gt_min weights (rounds 1-4; each mode is a
+separately pre-registered candidate in EXPERIMENTS_RESULTS, Exp 31/32/33/35).
 
-Pipeline (all constants inherited from their pre-registrations, nothing swept):
+Pipeline (constants inherited from their pre-registrations, nothing swept):
 1. Rebuild the gt_min matrix deterministically (build_gt_weights, all gates) and
    verify its sha256 against fingerprint_gt.json (the matrix that produced
    pred_gt_min.npy).
-2. Cache it in the scorer; recalibrate tau_L for the 96 tail languages on their own
-   train lines (MARGIN_Q=5th percentile of self-won margins, MIN_CALIB_LINES=200
-   exclusion logged, CALIB_MAX=2000, CALIB_SEED=0).
-3. Affected lines = kept lines with a tail prediction in pred_gt_min.npy; score them
-   top-TOPK_MARGIN under gt_min (top-1 agreement gate >= 0.99 vs the memmap); where
-   the margin is below tau[top1], reassign to the highest-scoring candidate with
-   N >= HEAD_N in the top list, else keep the gt_min prediction.
-4. Write pred_gt_margin.npy (bit-identical to pred_gt_min off the gated lines),
-   tau CSV, and a build report. Adoption judged by two_sided_report (both tracks).
+2. Cache it in the scorer; recalibrate tau_L for every GATED language (96 tail or
+   1,080 non-head, by mode) on its own train lines (quantile MARGIN_Q, or the
+   Exp 35 N-adaptive quantile; MIN_CALIB_LINES=200 exclusion logged,
+   CALIB_MAX=2000, CALIB_SEED=0).
+3. Affected lines = kept lines whose pred_gt_min label is gated; score them
+   top-TOPK_MARGIN under gt_min (top-1 agreement gate >= 0.99 vs the memmap);
+   where the margin is below tau[top1], reassign to the highest-scoring candidate
+   with N >= target_n in the top list, else keep the gt_min prediction.
+4. Write the mode's prediction memmap (bit-identical to pred_gt_min off the gated
+   lines), tau CSV, and a build report. Adoption judged by two_sided_report.
 
 Modularity: tau uses each language's own train data plus the shared gt_min model;
 no draw data is fit (CONFIG_FIT_DRAWS entry stays empty).
@@ -42,16 +42,23 @@ OUT_TAU = "outputs/diagnostic/tau_per_lang_gtmin.csv"
 OUT_MD = "outputs/tables/gt_margin_build.md"
 
 
-def run(gate: str = "tail", target_n: int = HEAD_N) -> str:
+def run(gate: str = "tail", target_n: int = HEAD_N,
+        adaptive_q: bool = False) -> str:
     """gate="tail": the Exp 31 candidate gt_margin (gated labels = tail, N<1k).
     gate="nonhead": the Exp 32 pre-registered candidate gt_margin_all (gated labels
     = every language with N < HEAD_N; the dig-in showed every victim suffers FP
-    inflow at a non-head label, so the defense must cover tail AND lowmid)."""
+    inflow at a non-head label, so the defense must cover tail AND lowmid).
+    target_n (Exp 33): reassignment-target bar; round 3+ uses RES_CAP=100,000 so
+    returned lines land only on top-resource labels.
+    adaptive_q (Exp 35, nonhead only): q_L = MARGIN_Q * (1 - min(N_L, HEAD_N)/HEAD_N),
+    gate strength decaying linearly to zero at the head boundary."""
     if gate not in ("tail", "nonhead"):
         raise ValueError(f"unknown gate {gate!r}")
     if target_n < HEAD_N:
         raise ValueError("reassignment-target bar below the head threshold would "
                          "let gated labels receive lines")
+    if adaptive_q and gate != "nonhead":
+        raise ValueError("the adaptive quantile is defined over the nonhead gate")
     prf = pd.read_csv(PRF_CSV)
     langs = prf.lang.tolist()
     n_lang = len(langs)
@@ -62,6 +69,9 @@ def run(gate: str = "tail", target_n: int = HEAD_N) -> str:
     if target_n != HEAD_N:
         # Exp 33 pre-registration: raise the target bar (round 3 uses RES_CAP)
         name = f"{name}_{target_n // 1000}k"
+    if adaptive_q:
+        # Exp 35 pre-registration: q_L = MARGIN_Q * (1 - min(N,HEAD_N)/HEAD_N)
+        name = "gt_margin_adaptive"
     if (gate, target_n) == ("tail", HEAD_N):
         out_pred, out_tau, out_md = OUT_PRED, OUT_TAU, OUT_MD
     elif (gate, target_n) == ("nonhead", HEAD_N):
@@ -120,8 +130,12 @@ def run(gate: str = "tail", target_n: int = HEAD_N) -> str:
         gaps = np.array([_gap(c) for c in wins])
         gaps = gaps[np.isfinite(gaps)]
         excluded = len(gaps) < MIN_CALIB_LINES
+        q_l = (MARGIN_Q * (1.0 - min(float(N[li]), float(HEAD_N)) / HEAD_N)
+               if adaptive_q else MARGIN_Q)
+        if q_l <= 0.0:
+            excluded = True      # zero strength at the boundary: never gated
         tau[int(li)] = (float("-inf") if excluded
-                        else float(np.percentile(gaps, MARGIN_Q)))
+                        else float(np.percentile(gaps, q_l)))
         calib_rows.append({"lang": lang, "n_scoreable": len(ctopk),
                            "n_self_won": len(wins), "tau": tau[int(li)],
                            "excluded": excluded})

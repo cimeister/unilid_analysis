@@ -47,7 +47,8 @@ from analysis.hierarchical_pool import (passes_two_sided, passes_uniform,
 PRF_CSV = "outputs/diagnostic/full_test_per_lang_prf.csv"
 OUT_MD = "outputs/tables/two_sided_selection.md"
 CONFIGS = ["baseline", "freq_prior", "learned_bias", "floor21", "margin_q5",
-           "margin_q5_head", "gt_min", "gt_margin", "gt_margin_all"]
+           "margin_q5_head", "gt_min", "gt_margin", "gt_margin_all",
+           "gt_margin_all_100k"]
 # Configs with columns in the Exp 24 PRF CSV; the wiring gate covers exactly these.
 # margin_q5 postdates Exp 24 (its memmap is built by full_test_margin.py) and is
 # instead anchored by that script's own gates (bit-identity to baseline off the
