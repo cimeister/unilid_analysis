@@ -25,7 +25,55 @@ uniform sample (`seed=42`, without replacement).
 
 ---
 
-## Headline observations
+## Current state (2026-07-23)
+
+- **Adopted configuration (provisional): floor-21**, selected by the precision-primary
+  adoption rule (Exp 25; rule fixed by the user 2026-07-23, EXPERIMENTAL_SETUP.md).
+  Provisional because the Good-Turing unseen-mass candidate (plan E3) is specified as
+  the principled version that must beat it, and the margin method (E2) targets its
+  residual. The learned bias reg=5.0 is REJECTED for adoption by the per-language
+  collapse clause (llb_Latn -0.113) but remains the natural-traffic reference
+  measurement (Exp 16).
+- **Evaluation:** selection = balanced-val draw 101 shortlist (`passes_shortlist`);
+  adoption = `passes_two_sided` (balanced-val stage with symmetric tail/magnet
+  widening, full-pool precision veto minus draws 101/201, per-language collapse
+  bound); headline = balanced test draw seed 201. Three earlier val-selected operating
+  points were overturned at full scale before the balanced protocol existed.
+- **Apertus 131k branch (Exp 29):** negative on both views (tail -0.0437
+  within-stratum, FPs into tail 2.3x); the vocab-size regression is not an
+  allocation problem. Discontinuation recommended, user decision pending.
+- **Dual-track status (Exp 31, outlier-tolerant clause):** natural-traffic champion
+  floor-21; uniform-prior champion gt_min (flagged: mev/sbs dig-ins required).
+  gt_margin repaired gt_min's FP explosion (79k to 19k) but is rejected on both
+  tracks for the lowmid-under-dominant class pattern (llb/arq/skr/vmk).
+- **Next-round candidate (recorded, not pre-registered):** extend the margin gate
+  to all non-head predicted labels, or repair the gt mid-band redistribution at the
+  weight level (Exp 31 mechanism).
+- **Natural-traffic objective:** the learned per-language bias reg=5.0 is the reference
+  result (Exp 16: full-test overall +0.0129, tail -0.0018 [CI -0.0035, -0.0001],
+  CommonLID 0.8452 -> 0.8879). The frequency prior (tail -0.0182) and floor
+  equalization (tail -0.0204) are not adopted; Exp 24 shows those tail deltas are
+  within-stratum (recall-view) numbers, and under global per-language F1 the same
+  configurations raise tail mean F1 (baseline 0.5618, learned bias 0.6003, freq prior
+  0.6800, floor-21 0.7655). Which view tail claims use is an open decision.
+- **Metric views (Exp 24):** every stratum row and guard column is within-stratum
+  macro-F1 and excludes cross-stratum false positives; the tail deficit under global
+  per-language F1 is precision (0.459), not recall (0.874), with 22,522 false
+  positives into tail labels, 98.9% from head sources.
+- **Uniform-prior (balanced) objective:** the unmodified baseline is the best adopted
+  configuration; two candidates passed selection on 2026-07-19 and are pending
+  confirmation (Exp 23): punctuation partial pooling alpha=300 (no negative stratum,
+  effect at the measurability edge) and the balanced-data bias refit reg=0.3
+  (sel tail +0.0299, magnets +0.0252; adoption blocked on per-draw stability, a
+  balanced-test draw, a full-test pass, and the per-language-suppression decision).
+- **Refuted families:** mass-toward-group-typicality edits (Exp 9/13/18/19), length
+  normalization (Exp 2/5), floor clamps in both directions (Exp 6, Exp 20/23a),
+  heuristic variance reweighting (Exp 8a), entropy sharpening. The macrolanguage
+  hierarchy is a null with a useful ceiling measurement (Exp 21).
+- Open paths for the next experiments are consolidated at the end of
+  `EXPERIMENTS_PLAN.md`.
+
+## Headline observations (historical, Exp 1-9 era)
 
 1. All evaluated scoring modifications reduce 500k-sample accuracy relative to the 0.960
    UniLID baseline: full length normalization (α=1) → 0.885; partial normalization at any
@@ -293,6 +341,694 @@ inputs). **Status:** drives the hierarchical-pooling program (`EXPERIMENTS_PLAN.
 
 ---
 
+## Experiment 31: amended gating, dual-track verdicts, and the gt_margin composition (2026-07-24)
+
+**Gating amendments** (user-invited reconsideration; EXPERIMENTAL_SETUP.md
+"Amendments"): (B)-overall softened to a bounded drop; a uniform-prior track added
+(`passes_uniform` selection on balanced val, collapse-checked confirmation on the
+balanced test draw for the single track-selected candidate); ITERATE verdict lane.
+Delta-reviewed: verdict-neutral for the first round; select-on-val/confirm-on-test
+discipline preserved with the multiplicity count recorded.
+
+**Dual-track outcomes (final, under the outlier-tolerant collapse clause added
+the same day, amendment 4).**
+- Natural-traffic track: floor-21 remains champion. learned_bias returns to
+  eligible, flagged for the llb_Latn dig-in; ranking unchanged (floor-21 0.9800
+  vs 0.9799).
+- Uniform-prior track: **gt_min is the champion, flagged** with two required
+  dig-ins from its balanced-test confirmation (mev_Latn -0.172 n=12, sbs_Latn
+  -0.182 n=12). Under the first, outlier-intolerant clause it had been blocked
+  outright; the amendment converts that block into targeted investigations, which
+  is the intended semantics: the bound catches class-level harm, and two flagged
+  outliers are not a class.
+
+**gt_margin (pre-registered composition, built and judged; reviewed, no defects;
+`outputs/tables/gt_margin_build.md`).** The recalibrated gate reassigns 60,320 of
+gt_min's 86,924 tail predictions (28,533 to the true label; 22 languages under the
+calibration floor). It repairs gt_min's headline pathologies: FPs into tail fall
+from 79,113 to 19,390 (below the baseline's 22,404) and supported clause-C
+collapses fall from 12 to 4. It passes the natural track's stages (A) and (B)
+outright. Verdicts:
+- Natural track: REJECTED on clause (C) alone: arq_Arab -0.131 (n=271), llb_Latn
+  -0.206 (n=4,181), skr_Arab -0.192 (n=157), vmk_Latn -0.187 (n=93). These are
+  LOWMID victims of the gt weight side; the gate defends only tail labels, so
+  mid-band languages with dominant neighbors inherit gt_min's damage. llb_Latn is
+  now a chronic victim across method families (learned bias -0.113, gt family
+  -0.206).
+- Uniform track: passes selection (0.9827, ranked under gt_min); a recorded second
+  look at the test draw (multiplicity noted) shows it would also fail that
+  confirmation (knx_Latn -0.111 n=15, sbs_Latn -0.107 n=12, sdc_Latn -0.160 n=30).
+
+**Round closed per pre-registration.** Recorded mechanism for the next round: the
+gt-family damage that survives composition is concentrated in lowmid languages
+under dominant neighbors (the arq/skr/llb/vmk pattern, the same population as the
+tight_lowres category), and the decision-layer defense must cover those labels,
+not only tail: either extend the margin gate to all non-head predicted labels
+(tau for every language with sufficient train data) or repair the gt mid-band
+redistribution at the weight level. Not pre-registered; next round's candidate.
+
+## Pre-registration: composition candidate gt_margin (recorded 2026-07-24 before any run)
+
+Config `gt_margin`: the gt_min weight matrix (Exp 28) combined with the
+head-targeted margin gate (Exp 26 rule), with tau_L RECALIBRATED under the gt_min
+matrix (margins change when weights change; the Exp 26 tau values do not transfer).
+All constants unchanged from their pre-registrations: MARGIN_Q=5,
+MIN_CALIB_LINES=200, CALIB_MAX=2000, CALIB_SEED=0, TOPK_MARGIN=5, HEAD_N=18,000,
+one-sided-min GT. Rationale: Exp 28 showed gt_min repairs the within-language
+ranking (recall) and the margin gate repairs FP inflow (precision); this is the
+first candidate that separates the two corrections explicitly. Judged on both
+tracks of the amended rule. One candidate; if it fails, the failure mechanism is
+recorded and the round closes.
+
+## Experiment 30: the 131k does not repeat the baseline's errors; its regression is concentrated (2026-07-24, analysis)
+
+**Question (user):** does the 131k model repeat exactly the same errors as the 100k
+baseline? **No.** Line-exact overlap (`outputs/tables/error_overlap_131k.md`,
+`analysis/error_overlap_131k.py`, accuracy gates passed):
+- Of the 100k's 1,779,499 errors, 57.7% recur under 131k, and only 66.2% of those
+  pick the same wrong label. The 131k fixes 753,463 errors (42.3%) and introduces
+  733,388 (net -20,075; accuracy +0.0004).
+- The tokenizer's documented strengths show up: 35% of the 100k's Indic-script
+  errors are fixed (net positive there), and the improvement list is tail/lowmid
+  heavy (syl_Latn +0.381, pwn_Latn +0.258, tig_Ethi +0.248, lad_Hebr +0.241,
+  tcy_Knda +0.198). 190 languages improve by more than 0.01.
+- But 403 languages regress, and the tail-FP explosion is CONCENTRATED: the single
+  pair tat_Latn <- azj_Latn carries 17,603 false positives (azj_Latn, a head
+  language and tat's close Turkic relative, collapses to F1 0.006 from 0.999),
+  accounting for over half of the FP increase (51,926 vs 22,522). The remaining
+  structure mirrors the baseline's known pairs (pnt<-ell 2,810, sbs<-Bantu,
+  mrq<-tah).
+
+**Reading:** the 131k base is a different error trade, not a uniform degradation:
+real wins where the tokenizer adds coverage, broad small-language losses from
+flatter distributions, plus one pathological relative pair (azj/tat) that a repair
+layer (floor edit or margin gate on that model) or an EM inspection of tat's 131k
+row might address. This softens the Exp 29 discontinuation reading from "the branch
+is dead" to "the branch loses on net as a drop-in but contains recoverable
+structure"; the discontinuation recommendation stands for the drop-in use, and the
+131k memmap remains available for hybrid analyses.
+
+## Experiment 29: Apertus 131k multilingual base does not reverse the vocab-size regression (2026-07-24, jobs 2883222 + 2885941)
+
+**Hypothesis:** the 200k retrain's tail regression (-3.4pp, Exp 15) came from
+vocabulary allocation, so `preliminary_mul` (131,072; documented in the tokenizer
+project as highest compression on Indic, Chinese, and the low-resource tail) should
+reverse it.
+
+**Result: refuted; the regression tracks vocabulary size, not allocation.** Retrain
+completed in one 9.8 h window (all 1,940 languages, standard setup, corpus split
+reused; `glotlid_apertus131k.unilid`). Full-test b=0 baseline vs the 100k baseline
+(`outputs/tables/full_test_eval_131k.md`):
+- Within-stratum: overall -0.0113, tail -0.0437 [CI -0.0515, -0.0371], magnets
+  -0.0352, twins -0.0044, head -0.0019; accuracy +0.0004.
+- Global view: tail mean F1 0.5618 to 0.4046; false positives into tail labels
+  22,522 to 51,926 (2.3x); flat_magnet 0.4716 to 0.3551; every group lower.
+- Balanced val: overall 0.9766 vs 0.9811, tail 0.8679 vs 0.9170.
+
+Both objectives agree, so this is not metric-conditional. Reading: with the training
+data fixed, a larger vocabulary means more parameters per language and flatter
+low-resource distributions, so tail models under-fit harder and their labels take
+more head traffic (the FP doubling is the Exp 24 absorption mechanism amplified).
+Better tail compression in the tokenizer does not compensate; the 131k regression
+(-0.0437 within-stratum tail) is in line with the 200k's (-3.4pp on the older eval).
+Per the plan's branch criterion the 131k base should not be continued;
+recommendation recorded, decision with the user. A retrain-side counterfactual worth
+noting for any future vocab work: per-language vocabulary truncation (each language
+keeping only its top-k pieces) would decouple shared-vocab size from per-language
+parameter count.
+
+**Artifacts:** `outputs/tables/full_test_eval_131k.md`,
+`outputs/diagnostic/full_test_131k_per_lang_prf.csv`, model + memmaps on scratch
+(`glotlid_apertus131k.unilid`, `full_test_eval_131k/`). Scripts:
+`slurm_apertus_train_131k.sh`, `analysis/full_test_eval_131k.py` (both reviewed).
+
+## Experiment 28: gt_min judged; per-language honesty is not the fix for a between-language problem (2026-07-24, job 2884210)
+
+**Verdict: REJECTED by the adoption rule; floor-21 remains selected.** Single
+pre-registered candidate, no sweep. Full tables in `outputs/tables/full_test_gt.md`
+and `two_sided_selection.md`.
+
+**The two views split harder than for any previous config.**
+- Selection view (balanced val): gt_min is the best configuration measured on this
+  protocol: overall 0.9841 (baseline 0.9811), tail 0.9769 (+0.0599), magnets 0.9688
+  (+0.0514), twins/head flat. Full-test within-stratum: tail +0.0656
+  [CI +0.0603, +0.0729], magnets +0.0528 [+0.0478, +0.0588].
+- Veto view (natural traffic): false positives into tail labels rise from 22,404 to
+  79,113 (3.5x); tail global mean F1 drops 0.3382 to 0.2950 despite tail recall
+  rising 0.8664 to 0.9675; overall global macro-F1 drops; 12 languages above the
+  support floor lose more than 0.1 (worst -0.2123).
+
+**Mechanism.** Exp 27 showed every floor is individually overstated (~10x), and
+correcting each language against its own data fixes the ranking on genuinely
+low-resource text: that is the recall/selection-view gain. But the argmax competes
+ACROSS languages, and the honest per-language estimates preserve and even widen the
+resource-tied floor gap (median tail-to-head plateau-mass ratio grows from ~87x to
+~115x), so out-of-model head text flows into tail labels harder than before. The
+floor pathology is a between-language externality, not per-language miscalibration.
+Floor-21 works on natural traffic precisely because it is NOT per-language-honest:
+one shared constant flattens the cross-language gap. gt_min and floor-21 are exact
+mirror images: within-language calibration buys recall and pays precision;
+cross-language equalization buys precision and pays recall.
+
+**What this sharpens.**
+1. The open objective decision now has concrete champions: under the uniform-prior
+   view gt_min is the best configuration ever tested here; under the natural-traffic
+   view it is disqualified and floor-21 stands. The adoption rule encodes the
+   natural-traffic veto, so floor-21 remains the provisionally adopted config.
+2. Next-round composition hypothesis (recorded, NOT run, not yet pre-registered):
+   combine the two mechanisms explicitly, e.g. cross-language floor equalization at
+   the GT-implied level (equalize per-token floor values across languages, with the
+   shared level set from the GT counts instead of a swept constant), or gt_min plus
+   the head-targeted margin gate (Exp 26) with tau recalibrated under the gt_min
+   matrix. Either would be the first candidate family that separates the
+   within-language and between-language corrections.
+
+**Artifacts:** `outputs/tables/full_test_gt.md`, updated `two_sided_selection.md`,
+`pred_gt_min.npy` + `fingerprint_gt.json` on the full-test scratch dir. Script
+`analysis/full_test_gt.py` (reviewed pre-run, no defects).
+
+## Experiment 27: Good-Turing counts, and the floor overstates unseen mass everywhere (2026-07-23, job 2883714)
+
+**Hypothesis:** the emergent floor plateau misstates each language's unseen-token
+probability; the Good-Turing plug-in n1/T from the language's own Viterbi counts
+gives the calibrated value.
+
+**Result (`outputs/diagnostic/gt_counts.csv`, 1,940 languages, 2.43B tokens
+counted; three languages re-verified by hand end-to-end, exact match):** the
+emergent plateau OVERSTATES unseen mass for every language without exception.
+Exact GT would raise the plateau for 0/1,940 languages, so the pre-registered
+one-sided-min rule coincides with exact GT on this model. Tail median: current
+plateau mass 8.7e-2 against a GT target of 9.7e-3 (9x); head median 1.0e-3 against
+8.4e-5 (12x). The gt_min matrix (built and gate-checked; floor drops -0.67 to
+-9.18 nats, mean -3.08) is the per-language-calibrated version of the mechanism
+floor-21 applied as one global constant. No language has n1=0; no tuned constant
+anywhere (n1, T from own data; 0.2 is the fixed non-special budget).
+
+**Pending:** the full-test scoring pass (`analysis/full_test_gt.py`, in review,
+then SLURM) and the adoption verdict via the two-sided report. gt_min must beat
+floor-21 (veto tail F1 0.6337) to displace it.
+
+## Experiment 26: margin diagnostic, viable (2026-07-23, job 2883715)
+
+**Hypothesis:** on lines the baseline routes into a tail label, the score gap between
+the winning tail language and the runner-up is separable from the gaps on genuine
+lines of that language, so a per-language threshold tau_L calibrated on L's OWN
+training data (5th percentile of self-won train margins; MIN_CALIB_LINES=200
+exclusion) can remove false positives at a bounded recall cost.
+
+**Result: viable.** Aggregate over the 96 tail languages
+(`outputs/tables/margin_diagnostic.md`, tau values in
+`outputs/diagnostic/tau_per_lang.csv`):
+- 17,299 of the 22,522 FP-into-tail lines fall below tau (76.8% catch rate); 5,413 of
+  the caught lines (31.3%) have the true label as runner-up and would be recovered
+  outright by reassignment.
+- Test-side genuine suppression: 474 of 7,084 self-won true-tail lines (6.7%,
+  against the 5% train-side bound; the gap is ordinary train-test shift). Only 53
+  suppressed lines have another tail language as runner-up, so there is no
+  tail-to-tail cascade.
+- Per-language margin AUC (genuine train vs FP) is 0.90-0.9998 for the large
+  receivers: sbs_Latn 0.9022 (catch 0.588), pnt_Grek 0.9409 (catch 0.738, recovery
+  0.741, consistent with the Exp 25 audit finding that the residual is standard
+  Greek with ell as runner-up), mrq_Latn 0.9763, pwn_Latn 0.999, arb_Latn 0.9998.
+- 26 languages are excluded from gating (under 200 scoreable self-won train lines;
+  listed in the report); they keep baseline behavior.
+
+**Candidate pass 1, `margin_q5` (reassign to the runner-up): REJECTED on clause (C),
+with the failure mechanism identified.** Build (`analysis/full_test_margin.py`,
+login node, top-1 agreement 1.0000, 17,773 reassignments = 17,299 caught FPs + 474
+suppressions, exactly matching the diagnostic): passed stage A (val tail drop 0.0281
+inside the widened 0.03) and stage B with the largest FP reduction of any config
+(veto FPs into tail 22,404 to 6,594; tail global F1 +0.1743), but one language above
+the support floor collapses: szy_Latn -0.107 (n=175). Mechanism (verified from the
+memmaps): szy_Latn receives 86 new false positives, 82 of them pwn_Latn's caught
+lines handed to their runner-up (szy is pwn's Formosan neighbor), with head true
+labels (ind/zsm/hbs). Globally 7,582 of the 17,773 reassignments land on languages
+with N < 18,000 and 1,465 on tail languages: runner-up reassignment moves FP burden
+onto other precision-fragile labels instead of returning it to the head sources that
+produced 98.9% of the FPs (Exp 24).
+
+**Pre-registered follow-up (recorded 2026-07-23 before the run), config
+`margin_q5_head`:** identical gate, but reassign to the highest-scoring candidate
+with N >= 18,000 (the established head threshold) in the top-5; if the top-5 holds
+no head candidate, keep the baseline prediction. No new constants. This is the
+second and final candidate from the margin family in this round (multiplicity note:
+two candidates from this family have been judged against the veto).
+
+**Candidate pass 2, `margin_q5_head`: ELIGIBLE, not selected.** Build: 16,239
+reassignments, 6,858 to the true label (against 5,413 under runner-up targeting;
+1,534 below-tau lines kept at baseline for lack of a head candidate). All three
+stages pass; the szy_Latn collapse is gone (head targeting removes the
+small-relative reassignment path). Balanced-val row 0.9799 / 0.8981 / 0.9036 /
+0.9406 / 0.9814 (overall/tail/magnets/twins/head); veto row: overall 0.9215, tail
+F1 0.5321 (precision 0.4445), FPs into tail 6,560, the lowest of all six configs.
+Floor-21 remains selected: it ranks higher on the selection instrument (val overall
+0.9800 vs 0.9799) and is also better on the veto (overall 0.9309 vs 0.9215, tail
+F1 0.6337 vs 0.5321).
+
+**Reading of the round:** the two eligible mechanisms act at different layers.
+Floor-21 (weight-side) removes the unseen-token score advantage at the source and
+wins outright; the margin gate (decision-side) reaches the same-script relative
+residual that no floor edit can touch (pnt/ell) and achieves the largest FP
+reduction, but pays recall for it twice (its own suppression plus the caught lines
+it cannot recover). The natural next composition, deliberately NOT run this round
+(no pre-registration, and the weight-side component may change when the
+Good-Turing candidate lands): weight-side winner plus the margin gate with tau
+RECALIBRATED under the composed weight matrix (margins change when weights change,
+so Exp 26 tau values do not transfer). Recorded in Open paths.
+
+## Experiment 25: precision-primary adoption rule, first verdicts, and the pnt/ell label audit (2026-07-23)
+
+Implements the adoption rule the user fixed on 2026-07-23 (EXPERIMENTAL_SETUP.md
+"Precision-primary adoption rule"; symmetric widening follow-up decision same day) and
+applies it to the four finished configurations. Analysis only, login node, no new
+scoring; code reviewed pre-run (Opus adversarial pass: no correctness defects, two
+flags fixed: `run_bias_refit` now shortlists like the other sweeps, and
+`balanced_split.__main__` no longer runs a pipeline that would undo the regenerated
+draws).
+
+**Instruments built.**
+- Balanced test draw seed 201 (headline): 185,204 lines, all 1,940 languages, tail
+  median support 16, 70/96 tail languages with >= 10 examples. Drawn disjoint from the
+  working val (draw 101) only: excluding the union of all five val draws would leave
+  ~2 of a 66-line tail pool (deviation from the first plan wording, recorded in
+  `balanced_split.py` and EXPERIMENTAL_SETUP.md).
+- Stability draws 102-105 regenerated to exclude the test draw (they had no consumers;
+  each is again 188,061 lines with zero languages at reduced k).
+- Veto instrument: pool minus the selection and headline draws, 45,004,014 lines,
+  retaining median 17 (minimum 4) true lines per tail language. The first run used
+  pool minus all six draws and measured veto tail recall 0.2188: six half-draws
+  exhaust small pools, so per-language F1 was recall-broken exactly where the veto
+  needs it. Amended same day; a runtime gate now aborts if the veto retains median
+  < 10 true tail lines per language. Veto levels are not comparable to the Exp 24
+  full-pool numbers (half the tail's true lines are excluded, all false positives
+  remain); the rule uses gains and drops only.
+
+**Verdicts (`outputs/tables/two_sided_selection.md`).**
+- **floor-21: ELIGIBLE and selected** (highest balanced-val overall among eligible,
+  0.9800). This supersedes the Exp 20 "not adopted" verdict, which was conditional on
+  the recall-only view (Exp 24). Floor-21 is the provisionally adopted configuration:
+  provisional because E3 (Good-Turing) is specified as the principled replacement that
+  must beat it, and E2 (margin) targets its residual.
+- **freq_prior: ELIGIBLE** (val tail/magnet losses 0.0195/0.0197 inside the widened
+  0.03 with veto gains +0.1434/+0.1278; worst per-language drop zsm_Arab -0.085 at 13
+  veto lines). Not selected (balanced-val overall 0.9798 < floor-21's 0.9800).
+- **learned_bias reg=5.0: REJECTED** by the per-language collapse clause: llb_Latn
+  loses 0.113 global F1 on 4,181 veto lines (shu_Arab -0.100, led_Latn -0.079 close
+  behind). This is the bias suppression pattern at the individual-language level, now
+  formally bounded. The Exp 16 numbers stand as the natural-traffic reference
+  measurement; what is rejected is adoption under the precision-primary rule. The
+  delta review confirmed the llb_Latn drop on the full pool (0.111, false-positive
+  inflation 579 to 1,861) and added a support floor to the collapse clause
+  (MIN_COLLAPSE_SUPPORT=10 veto lines; at n=4 a single line flip moves F1 by
+  0.11-0.14); verdicts are unchanged under the fixed clause.
+
+**Headline (balanced test draw, within-stratum) for the selected configuration:**
+baseline 0.9809 / 0.9086 / 0.9121 / 0.9435 / 0.9817
+(overall/tail/magnets/twins/head); floor-21 0.9804 / 0.8924 / 0.8984 / 0.9433 /
+0.9817. The tail recall cost of the adopted configuration is on the record here; its
+precision gain lives in the veto view (tail global F1 0.3382 -> 0.6337 on the veto
+instrument; 0.5618 -> 0.7655 full-pool, Exp 24).
+
+**Label audit (plan B2, `outputs/tables/label_audit_pnt_ell.md`).** 50 of the 2,644
+lines labeled ell_Grek that floor-21 predicts as pnt_Grek, deterministic sample
+(seed 0): all 50 read as standard Modern Greek, short subtitle-register lines (sample
+median ~25 characters), none with Pontic diagnostics (provisional assistant
+classification, open to override). 48/50 are also flipped by the baseline. Conclusion:
+this residual is model error on short low-evidence lines, not corpus label noise, so
+the margin method's recoverable ceiling on the pair is the full 2,644 lines.
+
+**Artifacts:** `outputs/tables/two_sided_selection.md`,
+`outputs/tables/label_audit_pnt_ell.md`,
+`outputs/diagnostic/balanced_val/val_lines_seed201.npy` (+ regenerated seeds 102-105,
+manifest annotations). Code: `analysis/two_sided_report.py`, `analysis/label_audit.py`,
+`passes_shortlist`/`passes_two_sided` in `analysis/hierarchical_pool.py`,
+`build_test_draw`/`rebuild_stability_draws` in `analysis/balanced_split.py`.
+
+## Experiment 24: within-stratum vs global per-language F1 (metric decomposition, 2026-07-23)
+
+**Question:** do the stratum rows of the full-test tables and global per-language F1
+agree about the tail? Analysis of the saved prediction memmaps (Exp 16 job 2784115,
+floor-21 job 2791722); no new scoring. Script `analysis/metric_decomposition.py`
+(reviewed pre-run, no defects); before reporting it reproduces every recorded
+within-stratum value (gate tolerance 6e-5) and the saved per-language F1 exactly.
+
+**Finding 1: the two views disagree about the tail, structurally.** Every stratum row
+in `full_test_eval.md` / `full_test_floor21.md` and every guard column restricts truth
+and predictions to examples whose true label is in the stratum, so a head-true line
+predicted as a tail language is excluded from the tail row. The overall rows are global
+per-language F1 and include it. Baseline: tail within-stratum 0.9132; tail global mean
+F1 0.5618 over the same 96 languages (mean precision 0.4590, mean recall 0.8741). Tail
+labels receive 22,522 false positives against 7,735 true tail examples; 98.9% of them
+come from head sources (median source N = 100,000; the head stratum has 43.67M test
+lines against the tail's 7,735, so a leak rate near 0.1% from one head language exceeds
+a tail language's whole test support; 3,426 lines labeled ell_Grek are predicted as
+pnt_Grek, whose true support is 150). With precision fixed at 1.0, tail global mean F1
+would be 0.9154:
+measured globally, the tail deficit is precision, and the stratum rows cannot show it.
+57/96 tail languages have precision below 0.5; 7/96 have recall below 0.5.
+
+**Finding 2: the config ranking on tail inverts between the views.**
+
+| config | tail within-stratum (reported) | tail global F1 | precision | recall | FPs into tail labels |
+|---|---|---|---|---|---|
+| baseline | 0.9132 | 0.5618 | 0.459 | 0.874 | 22,522 |
+| learned bias reg=5.0 | 0.9114 | 0.6003 | 0.502 | 0.871 | 17,496 |
+| freq prior gamma=0.5 | 0.8950 | 0.6800 | 0.616 | 0.850 | 12,381 |
+| floor-21 | 0.8928 | 0.7655 | 0.763 | 0.842 | 9,103 |
+
+The "not tail-safe" (Exp 16) and "not adopted" (Exp 20) verdicts are conclusions about
+the within-stratum view only. Under global per-language F1 each of those configurations
+raises tail mean F1 (+0.04 to +0.20) at a tail recall cost of at most 3.3pp, and the
+ordering is exactly reversed: floor-21, the configuration with the largest
+within-stratum tail drop, raises tail global F1 most and raises flat_magnet mean F1
+from 0.4716 to 0.6402.
+
+**Finding 3: the mechanisms are complementary.** Decomposing each overall +delta into
+per-category contributions: floor-21's +0.0129 comes mostly from flat_magnets (+0.0103
+of it), with head and twins flat; the learned bias reaches the same +0.0129 from head
+(+0.0031), mid (+0.0039), and twins (+0.0009), and is the only configuration that
+raises twin global F1 (0.8887 to 0.9103). A composition test is proposed (Open paths
+E4).
+
+**Finding 4: the selection protocol cannot register this failure mode, twice over.**
+(a) The guard's stratum columns are within-stratum, so cross-stratum false positives
+are excluded by construction; (b) the balanced val caps every language at K=100 lines,
+which removes the volume asymmetry that produces the false positives in the first
+place. Selection under the current guard is therefore systematically directed against
+tail-precision configurations. The two views answer different questions (is a genuine
+tail line recognized, versus is an emitted tail label correct); which one the paper's
+tail claims use is now part of the objective decision in Open paths.
+
+**Finding 5: residual structure under floor-21.** 9,103 residual false positives into
+tail labels, 100% same-script, concentrated in directed pairs of close relatives:
+pnt_Grek from ell_Grek (2,644), sbs_Latn from loz/bem/kng/toi/kqn (about 1,040
+combined), mrq_Latn from tah/rar (480), tat_Latn from tur (209), min_Arab from fas
+(199), rme_Latn from eng (193), mns_Cyrl from rus (158). Floor manipulation does not
+separate close relatives; the proposed follow-ups for that residue are a calibrated
+decision margin (E2) and a label audit of the pnt/ell pair (E6).
+
+**Artifacts:** `outputs/tables/metric_decomposition.md`;
+`outputs/diagnostic/full_test_per_lang_prf.csv` (per-language precision/recall/F1/FP
+for all four configurations, including floor-21, which `full_test_per_lang_f1.csv`
+lacks). Script: `analysis/metric_decomposition.py`. **Status:** analysis of record;
+proposed follow-ups in `EXPERIMENTS_PLAN.md` Open paths block E; the metric-view
+question added to the Decision required item there.
+
+## Experiment 23 — First sweeps under the balanced protocol (2026-07-19)
+
+Three experiments, selection-only on the seed-101 balanced val (job 2794210; baseline
+validated against the saved full-test predictions, agreement 1.0000 expected path).
+
+**23a. Floor equalization: rejected at selection time.** Every F drops val tail
+(-0.0177 at F=-17 down to -0.0269 at F=-23) and magnets similarly; nothing passes. The
+tail-sighted guard reaches in nine minutes the verdict that previously required a
+five-hour full-test pass (Exp 20). Plan item 14 closes as a selection outcome.
+
+**23b. Punctuation partial pooling (plan item 15): alpha=300 PASSES the guard.** All
+strata non-negative (overall +0.0001, tail +0.0004, magnets +0.0003, twins +0.0001,
+head +0.0000); stronger alphas turn twins negative (-0.0031 at alpha=30000), consistent
+with the tying result that twin conventions are signal. The effect at alpha=300 is at
+the edge of measurability; a full-test pass and a balanced-test evaluation are required
+before calling it real. Direction: the only configuration in the program to date with
+no negative stratum at selection.
+
+**23c. Learned-bias refit on balanced data (plan item 16): reg=0.3 passes with a
+substantial selection-half gain,** overall 0.9818 -> 0.9834 (+0.0016), tail +0.0299,
+magnets +0.0252, head +0.0001, twins -0.0016 (within tolerance). Answer to the design
+question: attractor suppression survives the uniform-prior objective; the Exp 14 gain
+was not purely traffic-prior fitting. The fitted vector is aggressive
+(||b||_inf = 11.3) and its most-suppressed languages are NOT the flat magnets but
+head/twin sinks (nya_Latn -11.3, por_Latn -8.9, heb_Hebr -7.2, swc_Latn -5.9),
+matching the diagnostic finding that 40% of false-positive mass sits on head-level
+sinks: under a uniform prior the optimum suppresses dominant cluster members to free
+their many satellites. CAUTIONS before any adoption: (1) single draw; refit-per-draw
+stability (draws 102-105) is required by protocol caveat 3; (2) the guard's stratum
+tolerances do not bound INDIVIDUAL-language harm, and b = -8.9 on Portuguese trades
+that language's marginal recall for its satellites, an objective-level question to
+decide explicitly; (3) selection-half optimism (fit and selection halves share the
+draw's candidate structure); (4) a full-test pass and a balanced-test draw (disjoint
+from val) are needed for final numbers.
+
+**Artifacts:** `outputs/tables/balanced_{floor_eq,punct_prior,bias_refit}.md`,
+`learned_bias_balanced.npy`; `analysis/balanced_sweeps.py`.
+
+## Experiment 22 — Balanced validation protocol and re-baseline (2026-07-19)
+
+**What:** the split redesign (plan item 10). Language-balanced val drawn from the kept
+full-test pool (K=100 per language, fraction cap 0.5; 188,061 lines; all 1,940
+languages represented, tail median support 33 vs 0 under the old protocol; five seeds
+for split-variance checks; the original 250k val is retired). The four saved full-test
+prediction sets were re-scored under the new protocol with no new model scoring.
+
+**Selection view (balanced val, guard verdicts):** frequency prior FAIL (tail -0.0195),
+floor-21 FAIL (tail -0.0228, magnets -0.0196): the balanced val catches, at selection
+time, both failures that previously required full-test passes to discover. Learned
+bias FAIL for a different and structural reason: balanced-val overall drops -0.0012
+below baseline. A fitted per-language bias approximates the log prior of natural
+traffic; on a language-balanced sample the optimal prior is uniform, so any nonzero
+bias loses by construction. **Under the balanced (uniform-prior) objective, the
+unmodified baseline is the best configuration tested to date.**
+
+**Final view (pool minus val):** natural-traffic numbers persist (baseline 0.9210,
+freq prior 0.9343, learned bias 0.9342, floor-21 0.9372 overall; tail 0.9069 / 0.8908 /
+0.9062 / 0.8883). The two views answer different deployment questions (natural traffic
+vs every-language-equal); the protocol makes the choice explicit instead of conflating
+them, and selection uses the balanced view.
+
+**Artifacts:** `outputs/tables/balanced_split_rebaseline.md`,
+`outputs/diagnostic/balanced_val/`; `analysis/balanced_split.py`.
+
+## Experiment 21 — Macrolanguage-hierarchical decision (NULL, 2026-07-18)
+
+**Hypothesis:** treating the variety within a macrolanguage as latent (group score =
+logsumexp over members from the top-50 candidates, argmax group, best member within it)
+recovers errors inside the 83 multi-member SIL macrolanguage groups (289 languages).
+Parameter-free; job 2791444.
+
+**Result: exact null.** The marginal essentially never flips a group decision (test
+deltas -0.0000 on every stratum; exact accuracy unchanged at 0.9603). Score gaps
+between candidates are large in nats, so the group marginal is dominated by its top
+member and argmax-of-groups equals group-of-argmax. The useful output is the ceiling
+measurement: macro-aware accuracy on the test half is 0.9680 against exact 0.9603, so
+0.77pp of accuracy (and the ~20% Exp 10 error share) is within-macro confusion that no
+decision rule can recover; it is an evaluation-convention question, not a modeling one.
+
+**Artifacts:** `outputs/tables/macro_hierarchy.md`; `analysis/macro_hierarchy.py`.
+
+## Experiment 20 — Downward floor equalization (POSITIVE on overall; tail pending
+full-test, 2026-07-18)
+
+**Hypothesis:** the resource-tied floor means small languages under-penalize unseen
+tokens (Exp 10); every mass-ADDING fix failed (Exp 9/13/18/19), so equalize DOWNWARD:
+clamp each language's exact floor plateau to `min(floor_L, F)`, one global constant,
+nothing raised, observed tokens and specials bit-identical. F swept over
+{-17, -19, -21, -23} (n_modified 452 / 1,821 / 1,940 / 1,940). Job 2791444.
+
+**Result:** val overall rises at every F (+0.0024 to +0.0038, peak at F=-21) with
+twins/head/magnets flat on val; the guard selects **floor-21**. Test half:
+
+| stratum | base | equalized | delta | 95% CI |
+|---|---|---|---|---|
+| overall | 0.9454 | 0.9494 | +0.0030 | [+0.0016, +0.0044] |
+| twins | 0.9224 | 0.9228 | +0.0003 | [-0.0004, +0.0014] |
+| head | 0.9603 | 0.9600 | -0.0003 | [-0.0009, +0.0003] |
+| magnets | 0.8832 | 0.8630 | -0.0108 | [-0.0429, +0.0295] |
+| tail | 0.9310 | 0.8621 | -0.0623 | [-0.1111, +0.0000] |
+
+This is the first likelihood-side modification to beat baseline with a CI excluding
+zero, it is fully modular (one shared constant, no fitting), and the mechanism is the
+subtractive direction the four negatives pointed to. Adoption was blocked on the tail
+question pending a full-test pass.
+
+**Full-test verdict (job 2791722, 2026-07-19): the tail cost is real; NOT adopted.**
+One scoring pass under the floor-21 matrix against the saved Exp 16 baseline
+(45,377,279 lines):
+
+| stratum | base | floor-21 | delta | 95% CI |
+|---|---|---|---|---|
+| overall | 0.9292 | 0.9421 | +0.0129 | point only (n > cap) |
+| head | 0.9602 | 0.9599 | -0.0003 | point only |
+| twins | 0.9167 | 0.9166 | -0.0001 | point only |
+| tail | 0.9132 | 0.8928 | -0.0204 | [-0.0257, -0.0161] |
+| magnets | 0.9138 | 0.8974 | -0.0164 | [-0.0210, -0.0129] |
+
+Mid stratum (1k <= N < 18k, 984 languages): +0.0001. Accuracy +0.0009. Decomposition:
+the stratum tables are computed on stratum-masked example subsets, so the overall
++0.0129 is a global-precision effect (languages stop receiving stolen cross-stratum
+false positives) while the tail -0.0204 is a recall-side harm (examples truly written
+in tail languages are misclassified more; lowering a tail language's floor penalizes
+its own out-of-corpus tokens). Under the fairness objective the tail regression is
+disqualifying: at equal overall gain (+0.0129 both), the learned bias costs the tail
+-0.0018 (Exp 16) versus floor-21's -0.0204, so floor equalization is dominated and is
+recorded as an overall-for-tail trade alongside the frequency prior, not adopted.
+[Metric-conditional, added 2026-07-23: the -0.0204 and the domination claim hold on
+the within-stratum (recall) view only. Under global per-language F1, floor-21 is the
+strongest tested configuration for tail (0.5618 to 0.7655) and flat_magnet (0.4716 to
+0.6402) mean F1, and the learned bias acts on different strata (head/mid/twins); see
+Exp 24.]
+
+Third structural lesson about selection: the val guard passed floor-21 because val is
+blind on tail AND magnets; the full test refuted both strata. After the Apertus
+gamma=3.0 flaw (Exp 15) and the freq-prior tail artifact (Exp 16), this is the third
+val-selected operating point overturned at full scale. No further sweep selections
+should be trusted on tail/magnet claims until the split redesign (plan item 10) adds
+tail-sensitive validation.
+
+**Artifacts:** `outputs/tables/floor_equalization.md`, `full_test_floor21.md`;
+`analysis/floor_equalization.py`, `full_test_floor21.py`.
+
+## Experiment 19 — Group-mean back-off at floor positions (NEGATIVE, 2026-07-18)
+
+**Hypothesis:** the resource-tied unseen-token floor (an exact per-language plateau over
+74,617-99,810 of 100k entries; Exp 10: corr(floor, log10 N) = -0.966) is the tail's
+under-fitting mechanism, so replacing the flat floor with a group-informed profile
+(`lam_L * m_G(t)`, `lam_L = alpha/(N_L+alpha)`, observed tokens bit-identical, no
+renormalization) should improve discrimination. Two groupings: script backbone means
+(job 2790155) and, at the user's request, WALS genealogical tiers
+(genus-within-script 535 languages, family-within-script 360, script fallback 1,012;
+source `data/wals_languages.csv`; job 2790174). Modes lift/full x alpha
+{300, 3000, 30000}.
+
+**Result: negative at every strength under both groupings, and the grouping barely
+matters.** Val overall falls monotonically with alpha (script: -0.0028 to -0.0289; WALS:
+-0.0036 to -0.0304); at alpha >= 3000 val tail falls 0.8710 -> 0.8387 and magnets
+0.8797 -> 0.8609 under both. Full mode tracks lift mode within 0.0007 everywhere. No
+config passes the guard; baseline selected in both runs.
+
+**Mechanism reading:** lifting a language's unseen-token mass toward any group mean makes
+it MORE accepting of group-plausible foreign material, increasing exactly the theft that
+Exp 10 diagnosed (small languages already under-penalize unseen tokens). Together with
+Exp 9 (transfer), Exp 13 (shrinkage/sharpening), and Exp 18 (tying), every intervention
+that moves probability mass toward group typicality has now failed in the same
+direction. Consequence for the family-initialization idea: this was its post-hoc
+surrogate (initialization persists only where data is absent, i.e. at these floor
+positions), so a family-initialized or family-MAP retrain is not supported by current
+evidence. The direction Exp 10 actually implies remains untried: equalizing the
+per-token unseen penalty DOWNWARD (lowering low-resource floors toward high-resource
+levels), the opposite of every mass-adding fix tested so far. Note Exp 6 clamped floors
+UPWARD (also negative), so downward equalization is genuinely untested.
+
+**Artifacts:** `outputs/tables/family_backoff.md`, `family_backoff_wals.md`,
+`outputs/diagnostic/backoff_groups_{script,wals}.csv`; `analysis/family_backoff.py`;
+`data/wals_languages.csv` (provenance `data/README.md`).
+
+## Experiment 18 — Non-content token tying (NEGATIVE, 2026-07-18)
+
+**Hypothesis:** tokens with no language identity (digits, whitespace, punctuation)
+contribute only estimation noise to score differences (Exp 10: 86.4% of the stolen margin
+is short non-content tokens), so tying their probabilities to one shared value across all
+languages should help. Pure tying, no renormalization (renormalizing would inject a
+per-language per-token offset up to 0.36 nats/token; derived in the pre-run review).
+Three tied sets classified on byte-decoded token text: digits_ws (298 tokens),
+nonalpha_ascii (479), nonalpha_all (1,291). Job 2790078.
+
+**Result: negative at every scope.** Val overall macro-F1 drops monotonically with tied-set
+size: digits_ws -0.0010, nonalpha_ascii -0.0063, nonalpha_all -0.0078; nonalpha_all also
+drops val tail -0.0108. No config passes the guard; baseline selected.
+
+**Reading:** cross-language variation in non-content token probabilities is not pure noise;
+it carries usable signal. The most likely single cause is whitespace: the tied sets include
+the space and newline tokens, and whitespace frequency separates spaced from unspaced
+scripts. A refinement (tie digits+punctuation but not whitespace) was not run.
+
+**Curated re-run (2026-07-19, job 2793541): still negative; the hypothesis is refuted at
+every curation level.** After the user's critique of the original design (whitespace should
+never have been tied), the tied set was rebuilt: 212 tokens of ASCII digits plus neutral
+punctuation only, with documented linguistic exclusions (apostrophes, hyphens/dashes,
+ampersand, currency, Spanish inverted marks, typographic quotes, all whitespace including
+leading-space variants, all non-ASCII punctuation), tied within script groups (primary) and
+globally (comparison). Val outcome: dp_global overall -0.0014 with twins -0.0060; dp_script
+overall -0.0016 with twins -0.0103 (fails the twin guard on its own); tail and magnets
+flat under both. Baseline selected; all test deltas zero by construction.
+
+**Final reading:** the cost concentrates in the twins stratum, so within-pair differences in
+digit and punctuation usage rates are genuine discriminative signal for near-twin pairs,
+consistent with Exp 4 (punctuation is 10.5% of within-pair KL; that KL is signal, not
+estimation noise). The Exp 10 stolen-margin finding needs the sharper interpretation this
+gives: short non-content tokens dominate margins because they are frequent and their
+per-language rates are informative; the pathological part is only their UNSEEN (floor)
+positions, and both floor directions have now been tested directly (raising toward group
+means, Exp 19: worse; lowering to a common value, Exp 20: tail-harmful). Full tying
+(weight 1 on the shared value) is refuted at every curation level; the constructive
+reading is that these experiments LOCALIZED where punctuation/digit statistics are
+signal (well-estimated head/twin rates) versus noise (low-N estimates and floor
+positions), which motivates partial, N-indexed treatment of exactly these columns
+(punctuation back-off / hierarchical prior, plan item 15) rather than the
+all-or-nothing tie tested here.
+
+**Artifacts:** `outputs/tables/token_tying.md`, `token_tying_dp.md`;
+`analysis/token_tying.py`.
+
+## Experiment 17 — Prior-centered learned bias with corrected gradient (2026-07-18)
+
+**Setup:** the learned-bias penalty generalized to `reg*||b - gamma*log(N+1)||^2`
+(gamma in {0, 0.25, 0.5} x reg grid; gamma=0 is plain L2), fit with the corrected NLL
+gradient (see the Exp 14 estimator caution). Job 2790077.
+
+**Result:** the guard selects gamma=0.25, reg=10. Test half: overall +0.0117
+[CI +0.0104, +0.0130], twins +0.0124, head +0.0089, magnets -0.0052 (crosses 0), tail
+-0.0320 (the 250k-half tail, which Exp 16 showed is noise-dominated; a full-test read is
+required before interpreting it). Under the corrected gradient the previous operating
+point (gamma=0, reg=5) fails the guard (val magnets -0.0119), so the Exp 14 revised
+selection does not survive the estimator fix as-is. The centered gamma=0.25 point is
+marginally above the old plain-L2 reg=5 on the same half (+0.0117 vs +0.0112,
+overlapping CIs). Not adopted as a result of record pending a full-test evaluation;
+method status also depends on the modularity concern recorded 2026-07-18 (the
+discriminative fit couples all languages through the softmax, so adding a language
+requires refitting on global data, unlike the likelihood-side methods).
+
+**Artifacts:** `outputs/tables/learned_prior_centered.md`, `learned_bias_centered.npy`.
+
+## Experiment 16 — Full-test-set evaluation of the fixed configurations (2026-07-18)
+
+**Question:** do the guard-selected results (Exp 14) hold at full test-set scale, where the
+tail is measurable? On the 250k test half every one of the 96 tail languages has <= 2
+examples, so the Exp 14 tail deltas (freq prior 0.0000; learned bias -0.0320 with CI
+touching 0) rested on ~35 items. Job 2784115 (05:06:50) scored the 100k model on all
+45,377,279 non-val test lines for three configurations FIXED on val: baseline, frequency
+prior gamma=0.5, learned bias reg=5.0. No selection; pure evaluation. Zero-bias
+predictions validated against the recorded UniLID predictions (agreement 0.9951, matching
+the known baseline self-agreement). All 1,940 languages have test support (tail stratum
+7,735 examples, magnets 64,657).
+
+| stratum | base | freq delta | freq 95% CI | learned delta | learned 95% CI |
+|---|---|---|---|---|---|
+| overall | 0.9292 | +0.0116 | point only | +0.0129 | point only |
+| head | 0.9602 | +0.0011 | point only | +0.0101 | point only |
+| twins | 0.9167 | +0.0011 | point only | +0.0116 | point only |
+| tail | 0.9132 | -0.0182 | [-0.0225, -0.0146] | -0.0018 | [-0.0035, -0.0001] |
+| magnets | 0.9138 | -0.0173 | [-0.0207, -0.0141] | -0.0082 | [-0.0099, -0.0066] |
+
+Overall accuracy: baseline 0.9608, freq prior 0.9638, learned bias 0.9751. CIs (B=1000
+item bootstrap) are computed for strata under 3M examples; for the others the item-level
+CI half-width is below 0.001.
+
+**Conclusions.**
+1. The learned bias result is confirmed and its tail scare is resolved: the true tail
+   cost is -0.0018 [CI -0.0035, -0.0001], small though nonzero; the -0.0320 point
+   estimate on the 250k half was split noise. Magnets cost is real but modest (-0.0082).
+   Overall +0.0129, head +0.0101, twins +0.0116, accuracy +0.0143. These are the numbers
+   of record for the learned bias.
+2. The frequency prior is NOT tail-safe: tail -0.0182 [CI -0.0225, -0.0146]. Its Exp 14
+   "tail exactly 0.0000" was an artifact of the test half containing almost no tail
+   examples. The Exp 14 claim that the frequency prior is the safer minimal version is
+   withdrawn: on the full test set the learned bias has BOTH the larger gain and the
+   10x smaller tail cost. [Metric-conditional, added 2026-07-23: these tail deltas are
+   within-stratum (recall-view) numbers. Under global per-language F1 the frequency
+   prior raises tail mean F1 from 0.5618 to 0.6800 by reducing false positives into
+   tail labels (22,522 to 12,381); see Exp 24.]
+3. Macro-F1 LEVELS are not comparable between the 250k half and the full set (baseline
+   0.9454 vs 0.9292): languages absent from the half's true-label set contributed no term
+   there, and the full set adds every hard rare language. Deltas are the comparable
+   quantity.
+
+**Artifacts:** `outputs/tables/full_test_eval.md`;
+`outputs/diagnostic/full_test_per_lang_f1.csv` (per-language F1 under all three configs,
+input for plan items 5-6); memmaps + config fingerprint in
+`/capstor/scratch/.../unilid_analysis/full_test_eval/`. Script:
+`analysis/full_test_eval.py` (reviewed pre-launch; resumable; fail-loud alignment and
+scorer checks).
+
 ## Experiment 15 — Apertus 200k retrain + frequency prior on it (MIXED / cautionary)
 
 Tests the orthogonal vocab-coverage hypothesis: does a larger, better-covered vocabulary
@@ -377,7 +1113,10 @@ victim head/twin languages recover) without blunting any language's own-text mar
 in the project to beat baseline with a CI that excludes zero. Re-run 2026-07-10 under the
 revised all-strata guard (job 2731804): gamma=0.5 is again selected (val magnets -0.0081 is
 within the 0.01 tolerance) and the test numbers are unchanged; the artifact header now
-records the guard rule.
+records the guard rule. **Full-test-set update (2026-07-18, Exp 16):** at full scale the
+frequency prior costs tail -0.0182 [CI -0.0225, -0.0146]; the "tail +0.0000" in the table
+above is an artifact of the 250k half's tail invisibility (every tail language has <= 2
+examples there). The tail-safety claim for this prior is withdrawn.
 
 **Learned per-language bias (guard-revised result of record, 2026-07-10).** Generalizing the
 1-param frequency prior to a free `b_L` per language, fit on val by L2-regularized softmax over
@@ -401,6 +1140,16 @@ Overall accuracy 0.9603 -> 0.9749 (+0.0147); overall macro-F1 +0.0112, about 2x 
 prior; overall/head/twins CIs exclude zero; magnets crosses zero. This is the project's best
 guard-compliant result.
 
+**Estimator caution (found in review, 2026-07-18).** The fit's NLL gradient accumulated
+softmax soft counts over ALL examples' top-k candidates while the loss conditions on the
+true label being inside the top-k (recall 0.9971), so the fitted b was not exactly the
+minimizer of the stated objective (finite-difference verified; the perturbation
+concentrates on the confuser languages that populate absent examples' top-k lists). The
+test deltas above are valid measurements of the b that was produced; only the estimator
+description was wrong. The gradient is fixed in `analysis/learned_prior.py` and the
+prior-centered re-run (job 2790077) re-fits the plain-L2 bias with the corrected
+gradient as its gamma=0 rows.
+
 **Tail caution and a guard blind spot.** The test tail delta is -0.0320 with CI
 [-0.0588, +0.0000] (upper bound exactly 0): not significantly negative at the 95% level, but
 the point estimate is large. The val guard could not have seen this: val tail macro-F1 is
@@ -408,6 +1157,9 @@ the point estimate is large. The val guard could not have seen this: val tail ma
 half contains too few decision-sensitive tail examples for the guard to register tail
 movement at all. Addressing this needs a split-design change (plan item 10: resampled
 val/test splits, possibly a tail-weighted val allocation), not a tolerance change.
+**Resolved (2026-07-18, Exp 16):** on the full test set (7,735 tail examples, all 96
+languages) the learned bias's tail delta is -0.0018 [CI -0.0035, -0.0001]; the -0.0320 was
+split noise. The guard blind spot itself remains a val-design problem for future sweeps.
 
 **Out-of-domain validation (CommonLID web text, Exp 12 pipeline + priors).** With the guarded
 reg=5.0 bias (job 2731818): baseline macro-aware accuracy 0.8452 -> frequency prior
@@ -417,11 +1169,12 @@ CommonLID's 109 labels are all common languages, so suppressing the rare attract
 nearly pure gain.
 
 **Caveats:** the bias down-weights rare languages, so a deployment whose inputs are genuinely
-rare-language-heavy could see tail regression (test tail point estimate -0.0320, CI touching
-zero). The frequency prior is the safer minimal version; the learned bias is the higher-gain
-version. Pending: learned bias on the Apertus-200k model (plan item 2); the prior-centered
-regularizer (plan item 3) may reduce the tail cost by shrinking tail biases toward
-`gamma*log N` instead of toward the unregularized fit.
+rare-language-heavy could see tail regression (full-test tail delta -0.0018
+[CI -0.0035, -0.0001], Exp 16). The earlier framing of the frequency prior as the safer
+minimal version is withdrawn: on the full test set (Exp 16) the frequency prior costs tail
+-0.0182 while the learned bias costs -0.0018, so the learned bias has both the larger gain
+and the smaller tail cost. Pending: learned bias on the Apertus-200k model (plan item 2);
+the prior-centered regularizer (plan item 3) may reduce the residual tail/magnet cost.
 
 **Artifacts:** `outputs/tables/prior_sweep.md`, `learned_prior.md`, `commonlid_eval.md`,
 `learned_bias.npy`; `analysis/{prior_sweep,learned_prior,commonlid_eval}.py`; Rust

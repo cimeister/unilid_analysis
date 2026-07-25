@@ -192,6 +192,188 @@ the re-selected reg. `learned_prior.REGS` was extended from {0.3, 1, 3, 10} to
 reg=3 (fails on magnets) and reg=10 (passes), and the original grid would select its own
 endpoint.
 
+**Prior-centered learned bias (2026-07-18).** `learned_prior.py` penalty generalized to
+`reg*||b - gamma*log(N+1)||^2`, grid `PRIOR_GAMMAS = {0, 0.25, 0.5}` x `REGS` (18 fits,
+gamma=0 is the plain L2). Selection: same all-strata guard, max val overall. Outputs are
+tagged `_centered` so the Exp 14 artifacts remain the plain-L2 record. The same change
+fixes an NLL gradient bug present since Exp 14 (soft counts were accumulated over all
+examples' top-k candidates while the loss conditions on top-k containing the true label;
+finite-difference verified). Rationale for the grid cap at gamma=0.5: Exp 16 measured the
+pure frequency prior (the anchor) at tail -0.0182 on the full test set, so large gamma is
+not presumed safe.
+
+**Non-content token tying (2026-07-18).** `token_tying.py`: tied sets classified on
+byte-decoded token text (never tied if any character is alphabetic or the token does not
+decode): digits_ws (298 tokens), nonalpha_ascii (479), nonalpha_all (1,291). Tied value:
+log of the resource-weighted mean probability (`w = min(N, 100k)`, all languages). PURE
+tying, no renormalization: the scorer sums unnormalized log-weights, and renormalizing
+would apply `-log Z_L` to every untied token (up to 0.36 nats/token spread, concentrated
+on flat confusers), conflating tying with a per-token bias. Special tokens
+(`<s> </s> <pad> <unk>`, each exactly p=0.2 in every row: HF score-0 specials normalized
+into the rows, 0.8 of all mass, uniform across languages so argmax-neutral) are asserted
+and never tied. Selection: all-strata guard over the three sets, val half; test half
+once.
+
+## Balanced validation protocol (2026-07-19, plan item 10)
+
+All future selection uses the language-balanced validation protocol
+(`analysis/balanced_split.py`; constants documented in its docstring). Pool = the
+45,377,279 kept full-test lines (the original 250k val is RETIRED: it was tuning data
+for Exp 13-20 and is never reused). Five draws (seeds 101-105), each sampling
+`min(K=100, floor(0.5 * n_L))` lines per language without replacement; draw 101 is the
+working val (188,061 lines, all 1,940 languages, tail median support 33, 89/96 tail
+languages with >= 10 examples); the other draws bound split-selection variance. Final
+numbers come from pool-minus-val. Artifacts:
+`outputs/diagnostic/balanced_val/{manifest.json, val_lines_seed*.npy}`, seed-101 text
+cache on scratch.
+
+**Objective note (measured, Exp 22):** a language-balanced val is the uniform-prior
+deployment view. Prior-style methods whose gain is deployment-prior fitting (the
+frequency prior, the learned bias) fail selection under it BY CONSTRUCTION, and did in
+the re-baseline; natural-traffic macro-F1 remains reported on the test side. Which view
+is the paper's headline objective is a framing decision to make explicit; selection
+uses the balanced view.
+
+**Protocol caveats (from the 2026-07-19 adversarial review, which verified all draws
+and the re-baseline bit-exactly):**
+1. Every language has >= 7 val examples (minimum pool count is 15, `otw_Latn`), and the
+   smallest surviving test support is 8 items (`otw_Latn`, `kdr_Latn`, `xum_Latn`);
+   per-language claims for the few smallest languages rest on that many items.
+2. The multi-draw variance check has reduced power for the smallest tail languages:
+   the 0.5 fraction cap makes any two draws share ~50% of a tail language's lines
+   (~6.5% overlap overall), so the check understates resampling variance there.
+3. Draws 102-105 are a clean stability check only for operating points that were NOT
+   fit on draw-101 texts. For fitted methods (e.g. any bias refit), stability must be
+   assessed by refitting per draw and comparing the selections, not by treating other
+   draws as held-out data.
+4. The seed-101 text cache stores raw parsed text; consumers must apply
+   `model.preprocess` themselves (empty-after-preprocess lines score as wrong,
+   matching the memmap convention). The cache is deterministically regenerable from
+   `val_lines_seed101.npy` and the test file.
+5. RESOLVED 2026-07-23: the language-balanced TEST draw exists (seed 201; see the
+   Precision-primary adoption rule section for its construction and the regeneration
+   of the stability draws it required). Balanced-objective headline numbers now come
+   from it. Note for caveat 3: after the regeneration, draws 102-105 exclude the test
+   draw, and any candidate fit on them is vetoed on data excluding them as well.
+
+## Stratified-metric views (2026-07-23, Exp 24)
+
+Two stratified views exist in this record and answer different questions:
+
+- **Within-stratum macro-F1**: truth and predictions restricted to examples whose true
+  label is in the stratum (`compute_metrics(yk[m], preds[m])`, m = true-label-in-stratum).
+  Every stratum row in the full-test tables and every guard column uses this view.
+  Cross-stratum false positives are excluded by construction, so for the small strata it
+  approximates a recall view (baseline tail: 0.9132 within-stratum versus a 0.9154
+  perfect-precision counterfactual).
+- **Global per-language F1**: the full confusion row and column per language. The
+  overall rows already use it (macro-F1 over all 1,940 languages). For the tail it
+  includes the false positives assigned to tail labels under natural traffic (baseline:
+  22,522 against 7,735 true tail examples; tail mean F1 0.5618).
+
+Consequences for selection: the guard bounds only the within-stratum view, and the
+balanced val (K=100 per language) additionally removes the volume asymmetry between
+head and tail that produces the false positives, so neither selection instrument can
+register the tail-precision failure mode or its repair. Configurations whose mechanism
+is tail-precision repair (floor-21, the frequency prior) fail the guard's tail column
+while raising tail global F1 (Exp 24, `outputs/tables/metric_decomposition.md`,
+`analysis/metric_decomposition.py`). Any tail or magnet claim must state which view it
+uses.
+
+## Precision-primary adoption rule (2026-07-23, user decision)
+
+Three instruments, each held out from the next's selection:
+1. **Selection**: balanced-val draw 101, existing `passes_guard` (within-stratum), with
+   one widening below.
+2. **Precision veto**: for shortlisted candidates, global per-language F1/precision
+   computed from the candidate's full-pool prediction memmap on pool minus the
+   selection draw (101) and the headline draw (201). Amended 2026-07-23 at first run:
+   the original union-of-all-draws exclusion left median ~1 true line per tail
+   language (six independent half-draws exhaust a 66-line pool; measured veto tail
+   recall 0.2188), breaking per-language F1 exactly where the veto needs it. The
+   stability draws 102-105 stay inside the veto; a candidate FIT on any stability
+   draw (refit-per-draw checks, caveat 3) must additionally exclude the draws it was
+   fit on. A runtime gate aborts if the veto retains median < 10 true lines per tail
+   language. Veto LEVELS are not comparable to full-pool numbers (about half of each
+   tail language's true lines are excluded while all false positives remain); the
+   rule uses gains and drops only. A sampled natural-prevalence val was rejected on
+   power grounds (a 2M uniform sample carries ~1,333 tail-predicted lines across 96
+   languages, so per-language precision is undefined for most of the tail). The veto
+   is a pre-registered pass/fail check, not an argmax over test evaluations.
+3. **Headline**: adopted configurations report on the balanced test draw (seed 201,
+   185,204 lines, all 1,940 languages, tail median support 16). Construction
+   (2026-07-23): drawn disjoint from the working val draw 101 ONLY, with
+   k = min(K, floor(0.5 * remaining)) so a natural remainder survives; excluding the
+   union of all five val draws is infeasible (the same exhaustion arithmetic as
+   above). To keep the test draw disjoint from all potential tuning data, the unused
+   stability draws 102-105 were regenerated to exclude it (k rule matched to draw
+   101's for exchangeability; zero languages at reduced k; manifest annotated). This
+   closes protocol caveat 5.
+
+A candidate is **adopted** iff (A) on balanced-val draw 101: overall may drop at most
+GUARD_TOL=0.01, twins/head at most GUARD_TOL, and tail/magnets at most
+TAIL_RECALL_TOL=0.03 when that stratum's global mean F1 gain on the veto exceeds its
+within-stratum loss, else GUARD_TOL (symmetric widening, user decision 2026-07-23);
+and (B) overall global macro-F1 improves and tail/magnet global mean F1 do not drop
+(PREC_TOL=0.0) on the veto instrument; and (C) no single language with at least
+MIN_COLLAPSE_SUPPORT=10 true veto lines loses more than 0.10 global F1 versus
+baseline. The support floor in (C) was added after the 2026-07-23 delta review: at
+n=4 a single line flip moves F1 by 0.11-0.14, so an unsupported max-over-languages
+test false-trips on quantization noise; sub-floor languages exceeding the bound are
+reported informationally, never silently dropped. The fit-draw conditional is
+enforced in code: `two_sided_report.CONFIG_FIT_DRAWS` must declare each candidate's
+fit draws and the run refuses candidates whose fit draws are not excluded from the
+veto.
+
+Constants (pre-registered 2026-07-23, not swept): TAIL_RECALL_TOL=0.03, PREC_TOL=0.0,
+per-language collapse bound 0.10, BALANCED_TEST_SEED=201. Rationale for the widening:
+Exp 24 measured the recall/precision trade of the leading configs at <= 3.3pp recall
+for +16 to +30pp precision; a strict two-sided AND at 0.01 would reject every
+tail-precision config (floor-21 drops within-stratum tail 0.0204). No CI on the veto:
+it is a population statistic over the full held-out remainder, and the CI-only-rule
+rejection in the guard provenance note applies.
+
+Implementation: `passes_two_sided` in `analysis/hierarchical_pool.py` (single
+implementation, imported by all reports); reporting in
+`analysis/two_sided_report.py` -> `outputs/tables/two_sided_selection.md`.
+
+**Amendments (2026-07-24, gating reconsideration; user invited the review and
+directed continuation under it, final confirmation pending).** Audit of the first
+round's verdicts: clause (C) was productive twice (the margin_q5 rejection surfaced
+the small-relative reassignment mechanism, and its pre-registered fix passed;
+learned-bias suppression confirmed on the full pool) but the binary verdict
+conflated method quality with the objective choice for gt_min (best uniform-prior
+numbers on record, rejected only on natural-traffic clauses). Three amendments:
+1. Stage (B) overall softened from "must improve" to "must not drop more than
+   GUARD_TOL": a tail-repair candidate must not fail on a sub-noise overall dip.
+   Flips no first-round verdict (gt_min's veto overall drop was 0.0007 but its
+   tail/magnet precision drops and clause (C) stand).
+2. Dual-track verdicts. The natural-traffic track is the rule above. The
+   uniform-prior track (`passes_uniform`): balanced-val overall must improve, no
+   stratum drops more than GUARD_TOL; the single track-selected candidate (highest
+   balanced-val overall) is confirmed on the balanced test draw with the
+   per-language collapse bound (0.10 at support >= 10 on the draw). Within-stratum
+   macro-F1 on balanced data is that track's deployment view, so it needs no
+   separate precision veto. Each track names its own champion; the paper's headline
+   choice between them remains the user's decision, but the machinery no longer
+   blocks on it.
+3. Verdict vocabulary gains an ITERATE lane: a candidate that wins one track and
+   fails the other with an identified, addressable mechanism is recorded as
+   "iterate" with the mechanism, not merely "rejected" (first assignment: gt_min,
+   natural-traffic failure mode = FP inflow, addressable by composition with an
+   FP-side repair).
+The seed-201 discipline is unchanged: selection never touches the test draw;
+exactly one candidate per track is confirmed there per round.
+4. Outlier tolerance in the collapse clause (user decision 2026-07-24): the bound
+   exists to catch methods that harm a (sub)class of languages as a whole, so up to
+   MAX_LANG_COLLAPSE_OUTLIERS=2 supported collapses flag a REQUIRED dig-in on those
+   specific languages without blocking eligibility; three or more reject as a
+   class-level pattern. Applied identically on both tracks. Effect on the record:
+   learned_bias returns to eligible (flagged: llb_Latn), gt_min becomes the
+   uniform-track champion (flagged: mev_Latn, sbs_Latn on the test draw); gt_margin
+   remains rejected (4 supported collapses forming the lowmid-under-dominant
+   pattern).
+
 ## Reproducibility limitations of this record
 
 - Only one git commit exists (`b7508fd`, 2026-04-08); per-experiment code versions are not

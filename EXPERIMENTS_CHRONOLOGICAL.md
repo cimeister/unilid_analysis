@@ -19,11 +19,377 @@ for the infrastructure record.
 
 ---
 
-## Family: Error analysis + hierarchical pooling (Exp 10–15)
+## Family: Error analysis, calibration, and the balanced protocol (Exp 10–24)
 
-**Window:** 2026-06-24 to present. Plan items: `EXPERIMENTS_PLAN.md` Exp 10–15. Setup:
+**Window:** 2026-06-24 to present. Plan items: `EXPERIMENTS_PLAN.md` Exp 10–16 and the
+"Next set of methods" items. Setup:
 `EXPERIMENTAL_SETUP.md` (hierarchical pooling). Full plan:
 `~/.claude/plans/yes-do-both-then-giggly-sprout.md`.
+
+### 2026-07-24: Exp 31, gating reconsideration + 131k error overlap + gt_margin build (login node)
+
+- User-directed gating review. Amendments (EXPERIMENTAL_SETUP.md, pending final
+  user confirmation): (B)-overall softened to a bounded drop; dual-track verdicts
+  (natural-traffic + uniform-prior `passes_uniform`); ITERATE lane. Delta review:
+  amendments verdict-neutral for the first round; seed-201 discipline preserved
+  (one confirmed candidate per track; multiplicity note recorded).
+- Dual-track run: floor-21 unchanged as natural-track champion; gt_min wins
+  uniform-track selection but FAILS the balanced-test collapse confirmation
+  (2 supported languages beyond 0.10, worst sbs_Latn -0.182), so the uniform track
+  has no champion and the baseline holds there.
+- Exp 30 (131k error overlap, `analysis/error_overlap_131k.py`): the 131k does not
+  repeat the baseline's errors (57.7% shared; 42.3% fixed incl. Indic wins; 403
+  languages regress; tat<-azj alone carries 17,603 FPs).
+- Pre-registered composition `gt_margin` (gt_min weights + head-targeted margin
+  gate, tau recalibrated under gt_min; `analysis/gt_margin.py`, reviewed, no
+  defects) built on the login node; judged in the same dual-track report.
+
+### 2026-07-24: Exp 28, gt_min full-test pass judged (job 2884210)
+
+- **2884210** `unilid-full-test-gt`: COMPLETED (2026-07-24 01:37, ~2.2 h scoring).
+  Verdict via `two_sided_report`: REJECTED (veto overall and tail/magnet global F1
+  drop; FPs into tail 22,404 -> 79,113; 12 supported languages beyond the collapse
+  bound) despite the best selection-view numbers ever measured (balanced-val overall
+  0.9841, tail 0.9769; full-test within-stratum tail +0.0656 CI [+0.0603, +0.0729]).
+  Floor-21 remains selected. Mechanism and the next-round composition hypothesis in
+  `EXPERIMENTS_RESULTS.md` Exp 28. Artifacts: `outputs/tables/full_test_gt.md`,
+  `pred_gt_min.npy`, `fingerprint_gt.json`.
+
+### 2026-07-23: Good-Turing counting pass + margin diagnostic launched (plan B4/B3)
+
+- **2883714** `unilid-gt-counts`: COMPLETED (2026-07-23 23:17, ~35 min run).
+  Outcome (`EXPERIMENTS_RESULTS.md` Exp 27): plateau overstates unseen mass for
+  all 1,940 languages (exact GT raises 0 rows; tail 9x, head 12x median
+  overstatement); spot-checks exact. gt_min matrix built and gate-checked; scoring
+  pass `analysis/full_test_gt.py` reviewed (no defects) and submitted as
+  **2884210** `unilid-full-test-gt` (64 CPU, 100G, 6 h; pred_gt_min.npy +
+  fingerprint_gt.json on the full-test scratch dir; verdict via
+  `two_sided_report`, gt_min added to CONFIGS). Original submission record: plan B4
+  prerequisite: per-language T, n1, plateau mass under each language's own Viterbi
+  segmentation of its training corpus (`analysis/gt_counts.py`, resumable per
+  language, review-fixed torn-line resume handling). Output
+  `outputs/diagnostic/gt_counts.csv`; feeds the one-sided-min GT candidate
+  (`full_test_gt.py`, to be written when counts exist). 64 CPU, 100G, 8 h.
+- **2883715** `unilid-margin-diag`: COMPLETED (2026-07-23 22:39). Outcome
+  (`EXPERIMENTS_RESULTS.md` Exp 26): VIABLE; FP catch 76.8%, test-side suppression
+  6.7%, cascade 53 lines, per-language AUC 0.90-0.9998, 26 languages excluded.
+  Follow-up candidate `margin_q5` (reassign to runner-up), built login-node by
+  `analysis/full_test_margin.py` (reviewed; agreement 1.0000; 17,773 reassignments):
+  REJECTED on clause (C), szy_Latn -0.107 via 82 reassigned pwn_Latn FPs (see
+  Exp 26 addendum in EXPERIMENTS_RESULTS.md, mechanism verified from memmaps).
+  Pre-registered final variant `margin_q5_head` (reassign to highest-scoring head
+  candidate) recorded before its run, then built and judged same evening: ELIGIBLE
+  (all stages pass, szy collapse gone) but not selected; floor-21 ranks higher on
+  both instruments (val overall 0.9800 vs 0.9799; veto tail F1 0.6337 vs 0.5321).
+  Margin family closed this round; composition path recorded in the plan. Original
+  submission record: plan B3:
+  margins on the 22,522 FP-into-tail lines, the 7,735 true-tail lines, and up to
+  2,000 train lines per tail language; tau_L at the 5th percentile of self-won train
+  margins; MIN_CALIB_LINES=200 exclusion, logged (`analysis/margin_diagnostic.py`).
+  Outputs `outputs/tables/margin_diagnostic.md`,
+  `outputs/diagnostic/tau_per_lang.csv`. 64 CPU, 100G, 2 h. Constants MARGIN_Q=5,
+  MIN_CALIB_LINES=200, CALIB_MAX=2000, TOPK_MARGIN=5, CALIB_SEED=0 pre-registered in
+  the approved plan.
+- Both modules reviewed pre-launch (Opus adversarial pass: no defects that would
+  produce a wrong headline number; fixed before submission: gt_counts torn-line
+  resume gap, a diagnostic-column double-count, a hardcoded stratum size; the
+  encode_batch-vs-scorer segmentation choice documented as deliberate).
+
+### 2026-07-23: Exp 25, adoption-rule instruments + first verdicts + pnt/ell audit (plan B1/B2, no SLURM job)
+
+- Login-node analysis, no new scoring. Code: `passes_shortlist`/`passes_two_sided`
+  (`analysis/hierarchical_pool.py`), `build_test_draw`/`rebuild_stability_draws`
+  (`analysis/balanced_split.py`), `analysis/two_sided_report.py`,
+  `analysis/label_audit.py`; `balanced_sweeps.py` sweeps now shortlist. Reviewed
+  pre-run (Opus adversarial pass: no correctness defects; two flags fixed:
+  `run_bias_refit` guard -> shortlist, `balanced_split.__main__` de-pipelined).
+- Instrument amendment at first run: the veto originally excluded all six balanced
+  draws, leaving median ~1 true tail line per language (veto tail recall 0.2188);
+  amended to exclude draws 101/201 only, with a conditional exclusion for candidates
+  fit on stability draws and a median>=10 runtime gate. Delta review of the amendment
+  (same agent): exclusion set sound for the four current configs, llb_Latn rejection
+  confirmed genuine on the full pool (drop 0.111), freq_prior trace confirmed; one
+  defect found and fixed: clause (C) now judges only languages with
+  MIN_COLLAPSE_SUPPORT=10 true veto lines (at n=4 one line flip moves F1 by
+  0.11-0.14 and false-trips the 0.10 bound), and the fit-draw conditional is
+  enforced via `CONFIG_FIT_DRAWS`. Verdicts unchanged under the fixed clause.
+- Outcomes (`EXPERIMENTS_RESULTS.md` Exp 25): floor-21 ELIGIBLE and selected
+  (provisional adopted configuration; supersedes the Exp 20 recall-view verdict);
+  freq_prior ELIGIBLE not selected; learned_bias reg=5.0 REJECTED on the
+  per-language collapse clause (llb_Latn -0.113, n=4,181). Label audit: 50/50
+  sampled pnt_Grek<-ell_Grek residual lines are standard Modern Greek (provisional),
+  so that residual is model error, not label noise.
+- Artifacts: `outputs/tables/two_sided_selection.md`,
+  `outputs/tables/label_audit_pnt_ell.md`, `outputs/diagnostic/balanced_val/`
+  (val_lines_seed201.npy new; seeds 102-105 regenerated, manifest annotated).
+
+### 2026-07-23: Apertus 131k (preliminary_mul) retrain launched (plan Track A)
+
+- **2883222** `unilid-apertus131k-train`: COMPLETED 2026-07-24 02:47 (~9.8 h total,
+  inside the 12 h window; no resume needed, unlike the 200k run). All 1,940
+  languages trained; `glotlid_apertus131k.unilid` packed (1,021,914,972 bytes).
+  Evaluation: `analysis/full_test_eval_131k.py` (reviewed, no defects; one optional
+  hardening applied) submitted as **2885941** `unilid-full-test-131k` (64 CPU,
+  100G, 8 h): scores the b=0 baseline over the full pool into the separate scratch
+  dir `full_test_eval_131k/`, reusing y_true read-only after a language-list gate;
+  report `outputs/tables/full_test_eval_131k.md` +
+  `outputs/diagnostic/full_test_131k_per_lang_prf.csv`. **2885941** COMPLETED
+  2026-07-24 (~3.5 h): NEGATIVE on both views (within-stratum tail -0.0437
+  [CI -0.0515, -0.0371], overall -0.0113; FPs into tail 22,522 -> 51,926; balanced
+  val also lower). `EXPERIMENTS_RESULTS.md` Exp 29; branch discontinuation
+  recommended, user decision pending. Original submission record: PENDING
+  at submission (Resources), RUNNING on nid007559 within 8 minutes. Purpose:
+  test whether a multilingual-focus 131k vocabulary reverses the Apertus 200k tail
+  regression (-3.4pp, Exp 15); the tokenizer is documented in
+  `~/apertus-tokenizer-development/README.md` as the balanced-multilingual candidate
+  with the highest compression on Indic, Chinese, and the low-resource tail.
+- Plan item: approved plan `~/.claude/plans/steady-finding-abelson.md` Track A;
+  tokenizer choice (`preliminary_mul` over the stock Apertus tokenizer) fixed by the
+  user 2026-07-23.
+- Init: vocab seeding from
+  `/users/cmeister747/apertus-tokenizer-development/preliminary_mul/tokenizer.json`
+  (sha256 6f8c5ca267c94975081045a46686ae68f8a1335b70a104810904389272117d41, vocab
+  131,072, BPE, NFC; specials `<unk>/<s>/</s>/<pad>` at ids 0-3), uniform Unigram
+  init, per-language fixed-vocab EM (forked spm_train), standard setup as the 200k
+  retrain (`EXPERIMENTAL_SETUP.md` Apertus retrain entry).
+- Data: `train.txt` (60,683,151 lines) via the 200k run's per-language corpus split,
+  reused read-only with `--corpus-dir` (preflight `analysis/preflight_131k.py`
+  verified 1,940 files, line total exact, all checks passed pre-submission).
+- Script: `slurm_apertus_train_131k.sh` (12 h, 64 CPU, 400G, infra01/normal;
+  auto-adds `--reuse-base` on resume). Expected: 12 h timeout at ~1,700/1,940
+  languages plus one resume, matching the 200k run; then `convert.py` packs
+  `$SCR/glotlid_apertus131k.unilid` (~1.02 GB).
+- Artifacts: `$SCR/results_apertus131k/` (per-language tokenizers),
+  `$SCR/glotlid_apertus131k.unilid`, logs `apertus131k_train_2883222.{out,err}`.
+- Checkpoint hygiene: no deletions; `results_apertus131k/` is new and the 200k corpus
+  dir is reused read-only.
+
+### 2026-07-23: Exp 24, metric decomposition of the saved full-test predictions (analysis only, no SLURM job)
+
+- Login-node analysis, no new scoring. Script `analysis/metric_decomposition.py`,
+  reviewed pre-run by an adversarial agent (no defects). Inputs: the Exp 16 prediction
+  memmaps (job 2784115) and the floor-21 memmap (job 2791722) on scratch, plus
+  `outputs/diagnostic/full_test_per_lang_f1.csv` and `lang_diagnostic.csv`.
+  Consistency gates, all passed: kept-line count 45,377,279; every recorded
+  within-stratum table value reproduced to 6e-5; saved per-language F1 reproduced
+  exactly.
+- Purpose: decompose the stratum rows (within-stratum macro-F1) against global
+  per-language F1/precision/recall. Outcome (`EXPERIMENTS_RESULTS.md` Exp 24): the
+  tail deficit is precision (0.459), not recall (0.874); the rejected configurations'
+  tail ranking reverses under the global view (floor-21 reaches tail mean F1 0.7655
+  versus baseline 0.5618); neither the guard nor the balanced val can register this
+  failure mode. Follow-ups proposed as `EXPERIMENTS_PLAN.md` Open paths block E; the
+  metric-view question added to the Decision required item.
+- Artifacts: `outputs/tables/metric_decomposition.md`,
+  `outputs/diagnostic/full_test_per_lang_prf.csv`.
+
+### 2026-07-18 — Prior-centered regularizer + non-content token tying (plan items 3, 11)
+
+Code changes before these runs, both reviewed pre-launch by an adversarial agent:
+- `analysis/learned_prior.py`: (a) prior-centered penalty `reg*||b - gamma*log(N+1)||^2`,
+  grid `PRIOR_GAMMAS = {0, 0.25, 0.5} x REGS`; outputs to `learned_prior_centered.md` /
+  `learned_bias_centered.npy` so the Exp 14 artifacts stay intact. (b) GRADIENT BUG FIX
+  (found by the review, present since Exp 14): the softmax-NLL gradient accumulated soft
+  counts over ALL examples' top-k candidates while the loss conditions on the true label
+  being in the top-k (recall 0.9971); the fitted b was therefore not the minimizer of the
+  stated objective. Fixed by restricting the soft counts to present examples; verified by
+  finite differences (max error 3e-8 with 33/40 absent examples). The Exp 14 measured
+  deltas remain valid measurements of the b that was produced; the gamma=0 rows of this
+  run give the corrected plain-L2 fit for comparison. Caution note added to
+  `EXPERIMENTS_RESULTS.md` Exp 14.
+- `analysis/token_tying.py` (new): pure non-content token tying; tied sets digits_ws
+  (298 tokens), nonalpha_ascii (479), nonalpha_all (1,291) classified on byte-decoded
+  token text. No renormalization: the review derived that renormalizing injects a
+  per-language per-token offset `-log Z_L` up to 0.36 nats/token concentrated on flat
+  confusers, conflating mechanisms; pure tying leaves untied columns bit-identical
+  (unit-verified). Special tokens (each exactly p=0.2 per row, the peak-probability
+  artifact investigated 2026-07-18: HF Unigram score-0 specials normalized into every
+  row, 0.8 of all mass, uniform across languages so argmax-neutral) are asserted and
+  never touched.
+
+- **2794210** `unilid-bal-sweeps` — COMPLETED 00:08:52 (2026-07-19). Outcomes
+  (`EXPERIMENTS_RESULTS.md` Exp 23): floor equalization rejected at selection (tail
+  -0.0177 to -0.0269 now visible); punctuation partial pooling alpha=300 PASSES (all
+  strata non-negative, effect at measurability edge); learned-bias refit on balanced
+  data reg=0.3 PASSES (sel overall +0.0016, tail +0.0299, magnets +0.0252; suppressed
+  list = head/twin sinks nya/por/heb, not flat magnets; ||b||_inf 11.3). Pending before
+  adoption of either: refit-per-draw stability, balanced-test draw, full-test passes,
+  and the explicit objective decision on individual-language suppression. First sweeps
+  under the
+  balanced protocol (Exp 22), three experiments in one job
+  (`analysis/balanced_sweeps.py`): (a) floor-equalization re-selection (plan item 14
+  follow-up, F grid {-17,-19,-21,-23}); (b) punctuation partial pooling (plan item 15,
+  212 neutral dp columns toward within-script means, lam = alpha/(N+alpha), alpha
+  {300, 3000, 30000}); (c) learned-bias refit on balanced data (plan item 16,
+  per-language alternating fit/selection halves, plain L2, corrected gradient,
+  interpretability table of most-negative offsets). Selection only, no test scoring;
+  baseline validated against the saved full-test predictions at the balanced-val lines
+  (expected agreement ~1.0; gate 0.99). Reviewed pre-launch (adversarial agent: no
+  blocking defects; empties provably absent from the pool; all 1,940 languages in both
+  refit halves, fit >= 4 / sel >= 3 examples each; one overclaiming conclusion sentence
+  rewritten to single-draw wording per review). Artifacts:
+  `outputs/tables/balanced_{floor_eq,punct_prior,bias_refit}.md`,
+  `learned_bias_balanced.npy` (only on a guard pass). Script:
+  `slurm_balanced_sweeps.sh`.
+- **2793541** `unilid-tying-dp` — COMPLETED 00:09:08 (2026-07-19). NEGATIVE: dp_global
+  val overall -0.0014 (twins -0.0060), dp_script -0.0016 (twins -0.0103, failing the
+  twin guard alone); tail/magnets flat; baseline selected. The cost concentrating in
+  twins shows digit/punctuation usage rates are within-pair discriminative signal
+  (consistent with Exp 4's 10.5% punctuation share of within-pair KL). Tying is closed
+  at every curation level; see the Exp 18 final reading. Curated re-run of the token
+  tying after the user's critique of the Exp 18 design (whitespace/newlines should
+  never have been tied; their frequencies encode spacing conventions). Tied set: 212
+  tokens whose decoded text is entirely ASCII digits + neutral punctuation
+  (`.,:;!?()[]{}/\|@#*+=<>~`_"%^`), with documented linguistic exclusions (apostrophes,
+  hyphens/dashes, ampersand, currency, Spanish inverted marks, typographic quotes, all
+  whitespace including leading-space Ġ-variants, all non-ASCII punctuation). Two
+  configs: dp_script (primary, tie within script groups so writing-system conventions
+  never cross scripts; single-script languages unchanged by construction) and dp_global
+  (comparison). Pure tying, no renormalization; same guard. Reviewed pre-launch
+  (adversarial agent: no defects; character inventory of the tied set audited
+  linguistically; single-language-script invariance verified bit-exact; Exp 18 default
+  path confirmed byte-identical). Note two in-scope caveats from the review: tied
+  tokens like `,000`/`.000` smooth the decimal-separator locale convention
+  (intentional), and ASCII click-letter risk is nil (orthographic clicks are alphabetic
+  Unicode). Init-from: recovered `glotlidc.unilid`. Artifact:
+  `outputs/tables/token_tying_dp.md`. Script: `slurm_token_tying_dp.sh`.
+- **2791722** `unilid-ft-floor21` — COMPLETED 01:41:04 (2026-07-19). Resubmission of
+  2791583 after fixing an over-strict startup gate. Full-test verdict on floor-21:
+  overall +0.0129 (point), head -0.0003, twins -0.0001, mid +0.0001, but tail -0.0204
+  [CI -0.0257, -0.0161] and magnets -0.0164 [CI -0.0210, -0.0129]; accuracy +0.0009.
+  The tail cost is real (unlike the learned bias's test-half scare); floor-21 is a
+  global-precision-for-tail-recall trade, dominated by the learned bias at equal
+  overall gain, and is NOT adopted. Third val-selected point overturned at full scale.
+  Results: `EXPERIMENTS_RESULTS.md` Exp 20. Artifact:
+  `outputs/tables/full_test_floor21.md`.
+- **2791583** `unilid-ft-floor21` — FAILED 00:00:23 (2026-07-19 00:13, exit 1:0). The
+  startup completeness gate demanded no UNSEEN anywhere in `pred_baseline.npy`, but the
+  Exp 16 run wrote predictions only for kept lines, so the 250,000 val positions are
+  legitimately UNSEEN there (verified: 250,000 UNSEEN total, 0 on kept lines). Failed
+  before any scoring or state changes; the gate now checks kept lines only. The pre-run
+  review had asserted this check was verified against the memmaps; that verification
+  claim was wrong. Original entry follows. Full-test evaluation of the
+  Exp 20 guard-selected floor-21 matrix (plan item 14 follow-up): one scoring pass over
+  the 45,377,279 non-val lines under the clamped matrix, compared against the SAVED
+  Exp 16 baseline memmaps (job 2784115; opened read-only). Deterministic matrix rebuild
+  + sha256 fingerprint; per-line label gate against the saved y_true; bidirectional
+  val-partition cross-check; resumable. Decides whether floor-21 (test-half overall
+  +0.0030) becomes a result of record or joins the tail-risk record: the test-half tail
+  point is -0.0623 on ~35 items. Reviewed pre-launch (adversarial agent: no defects;
+  walltime bound <= 5h10m vs 8h request; special-column assert added from its
+  suggestion). Note for interpretation: absolute levels here use the zero-bias scorer
+  path (like Exp 16), whereas the Exp 20 sweep used the unbiased predict path; the
+  reported quantity is the internally consistent baseline-relative delta. Script:
+  `analysis/full_test_floor21.py`, `slurm_full_test_floor21.sh`. Artifact:
+  `outputs/tables/full_test_floor21.md`.
+- **2791444** `unilid-flooreq-hier` — COMPLETED (2026-07-18). Outcomes: (a) floor
+  equalization POSITIVE on overall, guard selects floor-21, test-half overall +0.0030
+  [CI +0.0016, +0.0044], twins/head flat, magnets -0.0108 (crosses 0), tail -0.0623 (CI
+  touching 0 on ~35 items; full-test check required before adoption; see Exp 20).
+  (b) macrolanguage hierarchy NULL: deltas -0.0000 everywhere; macro-aware accuracy
+  0.9680 vs exact 0.9603 measures the within-macro ceiling (Exp 21). Two experiments in
+  one job
+  (plan items 14 and 13, run in that order). (a) Downward floor equalization
+  (`analysis/floor_equalization.py`): plateau clamped to min(floor_L, F), F in
+  {-17, -19, -21, -23}; measured n_modified per F: 452 / 1,821 / 1,940 / 1,940; premise
+  gate added (abort if corr(floor, log10 N) > -0.5). (b) Macrolanguage-hierarchical
+  decision (`analysis/macro_hierarchy.py`): parameter-free logsumexp group marginal over
+  SIL macrolanguages from top-50 candidates; guard is accept/reject; table reports
+  hierarchical-vs-baseline deltas unconditionally (no tuning). Both reviewed pre-launch
+  (adversarial agent: no correctness or crash bugs; Rust empty-string top-k early-return
+  and K=50 marginal truncation verified; two reporting items fixed before submission;
+  known cosmetic caveat: the hierarchy module's baseline uses top-k tie-breaking, which
+  can differ from best_of on exact float32 ties). Init-from: recovered
+  `glotlidc.unilid`. Artifacts: `outputs/tables/floor_equalization.md`,
+  `macro_hierarchy.md`. Script: `slurm_floor_eq_hierarchy.sh`.
+- **2790174** `unilid-backoff-wals` — COMPLETED 00:17:03 (2026-07-18). NEGATIVE, same
+  monotone pattern as 2790155 within 0.0016 at every config (val overall -0.0036 at
+  wals_lift_a300 down to -0.0304 at alpha=30000; tail/magnets drop at alpha >= 3000);
+  nothing passes the guard; baseline selected. Genealogical grouping fidelity is
+  immaterial to the outcome; the mass-lifting operation is the refuted element. Results:
+  `EXPERIMENTS_RESULTS.md` Exp 19. Original entry follows. WALS genealogical grouping
+  for the back-off (plan item 12, user-requested true families): tiered per-language
+  fallback genus-within-script -> family-within-script (each requires >=
+  `MIN_BACKBONE_GROUP = 3` backbone members) -> script. Source:
+  `data/wals_languages.csv` (WALS export copied from `~/tokenizer-lm/data`, provenance
+  in `data/README.md`; covers 1,159/1,940 languages; the parity-aware grouped config was
+  evaluated as an alternative and rejected as primary source at 207/1,940 coverage).
+  Tier assignment: genus 535, family 360, script 1,012, none 33; 37/96 tail languages
+  get a genealogical tier (`outputs/diagnostic/backoff_groups_wals.csv`). Same six
+  mode x alpha configs and guard as 2790155. Reviewed pre-launch (focused adversarial
+  agent: no number-corrupting defects; nested-group semantics and None cascade verified
+  on the real arrays). CAVEAT for interpretation: in genus groups with exactly 3
+  backbone members (21 of 50 eligible genus groups), the EXCLUDE_K=3 confuser exclusion
+  empties and falls back to all-but-self, so the confuser-excluded property is weaker at
+  the genus tier. Artifact: `outputs/tables/family_backoff_wals.md`. Script:
+  `slurm_family_backoff_wals.sh`.
+- **2790155** `unilid-backoff` — COMPLETED 00:17:42 (2026-07-18). NEGATIVE: every config
+  reduces val overall (lift_a300 -0.0028 ... lift_a30000 -0.0289; full mode within
+  0.0007 of lift throughout); at alpha >= 3000 val tail drops 0.8710 -> 0.8387 and
+  magnets 0.8797 -> 0.8609. Nothing passes the guard; baseline selected (test deltas
+  zero by construction). Mechanism reading: lifting unseen-token mass toward the script
+  mean makes languages MORE accepting of group-plausible foreign material, increasing
+  theft; this is the direction Exp 10 warned about (small languages already
+  under-penalize unseen tokens). The untried direction implied by Exp 10 is floor
+  EQUALIZATION downward, not group-informed lifting. Original entry follows. Script-mean
+  back-off at floor
+  positions (plan item 12): each language's exact floor plateau (74,617-99,810 entries
+  per row, measured; the emergent resource-tied unseen-token constant) is replaced by
+  `lam_L * m_G(t)` with `lam_L = alpha/(N_L+alpha)`, m_G = confuser-excluded resource-
+  weighted script backbone mean; modes lift/full x alpha {300, 3000, 30000}; observed
+  tokens and specials bit-identical; no renormalization. 33 languages without a
+  same-script backbone stay unmodified. Guard-selected on val, test half once. Reviewed
+  pre-launch (adversarial agent: no number-corrupting defects; units of prior vs
+  log-weights confirmed consistent because all rows are exactly normalized). Init-from:
+  recovered `glotlidc.unilid`. Script: `analysis/family_backoff.py`,
+  `slurm_family_backoff.sh`. Artifact: `outputs/tables/family_backoff.md`.
+- **2790077** `unilid-learnprior` — COMPLETED (2026-07-18). Prior-centered learned bias
+  sweep (18 fits, corrected gradient), val-guarded selection, test half once. Init-from:
+  recovered `glotlidc.unilid`. Selected gamma=0.25, reg=10: test-half overall +0.0117
+  [CI +0.0104, +0.0130], twins +0.0124, head +0.0089, magnets -0.0052 (crosses 0), tail
+  -0.0320 (the noisy 250k-half tail; full-test read pending). Note: under the corrected
+  gradient the previous operating point (gamma=0, reg=5) now FAILS the guard (val
+  magnets -0.0119), so the gradient fix changed the fit materially. Marginal gain over
+  plain-L2 reg=5 (+0.0112 on the same half); needs full-test confirmation before any
+  supersession. Artifacts: `outputs/tables/learned_prior_centered.md`,
+  `learned_bias_centered.npy`.
+- **2790078** `unilid-tying` — COMPLETED 00:10:42 (2026-07-18). Non-content tying sweep
+  (3 tied sets), val-guarded selection. NEGATIVE: every tied set reduces val overall
+  (digits_ws -0.0010, nonalpha_ascii -0.0063, nonalpha_all -0.0078); nothing passes the
+  guard; baseline selected (all test deltas zero by construction). Refinement hypothesis
+  for a possible follow-up: the tied sets include the whitespace tokens (Ġ, Ċ), and
+  whitespace frequency is genuinely language-discriminative (spaced vs unspaced
+  scripts), so the negative may be dominated by tying whitespace; a digits+punctuation
+  set that excludes whitespace was not run. Artifact: `outputs/tables/token_tying.md`.
+
+### 2026-07-16 — Full-test-set evaluation (plan "Next methods" item 10, part 1)
+
+- **2784115** `unilid-fulltest` — COMPLETED 05:06:50 (2026-07-18 00:02). Scores the 100k
+  model on the full GlotLID test set minus the 250k val lines (45,377,279 lines) for three
+  FIXED configurations: baseline, frequency prior gamma=0.5, learned bias reg=5.0
+  (`outputs/tables/learned_bias.npy` from job 2731802). No selection: pure evaluation to
+  tighten the stratified deltas; on the 250k test half every one of the 96 tail languages
+  has <= 2 examples (67.7% have zero VAL examples), so the open question was whether the
+  learned bias's tail delta (-0.0320, CI touching 0) is real. Outcome
+  (`EXPERIMENTS_RESULTS.md` Exp 16): learned bias overall +0.0129, tail -0.0018
+  [CI -0.0035, -0.0001] (the -0.0320 was split noise), magnets -0.0082, accuracy
+  0.9608 -> 0.9751; frequency prior tail -0.0182 [CI -0.0225, -0.0146], i.e. NOT
+  tail-safe (its Exp 14 tail 0.0000 was a tail-invisibility artifact). Baseline
+  agreement with recorded predictions 0.9951 (check passed). Script:
+  `analysis/full_test_eval.py` + `slurm_full_test_eval.sh`.
+  Safety: seed-42 val-line reconstruction cross-checked against `val_mask.npy`; every
+  sampled test-half line's label validated against the sample pickle (abort on first
+  mismatch); zero-bias predictions validated against recorded UniLID predictions
+  (abort if agreement < 0.99); resumable chunked memmaps on scratch guarded by a config
+  fingerprint (sha256 of all three bias vectors + language list + chunking) so a resume
+  with changed inputs aborts instead of mixing configurations. Reviewed before launch by
+  an adversarial agent: numeric path confirmed correct; the fingerprint, atomic progress
+  writes, and the baseline-agreement check were added from its findings. Bootstrap CIs
+  (B=1000) for strata <= 3M examples (tail ~6k, magnets ~61k); point deltas only for
+  twins/head/overall (n > 3M, item-level CI half-width < 0.001).
+  Artifacts: `outputs/tables/full_test_eval.md`,
+  `outputs/diagnostic/full_test_per_lang_f1.csv` (per-language F1 for plan items 5-6),
+  memmaps + fingerprint in `/capstor/scratch/.../unilid_analysis/full_test_eval/`.
 
 ### 2026-07-10 — Selection-guard fix + re-selection re-runs (plan "Next methods" item 1)
 

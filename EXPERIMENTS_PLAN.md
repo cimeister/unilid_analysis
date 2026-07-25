@@ -103,9 +103,14 @@ MMI training was rejected. Full plan file: `~/.claude/plans/yes-do-both-then-gig
 
 ## Next set of methods to test
 
-Ordered by priority. The learned bias (Exp 14) is the current best result and the template.
-Items 3-7 were added 2026-07-10 from the assessment of the results record; items 3, 4, and 7
-extend the calibration template, items 5-6 are analyses that pick the direction after it.
+Item numbers are stable identifiers; entries appear in the order they were added, not in
+numeric order. Current state (2026-07-19): selection runs under the balanced protocol
+(item 10 / Exp 22), which encodes the uniform-prior objective; under it the two live
+candidates are the punctuation partial pooling (item 15, guard-passed at alpha=300) and
+the balanced-data bias refit (item 16, guard-passed at reg=0.3, adoption blocked on
+stability, evaluation, and an objective decision). Under the natural-traffic objective
+the learned bias reg=5.0 (Exp 16) remains the reference result. The consolidated list of
+open paths is at the end of this file.
 
 1. **Fix the selection guard to protect all strata** (`analysis/prior_sweep.py`,
    `learned_prior.py`, `hierarchical_pool.py`): require that no stratum (tail, magnets,
@@ -131,75 +136,323 @@ extend the calibration template, items 5-6 are analyses that pick the direction 
 2. **Learned per-language bias on the Apertus 200k model** (`slurm_learnprior_apertus.sh`,
    to write): the precise instrument, not the blunt frequency prior. Expected to give a
    clean gain that protects the Apertus tail, unlike the frequency prior (Exp 15). `not
-   started`. Confirms whether the learned-bias win is model-agnostic. Should inherit the
-   fixed guard (item 1) and the prior-centered regularizer (item 3) if that lands first.
+   started`, deprioritized with the bias family (2026-07-18 user decision) and pending
+   the item-16 outcome; if ever run, it starts under the balanced protocol.
 
 3. **Regularize the learned bias toward the frequency prior** (`analysis/learned_prior.py`):
-   replace `reg*||b||^2` with `reg*||b - gamma*log(N_L+1)||^2`, gamma fixed at 0.5 or
-   selected on val jointly with reg. Two effects: b_L for languages with few val examples
-   shrinks toward a sensible default instead of toward 0, and a newly added language gets
-   the starting bias `gamma*log N_new`, which restores the add-a-language modularity story
-   for the learned variant. One-line change to the loss plus a re-run. `not started`.
+   replace `reg*||b||^2` with `reg*||b - gamma*log(N_L+1)||^2`, gamma selected on val
+   jointly with reg (grid {0, 0.25, 0.5}; gamma=0 is the plain L2). Two effects: b_L for
+   languages with few val examples shrinks toward a default instead of toward 0, and a
+   newly added language gets the starting bias `gamma*log N_new` (modularity). Exp 16
+   caution: the anchor itself costs full-test tail -0.0182, so large gamma is not
+   presumed safe. `finished` (job 2790077, 2026-07-18; `EXPERIMENTS_RESULTS.md` Exp 17):
+   guard selects gamma=0.25/reg=10 under the corrected NLL gradient, test-half overall
+   +0.0117, marginal over plain-L2 reg=5 (+0.0112); the old operating point fails the
+   guard under the corrected gradient. Not a result of record pending full-test
+   evaluation, and the whole bias family is deprioritized by the 2026-07-18 user
+   decision (tail risk; fitting for a new language needs global val data, breaking
+   add-a-language modularity). Items 2 and 4 inherit that deprioritization.
 
-4. **Length-aware calibration** `score + b_L + c_L * n_tokens(L, x)`: a per-token offset
-   c_L targets the Exp 10 mechanism directly (the per-language smoothing floor is
-   resource-tied, corr(floor, log10 N) = -0.966, and 86.4% of the stolen score margin
-   comes from short non-content tokens), which a constant b_L cannot correct. Scoring
-   needs no new Rust: adding c_L to every entry of row L of the weight matrix is exactly
-   a per-token offset (`set_weight_sets`, with b_L via the biased scorer). The softmax
-   fit stays convex (logits linear in b and c). The top-k extraction for the fit needs
-   per-candidate token counts: a small extension of `top_k_of_cached_weight_sets_batch`,
-   or a fixed-segmentation approximation validated by exact rescoring (the same
-   reproduction check used for gamma=0). Caveat to validate: folding c_L into a row also
-   shifts that language's Viterbi segmentation. `not started`.
+4. **Affine score recalibration** `score'(L) = a_L*score + b_L + c_L*n_tokens(L, x)`
+   (refined 2026-07-18 from the length-aware-calibration item): multinomial logistic
+   recalibration, convex in (a, b, c); nests Exp 14 (b only). The per-token c_L is the
+   degree of freedom row normalization removes (all rows have identical real-token mass
+   0.2), equivalently a per-language geometric length model; it targets the Exp 10
+   mechanism directly (resource-tied floor, corr -0.966; 86.4% of the stolen score
+   margin from short non-content tokens), which a constant b_L cannot correct. Scoring
+   needs no new Rust for (b, c): fold c_L into row L via `set_weight_sets` and b_L via
+   the biased scorer. The top-k extraction for the fit needs per-candidate token counts
+   (small extension of `top_k_of_cached_weight_sets_batch`) or a fixed-segmentation
+   approximation validated by exact rescoring. Caveat to validate: folding c_L into a
+   row also shifts that language's Viterbi segmentation. Start with (b, c); a_L
+   (temperature) only if the residuals justify it. `not started`.
 
 5. **Interpret the fitted b_L** (`outputs/tables/learned_bias.npy`): correlation with
-   log N_L, and whether the most negative offsets are the diagnosed flat magnets
-   (kzn, tly, vol, ido, mlt, qus). If the discriminative fit independently rediscovers
-   the Exp 10 magnet list, the diagnosis and the fix corroborate each other. Pure
-   analysis, no new runs. `not started`.
+   log N_L, and whether the most negative offsets are the diagnosed flat magnets.
+   Partially superseded 2026-07-19: the balanced refit (Exp 23c) answered the
+   substantive question for the uniform-prior fit (suppressed languages are head/twin
+   sinks, not flat magnets). The natural-traffic vector's interpretation remains
+   undone; only worth doing if the paper reports that vector. `not started`, low
+   priority.
 
-6. **Residual error decomposition on the learned-bias model**: rerun the Exp 10 cuts on
-   the errors the selected learned-bias model still makes (test half), and size the
-   macrolanguage-split share by applying the SIL macro-aware scoring (mapping from
-   `analysis/commonlid_eval.py`) to the GlotLID test sample. The outcome picks the next
-   method (twin tie-breaking vs short-text handling). `not started`.
+6. **Residual error decomposition on the current best configuration**: rerun the Exp 10
+   cuts on the errors that remain (which configuration is "best" now depends on the
+   objective decision; see Open paths). The macro-aware sizing half of this item is
+   `finished` via Exp 21 (0.77pp of test-half accuracy is within-macro confusion).
+   Decomposition `not started`.
 
-7. **Unsupervised prior adaptation to a target domain**: re-estimate the class prior
-   (equivalently b_L) on unlabeled target text by EM over the model's posteriors
-   (Saerens et al., 2002), starting from the GlotLID-fit bias; evaluate on CommonLID
-   without using its labels. Separates the attractor-suppression part of the learned-bias
-   gain from the part that fits the GlotLID label distribution, and addresses the caveat
-   that the fitted bias encodes the tuning distribution's label prior. `not started`.
+7. **Unsupervised prior adaptation to a target domain** (Saerens et al., 2002):
+   re-estimate the class prior on unlabeled target text by EM over the model's
+   posteriors. `not started`. Reframed 2026-07-19: this is a natural-traffic-objective
+   tool (it adapts the deployment prior); under the balanced selection objective it is
+   relevant only to the paper's deployment story, not to selection.
 
 8. **Diagnose the Apertus tail regression** (`analysis/diagnostic.py` on the Apertus model):
    compare per-language tail F1 100k vs Apertus; test whether the 200k byte-level vocab
    fragments rare-tail languages (longer token sequences, flatter per-language
    distributions) or whether it is a recovered-data mismatch. `not started`.
 
-9. **Constrained / capped prior variants** (if 1-4 leave residual tail cost): a per-language
-   bias with an explicit per-stratum fairness penalty in the fit objective, or a prior that
-   excludes tail languages (`N < threshold`) from down-weighting. `not started`, contingent.
+9. **Constrained / capped bias variants**: reframed 2026-07-19 as the follow-up to the
+   balanced refit (Exp 23c): cap |b_L| (e.g. at 1-2 nats) or add a per-language recall
+   floor to the fit objective, so satellite languages gain without deep suppression of
+   any single language (the unconstrained fit puts -8.9 nats on por). Runs only if the
+   user accepts a bounded version of the suppression trade. `not started`, contingent
+   on the objective decision in Open paths.
 
 10. **Multi-seed / variance and final numbers** for the reported deltas: current CIs are
     single-run bootstraps over examples; add resampled val/test splits to bound
     split-selection variance. In addition, score the final selected configurations once on
     the full test set minus the val examples (~45.4M lines) and use those as the headline
-    numbers; the current test half is only 250k examples. `not started`.
+    numbers; the current test half is only 250k examples. Full-test part `finished`
+    (job 2784115, 2026-07-18; `EXPERIMENTS_RESULTS.md` Exp 16): learned bias confirmed
+    (overall +0.0129, tail -0.0018 [CI -0.0035, -0.0001]); the frequency prior is NOT
+    tail-safe at full scale (tail -0.0182 [CI -0.0225, -0.0146]); the reg=0.3-era
+    -0.0320 tail scare was split noise. Resampled splits still `not started`; the
+    tail-weighted val allocation matters for all future sweeps (65 of 96 tail languages
+    have zero val examples). **Split part `finished` (2026-07-19,
+    `EXPERIMENTS_RESULTS.md` Exp 22):** balanced protocol implemented
+    (`analysis/balanced_split.py`; 188,061-line val, all languages represented, five
+    seeds); re-baseline shows freq prior and floor-21 now FAIL selection on the visible
+    tail, and the learned bias fails on balanced-val overall (a fitted prior loses
+    under the uniform-prior view by construction). Resampled-draw stability checks are
+    part of every future selection.
+
+15. **Punctuation back-off / hierarchical prior on non-content columns** (added
+    2026-07-19 from the user's reading of Exp 18/dp): the tying experiments localized
+    punctuation/digit usage rates as well-estimated twin-discriminative signal at high
+    N and noisy theft-channel estimates at low N (Exp 4: 10.5% of twin KL; Exp 10: 20%
+    of stolen margin). Instead of the refuted full tie (weight 1), shrink ONLY the
+    ~212 neutral digit/punctuation columns toward the within-script mean with the
+    standard data-dependent weight `lam_L = alpha/(N_L + alpha)`: head/twin rates
+    (N=100k, lam ~ 0) keep their signal; low-N estimates get stabilized. Equivalent to
+    a script-level hierarchical (Dirichlet-style) prior on punctuation rates,
+    MAP-estimated per language; post-hoc testable with the existing tying machinery;
+    modular (new language: its own counts + the frozen script mean). Selection under
+    the balanced protocol (item 10). Selection `finished` (job 2794210, 2026-07-19;
+    `EXPERIMENTS_RESULTS.md` Exp 23b): **alpha=300 passes the guard with no negative
+    stratum** (overall +0.0001, tail +0.0004); stronger alphas turn twins negative,
+    consistent with twin conventions being signal. Effect at the measurability edge;
+    full-test pass and balanced-test evaluation pending before any claim.
+
+16. **Learned bias refit on balanced data** (added 2026-07-19,
+    `analysis/balanced_sweeps.py` run_bias_refit): fit b on the language-balanced fit
+    half (per-language alternating split of the seed-101 val), select reg on the other
+    half under the guard. Fitting on balanced data removes the traffic-prior component
+    of the objective, so the fitted b isolates attractor suppression; if no reg passes,
+    the Exp 14 gain under the uniform-prior view is prior fitting, and if one passes,
+    its most negative offsets should name the diagnosed magnets. Plain L2 only
+    (centering on a frequency prior would contradict the uniform-prior objective);
+    corrected NLL gradient. Selection `finished` (job 2794210, 2026-07-19;
+    `EXPERIMENTS_RESULTS.md` Exp 23c): **reg=0.3 passes** (sel overall +0.0016, tail
+    +0.0299, magnets +0.0252, twins -0.0016); attractor suppression survives the
+    uniform-prior objective. Suppressed languages are head/twin sinks (nya, por, heb),
+    not flat magnets, matching the 40%-FP-on-head-sinks diagnostic. Pending before
+    adoption: refit-per-draw stability (draws 102-105), a balanced-test draw disjoint
+    from val, a full-test pass, and an explicit decision on individual-language
+    suppression (b = -8.9 on por trades Portuguese marginal recall for its
+    satellites; the guard does not bound per-language harm). Floor-equalization
+    re-selection ran in the same job: rejected at selection (item 14 closed,
+    Exp 23a).
+
+11. **Non-content token tying** (`analysis/token_tying.py`): tie the probabilities of
+    tokens with no language identity (digits/whitespace 298 tokens, ASCII non-alpha 479,
+    all-script non-alpha 1,291) to one shared resource-weighted value, so they cancel
+    from every score difference. Pure tying, no renormalization. `finished` (job
+    2790078, 2026-07-18; `EXPERIMENTS_RESULTS.md` Exp 18): NEGATIVE at every scope,
+    val overall -0.0010 to -0.0078, nothing passes the guard. The Exp 18 design tied
+    whitespace, a user-flagged error (spacing conventions are signal). Curated re-run
+    also NEGATIVE (job 2793541, 2026-07-19): 212 digit + neutral-punctuation tokens
+    with linguistic exclusions, tied within script groups and globally; val overall
+    -0.0014 to -0.0016 with the cost concentrated in twins (dp_script twins -0.0103).
+    Non-content usage rates are twin-discriminative signal; tying is closed as a
+    direction at every curation level.
+
+12. **Family back-off at unseen positions** (`analysis/family_backoff.py`): floor-plateau
+    entries (exact per-language minimum, 74,617-99,810 per row) replaced by
+    `lam_L * m_G(t)`, `lam_L = alpha/(N_L + alpha)`, m_G = confuser-excluded script
+    backbone mean (script is the family proxy; a genealogical grouping is a possible
+    refinement). Modes lift/full x alpha {300, 3000, 30000}; observed tokens
+    bit-identical (the difference from refuted Exp 13 shrinkage); no renormalization.
+    Modular: a new language needs only its own N and the frozen backbone mean.
+    `finished` (jobs 2790155 script grouping + 2790174 WALS genealogical tiers,
+    2026-07-18; `EXPERIMENTS_RESULTS.md` Exp 19): NEGATIVE under both groupings, val
+    overall -0.0028 to -0.0304, monotone in alpha, grouping choice immaterial
+    (within 0.0016). Adding unseen-token mass toward group typicality increases theft;
+    joins Exp 9/13/18 in that refuted family. Implication recorded in Exp 19: the
+    family-initialized retrain is not supported by this post-hoc surrogate. Untried
+    remainder: DOWNWARD floor equalization (lower low-resource floors toward
+    high-resource levels; Exp 6 only ever clamped upward).
+
+13. **Macrolanguage-hierarchical decision** (`analysis/macro_hierarchy.py`): treat the
+    variety within a macrolanguage as latent; score macrolanguages by log-sum-exp over
+    members (top-50 candidates), argmax at the macro level first, then within the
+    winner. Parameter-free; SIL mapping from `analysis/commonlid_eval.py` (83
+    multi-member groups covering 289 languages: ara 11, msa 12, zho 8, que 27, zap 30).
+    Targets the 40% of val false-positive mass on head-level dialect sinks and the ~20%
+    arbitrary-split error ceiling. Also reports macro-aware accuracy. `finished`
+    (job 2791444, 2026-07-18; `EXPERIMENTS_RESULTS.md` Exp 21): NULL, the group
+    marginal never flips a decision; its product is the ceiling measurement
+    (macro-aware accuracy 0.9680 vs exact 0.9603 on the test half, so 0.77pp of
+    accuracy is within-macro confusion, an evaluation-convention question).
+
+14. **Downward floor equalization** (`analysis/floor_equalization.py`, added 2026-07-18):
+    clamp each language's exact floor plateau to `min(floor_L, F)` for one global
+    constant F swept over {-17, -19, -21, -23}; nothing is ever raised (Exp 6 only
+    tested the upward direction), observed tokens and specials bit-identical, no
+    renormalization, fully modular (one shared constant). The direction implied by
+    Exp 10 (resource-tied floors under-penalize unseen tokens for small languages) and
+    by the four mass-adding negatives (Exp 9/13/18/19). `finished`, NOT ADOPTED
+    (jobs 2791444 sweep + 2791722 full-test; `EXPERIMENTS_RESULTS.md` Exp 20). Full
+    test: overall +0.0129 but tail -0.0204 [CI -0.0257, -0.0161] and magnets -0.0164
+    [CI -0.0210, -0.0129]; a global-precision-for-tail-recall trade, dominated by the
+    learned bias (equal overall, tail -0.0018). Third val-selected operating point
+    overturned at full scale; item 10's split redesign is now a prerequisite for any
+    further sweep selection.
 
 Data note: scratch was purged; the original GlotLID `train.txt` (60,683,151 lines),
 `glotlid_correct_test.txt`, train counts, all 5 prediction files, and the full 744 MB
 model were recovered from the Google Drive folders in `SETUP.md` on 2026-06-26. The
 custom Rust tokenizers build was rebuilt (`maturin develop --release`).
 
-## Notes for whoever resumes this
+## Open paths (2026-07-19, updated 2026-07-23)
 
-- All evaluated scoring modifications (Exp 2, 5, 6, 8a) reduced 500k-sample accuracy
-  relative to the 0.960 baseline.
-- All experiments are post-hoc analyses over the fixed `glotlidc.unilid` weights; none train
-  a model. 8b would be the first to modify weights via optimization and requires
-  infrastructure not present in the repo (a training loop, not the sweep harness used for
-  5/6/8a/9).
-- The last three recovered prompts (2026-04-08) were about consolidating results into
-  `EXPERIMENTS.md`, identifying files to archive, and re-reading the method and
-  discriminative-training direction.
+Ordered by dependency, not preference. The first block completes the two guard-passing
+candidates; the second refines methods; the third is analysis; the fourth is
+longer-range; the fifth (block E) holds the Exp 24 follow-ups, proposed 2026-07-23 and
+awaiting approval. One decision gates several items and is listed first.
+
+**Decision required (user):** the objective, the suppression bound, and the metric
+view. (a) Whether the paper's headline objective is natural-traffic macro-F1 (learned
+bias reg=5.0 is the reference result, Exp 16) or the uniform-prior view (baseline is
+best adopted; items 15/16 are the live candidates). (b) Whether any per-language bias
+may suppress an individual language, and by how much: the unconstrained balanced fit
+puts -8.9 nats on por_Latn to benefit its satellites, and the guard bounds strata, not
+languages. Item 9 (capped variants) implements the bounded version if a bound is
+chosen. (c) RESOLVED 2026-07-23: the user chose the precision-primary adoption rule.
+A candidate passes iff it passes the balanced-val guard with the tail within-stratum
+tolerance widened to TAIL_RECALL_TOL=0.03 when tail global per-language F1 improves by
+more than the recall loss, AND tail and magnet global mean F1 do not drop
+(PREC_TOL=0.0), AND no single language loses more than 0.10 global F1. Implementation
+is `passes_two_sided` (plan item E1); constants recorded in EXPERIMENTAL_SETUP.md.
+Background: every stratum row and guard column is within-stratum (recall view), and
+global per-language F1 reverses the tail ranking of the rejected configurations
+(Exp 24: tail mean F1 baseline 0.5618, learned bias 0.6003, freq prior 0.6800,
+floor-21 0.7655); the "not tail-safe" and "not adopted" verdicts of Exp 16/20 were
+conditional on this choice.
+
+**A. Complete the balanced-protocol pipeline for the passing candidates.**
+1. Balanced-test draw: a language-balanced evaluation draw disjoint from the val draws
+   (e.g. seed 201, K=100/language from pool minus draw-101 val), so balanced-objective
+   FINAL numbers exist independently of selection data. Small extension of
+   `analysis/balanced_split.py`. Not yet built; prerequisite for any balanced-objective
+   claim about items 15/16.
+2. Refit-per-draw stability for item 16 (protocol caveat 3): refit on draws 102-105 fit
+   halves, compare selected reg, selection-half deltas, and the suppressed-language
+   lists. Cheap (four more fits in the existing harness).
+3. Full-test passes (natural-traffic view) for `punct_a300` and, conditional on the
+   decision above, the (possibly capped) balanced bias; the `full_test_floor21.py`
+   pattern generalizes (one scoring pass each against the saved baseline memmaps).
+4. CommonLID out-of-domain checks for both candidates: distinguishes orthographic
+   convention from register/domain artifact, the open question from the linguistic
+   reading of the tying results.
+
+**B. Method refinements, contingent on A.**
+5. Punctuation prior refinements if alpha=300 confirms: finer alpha grid (30, 100, 300,
+   1000), digits pooled separately from punctuation, genus-within-script grouping (the
+   WALS tiers from item 12 are already built and reviewed).
+6. Combination test: punctuation prior (likelihood-side) plus a capped balanced bias
+   (decision-side); the mechanisms are orthogonal.
+7. Item 4 (affine recalibration with per-token c_L) under the balanced protocol, if the
+   bias family is revived by the decision above; the c_L term is likelihood-side and
+   modularity-compatible in its frequency-anchored form.
+
+**C. Analyses that sharpen the paper regardless of method outcomes.**
+8. Residual error decomposition on the decided best configuration (item 6).
+9. Training-data items 7.2 (mislabeling) and 7.3 (overlap): now directly relevant to the
+   twin story, since part of the twin punctuation/domain signal (e.g. the JW.org marker
+   in ind/zsm, Exp 4) may be corpus artifact rather than linguistic convention.
+10. Apertus tail diagnosis (item 8) only if the Apertus branch is revived.
+
+**D. Longer-range, training-time.**
+11. Move the punctuation prior inside training (MAP counts on the dp columns during
+    per-language estimation) and give the emergent floor an explicit, resource-indexed
+    smoothing constant at training time; both are estimator changes that keep
+    add-a-language modularity, motivated by the finding that every post-hoc
+    distribution edit except mild dp pooling has failed.
+
+**E. Exp 24 follow-ups (approved 2026-07-23 as part of the plan in
+`~/.claude/plans/steady-finding-abelson.md`; user decisions: precision-primary
+adoption rule, one-sided-min Good-Turing, `preliminary_mul` tokenizer, day-0 retrain
+submission).** Statuses: E1 FINISHED (Exp 25: floor-21 provisionally adopted,
+learned bias rejected on the collapse clause, freq prior eligible-not-selected);
+E6 FINISHED (Exp 25: pnt/ell residual is model error, 50/50 standard Greek);
+E2 FINISHED (Exp 26: diagnostic viable; `margin_q5` rejected on the szy_Latn
+reassignment mechanism, pre-registered `margin_q5_head` ELIGIBLE but not selected,
+floor-21 ranks higher on both instruments; margin family closed this round). New
+open path from E2: compose the weight-side winner with the margin gate, tau
+recalibrated under the composed weights; not pre-registered yet. E3 FINISHED
+(Exp 27/28: counts landed, plateau overstated everywhere; gt_min REJECTED by the
+veto despite the best selection-view numbers on record; the floor pathology is a
+between-language externality, so per-language honesty and cross-language
+equalization are separate corrections). New open paths from E3: (i) cross-language
+equalization at the GT-implied shared level (replaces the swept floor-21 constant
+with a counts-derived one); (ii) gt_min plus the head-targeted margin gate with
+recalibrated tau. E4 (floor-21 + learned bias probe) is deprioritized below these
+two: the bias is rejected for adoption and both new compositions target the same
+strata more directly. E5 not started. Track A (Apertus 131k retrain + evaluation)
+FINISHED: negative on both views (Exp 29, within-stratum tail -0.0437, FPs into
+tail 2.3x); discontinuation recommended, user decision pending. Motivation and
+numbers in `EXPERIMENTS_RESULTS.md` Exp 24-29.
+- E1. Two-sided guard columns: add global per-language F1 and mean precision for tail
+  and magnets to every selection report. For finished configurations the numbers come
+  from the saved memmaps at no scoring cost; `analysis/metric_decomposition.py` has
+  the computation. Without this, selection is systematically directed against
+  tail-precision configurations.
+- E2. Margin diagnostic: one scoring pass over the 22,522 baseline false-positive
+  lines plus the 7,735 true tail lines, recording the score gap between the predicted
+  tail language and the runner-up. Decides whether a per-language decision margin
+  tau_L, calibrated as a low quantile of the gap on L's own training lines (own-recall
+  loss bounded by the quantile, no global data, add-a-language modular), can separate
+  false positives from genuine tail lines. Login-node scale.
+- E3. Good-Turing unseen-token mass: rescale each language's floor plateau so its
+  total unseen mass equals the Good-Turing estimate n1/T from its own token counts
+  (n1 = singleton types, T = total tokens; no global data, no tuned constant).
+  Principled replacement for the floor-21 clamp; floor-21 (tail global F1 0.7655) is
+  the baseline it must beat.
+- E4. Composition pass: floor-21 plus learned bias reg=5.0 in one scoring run. The
+  Exp 24 decomposition shows the two act on different categories (flat_magnets versus
+  head/mid/twins); the existing memmap harness covers this.
+- E5. tight_lowres check: anp_Deva (global F1 0.019), inh_Cyrl (0.150), gom_Deva
+  (0.373), syl_Beng, arq_Arab sit at 2.5k-4.5k docs under a larger same-script
+  neighbor and appear in no stratum row; verify any adopted mechanism on these five
+  explicitly.
+- E6. Label audit: manually inspect 50 of the 2,644 residual pnt_Grek <- ell_Grek
+  lines (floor-21 view) to split model error from corpus label noise before investing
+  in E2 for that pair.
+
+## Notes for whoever resumes this (updated 2026-07-23)
+
+- Selection runs under the balanced protocol (Exp 22); the guard is `passes_guard`
+  (all four strata + overall improvement); three val-selected operating points were
+  overturned at full scale before this protocol existed, so do not trust small-stratum
+  claims from any pre-Exp-22 selection.
+- Every stratum row and guard column is within-stratum macro-F1 (recall view); global
+  per-language F1 ranks the rejected configurations oppositely on tail (Exp 24,
+  `outputs/tables/metric_decomposition.md`). State which view any tail or magnet claim
+  uses, and read `EXPERIMENTAL_SETUP.md` "Stratified-metric views" before running a
+  sweep.
+- Objective distinction (natural-traffic vs uniform-prior) is explicit as of Exp 22;
+  the two views disagree about every prior-style method. The headline-objective
+  decision is open (see Open paths).
+- Refuted families, do not revisit without new mechanisms: mass-toward-group-typicality
+  edits (Exp 9/13/18/19 and the curated tying re-run), length normalization (Exp 2/5),
+  floor clamps in both directions (Exp 6 up, Exp 20/23a down), heuristic variance
+  reweighting (Exp 8a), entropy sharpening.
+- Positive/informative anchors: learned bias reg=5.0 (natural-traffic, Exp 16);
+  punctuation partial pooling alpha=300 (balanced, Exp 23b, pending confirmation);
+  balanced-data bias refit reg=0.3 (Exp 23c, pending stability + decision); the
+  macrolanguage ceiling measurement (Exp 21); the special-token and floor-structure
+  facts (2026-07-18 investigations).
+- Everything since 2026-07-16 is uncommitted at the user's instruction; the artifacts
+  of record live in `outputs/tables/` and the balanced-split artifacts in
+  `outputs/diagnostic/balanced_val/`.
