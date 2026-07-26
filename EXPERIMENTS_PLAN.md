@@ -432,11 +432,12 @@ numbers in `EXPERIMENTS_RESULTS.md` Exp 24-29.
 
 ## Open items after Exp 38-41 (2026-07-26)
 
-- **User decision: adopt `patches/sentencepiece_fp64_estep.patch` into the
-  sentencepiece fork** (double-precision E-step; verified in scratch, Exp 41),
-  plus the companion hard CHECK on non-finite expected counts. If the Apertus
-  branch is revived, the 33 long-line corpora retrain under the patch and the
-  degeneracy scan re-runs.
+- RESOLVED 2026-07-26: the fp64 patch and the hard CHECK are adopted into the
+  fork (commits d0208d9, c5921a2), the installed binary replaced (backup
+  spm_train.pre_fp64), and BOTH Apertus models are retraining in full under the
+  corrected trainer (jobs 2903767/2903768, artifacts `*_fp64`). Pending on
+  completion: degeneracy scan on both new models, then the 131k_fp64 full-test
+  baseline to re-examine the Exp 29 branch verdict.
 - **Promising method direction from Exp 40:** a per-language method chooser over
   the carried set (oracle bound 0.9525 vs 0.9334 best single; headroom in tail
   +0.0724 and flat_magnets +0.0998). Any real chooser must select from

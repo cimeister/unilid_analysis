@@ -26,6 +26,23 @@ for the infrastructure record.
 `EXPERIMENTAL_SETUP.md` (hierarchical pooling). Full plan:
 `~/.claude/plans/yes-do-both-then-giggly-sprout.md`.
 
+### 2026-07-26: fp64 trainer adopted; both Apertus models retraining (jobs 2903767, 2903768)
+
+- Patch adopted into the sentencepiece fork (user directive): commits d0208d9
+  (double-precision forward-backward in the trainer's E-step; inference paths
+  untouched) and c5921a2 (hard CHECK on non-finite expected counts instead of
+  silent zeroing), pushed to cimeister/sentencepiece branch fixed-vocab-em.
+- Installed binary replaced (~/.local/bin/spm_train; backup spm_train.pre_fp64).
+  Acceptance test: isolated azj retrain under the new binary yields 22,704
+  above-minimum entries, entropy 3.025, floor -18.93 (was 7 / 1.609 / -27.63).
+- Full retrains of BOTH Apertus models launched under the corrected trainer
+  (2903767 = 131k, 2903768 = 200k; new results dirs and artifacts with the _fp64
+  suffix; corpus split reused; originals kept as the Exp 15/29 record). Full
+  rather than per-language retrains so each model has single-provenance weights.
+  Post-completion gates: degeneracy scan on both new models, then a full-test
+  baseline evaluation of the 131k_fp64 model to re-examine the Exp 29 branch
+  verdict with the bug removed.
+
 ### 2026-07-26: Exp 40-41, oracle bound, per-tag CommonLID, EM bug diagnosed (multi-agent)
 
 - Exp 40 (login node): oracle upper bound over the carried set, 0.9525 overall
