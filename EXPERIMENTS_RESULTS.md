@@ -348,6 +348,76 @@ inputs). **Status:** drives the hierarchical-pooling program (`EXPERIMENTS_PLAN.
 
 ---
 
+## Experiment 41: the fixed-vocabulary EM bug diagnosed, verified, and patched in scratch (2026-07-26, two-agent investigation)
+
+**Defect, established by faithful reimplementation and dual builds (an unpatched
+rebuild reproduces the installed binary's trained scores bit-for-bit).** Two
+interacting causes:
+1. Primary, in UPSTREAM code the fork inherited (`src/unigram_model.cc`,
+   Lattice::ForwardAlgorithm / BackwardAlgorithm / PopulateMarginal): the E-step's
+   forward-backward accumulates in 32-bit floats. On very long sentences the
+   rounding error breaks the mathematical identity that a lattice node's
+   log-posterior (alpha + score + beta - Z) is at most 0: on azj's trigger line it
+   reaches +351, so expected counts blow up (measured 1e157 against the correct
+   56,699). Upstream never encounters this because its default
+   --max_sentence_length=4192 skips long lines; the pipeline passes
+   --max_sentence_length=1000000 (`language_specific_trainer.py:163`).
+2. Secondary, in the fork's rewritten M-step (`unigram_model_trainer.cc:435`):
+   `if (!isfinite(ni)) ni = 0.0` silently zeroes overflowed counts, which are
+   exactly the most frequent pieces (1,881 pieces overflow on the trigger). This
+   converts a numerical explosion into a plausible-looking model: one garbage
+   surviving piece near probability 1, everything else at the Dirichlet-prior
+   floor. Every logged number of the azj run is reproduced arithmetically by this
+   account, including the frozen L1 deltas and the identity of 'ĠMun' (an
+   arbitrary piece whose overflowed total landed just under float32's maximum;
+   unrelated to text frequency, consistent with " Mun" occurring 33 times in
+   100k lines).
+
+**Trigger, established by 14-run corpus bisection:** line 81,302 of azj's corpus,
+a 142,136-byte casualty-roll line, the longest line in all 1,940 corpora (next:
+quc_Latn at ~55k characters).
+
+**The graded-corruption finding (revises Exp 35's reading).** The failure is not
+binary. Measured float32-vs-float64 count ratios grow with line length (about 3%
+error at 2,000 characters, 7% at 4,000, unbounded beyond); quc_Latn's DELIVERED
+131k model has 188 pieces off by more than 5 nats; and azj at 200k, previously
+described as healthy, is PARTIALLY collapsed (its EM sat in the trap for eight
+iterations and escaped at iteration 18; 1,798 above-minimum entries against
+3,000-40,000 for comparable languages). At least 94 corpora contain lines above
+the 4,192-character upstream cap (33 above 10,000) and carry measurable
+corruption in the Apertus-branch models. The production 100k model is NOT
+affected: it was not trained through this code path (recovered from the original
+UniLID release), and no main-line experiment (Exp 1-40) consumes fork-trained
+weights; the corruption is confined to the Apertus branch, further caveating the
+Exp 15/29 magnitudes.
+
+**Fix, verified but NOT applied to the fork or the installed binary (user
+decision pending, per the no-unjustified-code-change constraint).** Patch at the
+session scratchpad (`em_debug/fix.patch`): compute the trainer's
+forward-backward in double precision; leave the float paths in place for
+inference so shipped models behave bit-identically. The patch changes only the
+precision at which the E-step's defining identity is evaluated: vocabulary,
+iteration count, Dirichlet prior, objective, and M-step are untouched, so it
+restores the documented method rather than departing from it. Verified: patched
+azj-131k converges monotonically to a healthy model (objective 229.8, entropy
+3.155, ~22,400 above-floor entries, top pieces ordinary Azerbaijani units);
+1,846 of 1,940 corpora change at or below the 1e-3-nat level; the recommended
+companion change makes the isfinite guard a hard failure so any future overflow
+aborts instead of silently zeroing. If the Apertus branch is ever revived, the
+33 long-line corpora need retraining under the patch.
+
+## Experiment 40: oracle upper bound over the carried set (2026-07-25)
+
+Per-language maximum F1 over the seven Exp 38 configurations on the held-out
+remainder (`outputs/tables/oracle_bound.md`, `analysis/oracle_bound.py`): a
+perfect per-language method chooser would reach 0.9525 overall against 0.9334 for
+the best single configuration (+0.0191). The headroom sits almost entirely in the
+tail (0.7061 vs 0.6337, +0.0724) and flat_magnets (0.6344 vs 0.5345, +0.0998);
+head (+0.0008) and twins (+0.0038) are close to saturated by single methods. An
+upper bound on method combination, not an achievable configuration: any real
+chooser must pick per language from training-side information only, and its gap
+to this bound measures the chooser's quality.
+
 ## Experiment 39: CommonLID out-of-domain check of the carried leaders (2026-07-25, job 2898246)
 
 Web-domain evaluation (373,230 lines, Exp 12's macro-aware accuracy convention;
@@ -358,10 +428,21 @@ values unchanged and fired on 9,886 lines: the no-refitting portability property
 holds mechanically, and the ordering matches the primary quantity (adaptive ahead
 of floor-21). Both gains are modest against the learned bias's +0.0427 (Exp 12),
 which fits the web domain's natural traffic prior but remains rejected for
-adoption on per-language grounds (Exp 25/31). Limitation recorded: macro-aware
-accuracy is line-weighted; a per-tag macro-averaged F1 (consistent with the
-project's primary quantity) would require persisting per-line predictions in a
-re-run and is the natural extension if CommonLID numbers enter the paper.
+adoption on per-language grounds (Exp 25/31).
+
+**Per-tag extension (job 2903415; both baseline gates reproduced: accuracy 0.8452,
+tag-level macro-F1 0.7228; per-line predictions persisted to
+`outputs/diagnostic/commonlid_carried_preds.npz`).** Under the objective-consistent
+metric, tag-level macro-averaged F1, both carried leaders are slightly NEGATIVE out
+of domain: floor-21 0.7181 (-0.0046), gt_margin_adaptive 0.7167 (-0.0061), while
+their line-weighted accuracies are positive. Reading: CommonLID's 109 tags are
+predominantly larger languages, so the tail labels these methods repair are mostly
+absent from the tag set, while the methods' recall costs on mid-size tags are
+visible. Consequence for the paper: the tail-precision gains do not transfer to
+CommonLID because CommonLID cannot see them; out-of-domain claims about the
+carried methods should be scoped to what the 109-tag set measures, and the
+in-domain primary quantity (Exp 38) remains the evaluation where the methods'
+purpose is visible.
 
 ## Experiment 38: the carried-forward set under the primary quantity (2026-07-25)
 
@@ -463,6 +544,13 @@ all three packed models (`analysis/degeneracy_scan.py`,
   EM trace freezes at machine-zero deltas from sub-iteration 2, a genuine collapse.
   Open item: re-run azj's EM in isolation to test determinism, and attribute the
   trace conclusively (batched logs interleave languages).
+  [Superseded in part by Exp 41 (2026-07-26): the isolated re-run confirmed
+  determinism (Exp 37) and the full diagnosis found the failure is GRADED, not
+  binary: azj-at-200k is partially collapsed, and at least 94 Apertus-branch
+  corpora with lines above 4,192 characters carry measurable corruption below the
+  degeneracy scan's threshold. The "single anomaly" framing understated the
+  exposure; the class framing (deterministic, input-specific, absent from the
+  100k production model) stands.]
 
 **Process change:** `degeneracy_scan.py` is the post-training gate for any future
 retrain: run it on every new .unilid before evaluation; flagged rows outside the

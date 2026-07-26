@@ -30,3 +30,17 @@ The patches are retained so this repository stays self-contained.
 To reproduce the working tree: clone each repository at the commit above, then
 `git apply` the corresponding patch from inside it, e.g.
 `git -C UNILID apply ../patches/unilid.patch`.
+
+## sentencepiece_fp64_estep.patch (Exp 41, 2026-07-26; NOT applied)
+Double-precision forward-backward for the fixed-vocab EM trainer path in the
+sentencepiece fork (branch fixed-vocab-em). Diagnosis and verification in
+EXPERIMENTS_RESULTS.md Exp 41: float32 accumulation breaks the E-step's
+log-posterior identity on very long lines (the pipeline passes
+--max_sentence_length=1000000, bypassing upstream's 4,192-byte cap), and the
+fork's isfinite-to-zero M-step guard converts the overflow into a silent model
+collapse (azj_Latn at 131k). The patch leaves inference paths untouched; an
+unpatched rebuild reproduces the installed binary bit-for-bit. Adoption into the
+fork is a pending user decision; if adopted, the recommended companion change is
+a hard CHECK on non-finite expected counts, and the 33 Apertus-branch corpora
+with lines above 10,000 characters need retraining. The minimal 390-line trigger
+corpus is preserved at outputs/diagnostic/em_trigger_azj_81251_81640.txt.

@@ -26,6 +26,29 @@ for the infrastructure record.
 `EXPERIMENTAL_SETUP.md` (hierarchical pooling). Full plan:
 `~/.claude/plans/yes-do-both-then-giggly-sprout.md`.
 
+### 2026-07-26: Exp 40-41, oracle bound, per-tag CommonLID, EM bug diagnosed (multi-agent)
+
+- Exp 40 (login node): oracle upper bound over the carried set, 0.9525 overall
+  (+0.0191 over the best single configuration); headroom concentrated in tail
+  (+0.0724) and flat_magnets (+0.0998). `analysis/oracle_bound.py`.
+- Exp 39 extension (job 2903415): per-tag macro-averaged CommonLID F1 (agent-
+  authored, reviewed; both baseline gates reproduced: 0.8452 accuracy, 0.7228 tag
+  F1; per-line predictions persisted). Both carried leaders slightly NEGATIVE on
+  the objective-consistent metric (floor-21 -0.0046, adaptive -0.0061): CommonLID's
+  109 tags barely contain the repaired tail labels.
+- Exp 41 (two agents: source analysis on a scratch clone of the sentencepiece
+  fork; 14-run corpus bisection): the fixed-vocabulary EM bug fully diagnosed:
+  float32 forward-backward breaks the log-posterior identity on very long lines
+  (upstream's 4,192-byte cap masked it; the pipeline passes 1,000,000); the fork's
+  isfinite-to-zero M-step guard turns the overflow into a silent collapse. Trigger:
+  azj line 81,302 (142,136 bytes, longest in all corpora). Graded corruption in at
+  least 94 Apertus-branch corpora; azj-200k partially collapsed; 100k production
+  model unaffected (not trained through this path). Double-precision patch built
+  and VERIFIED in scratch (unpatched rebuild bit-identical to the installed
+  binary; patched azj healthy at objective 229.8); NOT applied anywhere
+  (user decision). Artifacts: session scratchpad `em_debug/` (fix.patch, fb_sim.py,
+  both build trees) and `em_bisect/` (minimal 390-line trigger file, run log).
+
 ### 2026-07-25: Exp 36-39, adaptive verdict, azj re-run, user decisions, carried-set and CommonLID checks
 
 - Exp 36 (job 2895821): gt_margin_adaptive ELIGIBLE flagged (ota only); both

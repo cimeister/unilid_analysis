@@ -430,6 +430,23 @@ numbers in `EXPERIMENTS_RESULTS.md` Exp 24-29.
   lines (floor-21 view) to split model error from corpus label noise before investing
   in E2 for that pair.
 
+## Open items after Exp 38-41 (2026-07-26)
+
+- **User decision: adopt `patches/sentencepiece_fp64_estep.patch` into the
+  sentencepiece fork** (double-precision E-step; verified in scratch, Exp 41),
+  plus the companion hard CHECK on non-finite expected counts. If the Apertus
+  branch is revived, the 33 long-line corpora retrain under the patch and the
+  degeneracy scan re-runs.
+- **Promising method direction from Exp 40:** a per-language method chooser over
+  the carried set (oracle bound 0.9525 vs 0.9334 best single; headroom in tail
+  +0.0724 and flat_magnets +0.0998). Any real chooser must select from
+  training-side information only (per-language N, GT counts, margin statistics);
+  its gap to the oracle measures chooser quality. Not pre-registered.
+- Carried-set status: Exp 38 (complementary structure), Exp 39 (CommonLID:
+  line-weighted accuracy positive, objective-consistent per-tag macro slightly
+  negative, scope caveat recorded), Exp 40 (oracle bound). The six remain live;
+  no narrowing decision is needed until the paper's final table.
+
 ## Notes for whoever resumes this (updated 2026-07-23)
 
 - Selection runs under the balanced protocol (Exp 22); the guard is `passes_guard`
