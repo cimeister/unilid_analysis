@@ -45,13 +45,19 @@ OUT_MD = "outputs/tables/full_test_eval_131k.md"
 OUT_CSV = "outputs/diagnostic/full_test_131k_per_lang_prf.csv"
 
 
-def run():
+def run(model_path: str = MODEL_131K, scratch_dir: str = SCRATCH_DIR,
+        out_md: str = OUT_MD, out_csv: str = OUT_CSV,
+        model_label: str = "131k"):
+    """Score `model_path` (b = 0) over the full test pool and compare with the
+    saved 100k baseline. All writable state goes to `scratch_dir`, which must be
+    distinct per model: the fingerprint gate refuses to reuse another model's
+    directory, and `model_label` names the compared model in the report."""
     import pandas as pd
-    os.makedirs(SCRATCH_DIR, exist_ok=True)
+    os.makedirs(scratch_dir, exist_ok=True)
     os.makedirs("outputs/tables", exist_ok=True)
 
     _w100, langs100, _m100 = _load_model_data()
-    w131, langs131, lang_to_idx = _load_model_data(MODEL_131K)
+    w131, langs131, lang_to_idx = _load_model_data(model_path)
     del w131
     if langs131 != langs100:
         raise RuntimeError("131k language list differs from the 100k list; the "
@@ -62,17 +68,17 @@ def run():
     train_counts = _load_train_counts()
     N = np.array([train_counts.get(l, 0) for l in langs], dtype=np.float64)
 
-    fp = {"model_sha256": hashlib.sha256(open(MODEL_131K, "rb").read()).hexdigest(),
+    fp = {"model_sha256": hashlib.sha256(open(model_path, "rb").read()).hexdigest(),
           "langs_sha256": hashlib.sha256("|".join(langs).encode()).hexdigest(),
           "chunk_lines": CHUNK_LINES, "total_lines": TOTAL_LINES}
-    fp_path = os.path.join(SCRATCH_DIR, "fingerprint.json")
+    fp_path = os.path.join(scratch_dir, "fingerprint.json")
     if os.path.exists(fp_path):
         with open(fp_path) as f:
             prev = json.load(f)
         if prev != fp:
             bad = sorted(k for k in fp if prev.get(k) != fp[k])
             raise RuntimeError(f"131k scratch state mismatch ({bad}); clear "
-                               f"{SCRATCH_DIR} or restore inputs")
+                               f"{scratch_dir} or restore inputs")
     else:
         with open(fp_path + ".tmp", "w") as f:
             json.dump(fp, f)
@@ -98,7 +104,7 @@ def run():
     pickle_y = np.array(load_sample(DEFAULT_SAMPLE_SIZE)["y_true"])[~parity_val]
     expect_label = dict(zip(sample_test_lines.tolist(), pickle_y.tolist()))
 
-    pred_path = os.path.join(SCRATCH_DIR, "pred_baseline131k.npy")
+    pred_path = os.path.join(scratch_dir, "pred_baseline131k.npy")
     if os.path.exists(pred_path):
         pred_mm = np.lib.format.open_memmap(pred_path, mode="r+")
         if pred_mm.shape != (TOTAL_LINES,):
@@ -108,7 +114,7 @@ def run():
                                             shape=(TOTAL_LINES,))
         pred_mm[:] = UNSEEN
         pred_mm.flush()
-    progress_path = os.path.join(SCRATCH_DIR, "progress.json")
+    progress_path = os.path.join(scratch_dir, "progress.json")
     done_chunks = set()
     if os.path.exists(progress_path):
         with open(progress_path) as f:
@@ -127,7 +133,7 @@ def run():
             if model is None:
                 print("Loading the 131k model (weights cached by the loader)...",
                       flush=True)
-                model = _load_unilid_model(MODEL_131K)
+                model = _load_unilid_model(model_path)
             lines = [fh.readline() for _ in range(hi - lo)]
 
             keep_pos, texts = [], []
@@ -192,12 +198,13 @@ def run():
         "head": N >= 18_000,
     }
 
-    L = ["# Apertus 131k (preliminary_mul) baseline vs the 100k baseline\n",
-         f"One scoring pass, b = 0, {int(kept.sum()):,} lines; 100k baseline and "
-         "y_true reused read-only from the Exp 16 memmaps. Branch-decision numbers "
-         "for plan Track A.\n",
+    L = [f"# Apertus {model_label} baseline vs the 100k baseline\n",
+         f"Model: `{os.path.basename(model_path)}`. One scoring pass, b = 0, "
+         f"{int(kept.sum()):,} lines; the 100k baseline predictions and y_true are "
+         "reused read-only from the Exp 16 memmaps.\n",
          "## Within-stratum macro-F1 (full test)\n",
-         "| stratum | 100k | 131k | delta | 95% CI |", "|---|---|---|---|---|"]
+         f"| stratum | 100k | {model_label} | delta | 95% CI |",
+         "|---|---|---|---|---|"]
     for st, flags in lang_flags.items():
         m = flags[yk]
         n_st = int(m.sum())
@@ -220,12 +227,13 @@ def run():
               "twin": category == "twin", "all 1,940": np.ones(n_lang, bool)}
     L += ["\n## Global per-language mean F1 by group (full pool)\n",
           "| model | " + " | ".join(groups) + " |", "|" + "---|" * (len(groups) + 1)]
-    for name, st in [("100k", stats100), ("131k", stats131)]:
+    for name, st in [("100k", stats100), (model_label, stats131)]:
         L.append(f"| {name} | " + " | ".join(f"{st[2][m].mean():.4f}"
                                              for m in groups.values()) + " |")
     fps100 = stats100[4][N < 1_000].sum()
     fps131 = stats131[4][N < 1_000].sum()
-    L.append(f"\nFPs into tail labels: 100k {fps100:,.0f} -> 131k {fps131:,.0f}.")
+    L.append(f"\nFPs into tail labels: 100k {fps100:,.0f} -> {model_label} "
+             f"{fps131:,.0f}.")
 
     val101 = np.load(os.path.join(DRAW_DIR, f"val_lines_seed{SEEDS[0]}.npy"))
     vmask = np.zeros(TOTAL_LINES, bool)
@@ -234,7 +242,7 @@ def run():
         raise RuntimeError("balanced-val draw contains non-kept lines")
     L += ["\n## Balanced-val draw 101, within-stratum macro-F1 (selection view)\n",
           "| model | overall | tail | magnets | twins | head |", "|" + "---|" * 6]
-    for name, parr in [("100k", np.asarray(base100_mm)), ("131k", pred131)]:
+    for name, parr in [("100k", np.asarray(base100_mm)), (model_label, pred131)]:
         ym, pm = y[vmask], parr[vmask]
         row = {st: compute_metrics(ym[flags[ym]], pm[flags[ym]])["macro_f1"]
                for st, flags in lang_flags.items()}
@@ -244,18 +252,18 @@ def run():
 
     per = {"lang": langs, "N": N.astype(int), "category": category,
            "test_support": np.bincount(yk, minlength=n_lang)}
-    for nm_, st in [("100k", stats100), ("131k", stats131)]:
+    for nm_, st in [("100k", stats100), (model_label, stats131)]:
         per[f"prec_{nm_}"] = st[0]
         per[f"rec_{nm_}"] = st[1]
         per[f"f1_{nm_}"] = st[2]
         per[f"fp_{nm_}"] = st[4].astype(int)
-    os.makedirs(os.path.dirname(OUT_CSV), exist_ok=True)
-    pd.DataFrame(per).to_csv(OUT_CSV, index=False)
+    os.makedirs(os.path.dirname(out_csv), exist_ok=True)
+    pd.DataFrame(per).to_csv(out_csv, index=False)
 
-    with open(OUT_MD, "w") as f:
+    with open(out_md, "w") as f:
         f.write("\n".join(L) + "\n")
     print("\n".join(L))
-    print(f"\nWrote {OUT_MD} and {OUT_CSV}")
+    print(f"\nWrote {out_md} and {out_csv}")
 
 
 if __name__ == "__main__":
