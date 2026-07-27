@@ -91,14 +91,15 @@ both Apertus models were retrained: `glotlid_apertus131k_fp64.unilid` and
 main-line result was never trained through this path and is unaffected.
 
 **Open decisions and pending measurements.**
-1. The 131k branch verdict (Exp 29, negative) was measured on the corrupted
-   model, and one collapsed row carried about two thirds of its false-positive
-   excess (Exp 30). The clean re-measurement on the retrained model is specified
-   but not run.
-2. Whether to build a per-language method chooser, given the +0.0191 oracle
-   headroom (Exp 40).
-3. Whether the primary quantity should instead average over equal-volume test
+1. Whether to build a per-language method chooser, given the +0.0191 oracle
+   headroom (Exp 40). This is the strongest open method direction.
+2. Whether the primary quantity should instead average over equal-volume test
    data (see the interpretation note above).
+
+The Apertus 131k branch question is now closed on clean evidence (Exp 43): the
+retrained model is still negative against the 100k production model on both
+metric views, so the vocabulary-size regression is real and was not an artifact
+of the training bug, though the bug had overstated its magnitude by 10 to 20%.
 
 **Refuted method families (do not revisit without a new mechanism).** Moving
 probability mass toward group typicality in any form (Exp 9, 13, 18, 19), length
@@ -377,6 +378,48 @@ findings are in the project memory (`unilid-error-analysis-findings`).
 inputs). **Status:** drives the hierarchical-pooling program (`EXPERIMENTS_PLAN.md` Exp 11-15).
 
 ---
+
+## Experiment 43: clean re-measurement of the Apertus 131k branch; the verdict holds, the magnitude was overstated (2026-07-27, job 2911700)
+
+Full-test baseline evaluation of `glotlid_apertus131k_fp64.unilid`, the model
+retrained under the corrected trainer, against the 100k production model
+(`outputs/tables/full_test_eval_131k_fp64.md`, 45,377,279 lines, 2h06m). This
+replaces the Exp 29 comparison, which used a model containing one collapsed row.
+
+| quantity | 100k | 131k corrupted (Exp 29) | 131k clean (this run) |
+|---|---|---|---|
+| within-stratum overall | 0.9292 | -0.0113 | **-0.0090** |
+| within-stratum tail | 0.9132 | -0.0437 | **-0.0395** [-0.0476, -0.0322] |
+| within-stratum magnets | 0.9138 | -0.0352 | **-0.0318** [-0.0386, -0.0251] |
+| global per-language, all 1,940 | 0.9292 | 0.9179 | **0.9202** |
+| global per-language, tail | 0.5618 | 0.4046 | **0.4269** |
+| false positives into tail labels | 22,522 | 51,926 | **32,211** |
+| accuracy | 0.9608 | +0.0004 | **+0.0055** |
+
+**The branch verdict holds.** The 131k vocabulary is negative against the 100k
+model on both metric views and on the balanced validation set (overall 0.9776
+against 0.9811), with every stratum at or below the 100k model. Removing the
+single collapsed row does not change the conclusion, so the Exp 29 reading stands:
+with training data fixed, a larger shared vocabulary means more parameters per
+language, flatter low-resource distributions, and more false-positive absorption.
+Per-language vocabulary truncation remains the recorded counterfactual for any
+future vocabulary work.
+
+**The magnitude was overstated by the bug, as predicted.** Every gap narrows: the
+tail deficit by about 10% relative, the overall deficit by 20%, and accuracy moves
+from parity to +0.0055. The clearest number is the false-positive count into tail
+labels: 51,926 corrupted, 32,211 clean. Exp 30's counterfactual, computed by
+deleting the collapsed language's lines from the corrupted predictions, predicted
+32,161. The retrained model measured 32,211, within 0.2% of that estimate, which
+is a strong independent check on the whole diagnostic chain from Exp 30 through
+Exp 42.
+
+**Status of the branch.** Closed as a drop-in replacement for the production
+model, now on clean evidence rather than on a measurement contaminated by a
+training bug. The retrained models remain available for hybrid analyses (the
+Exp 30 finding that the 131k model fixes 42% of the 100k model's errors, including
+35% of its Indic-script errors, was never in question and is unaffected by the
+bug).
 
 ## Experiment 42: both Apertus models retrained under the corrected trainer; the fix works and is correctly scoped (2026-07-27, jobs 2903767, 2903768)
 

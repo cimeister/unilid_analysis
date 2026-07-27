@@ -26,6 +26,24 @@ for the infrastructure record.
 `EXPERIMENTAL_SETUP.md` (hierarchical pooling). Full plan:
 `~/.claude/plans/yes-do-both-then-giggly-sprout.md`.
 
+### 2026-07-27: Exp 43, clean re-measurement of the Apertus 131k branch (job 2911700)
+
+- **2911700** `unilid-ft-131k-fp64`: COMPLETED, 02:06:08. Full-test baseline
+  evaluation of `glotlid_apertus131k_fp64.unilid` against the 100k model, into the
+  separate scratch dir `full_test_eval_131k_fp64`. Report
+  `outputs/tables/full_test_eval_131k_fp64.md`, per-language values in
+  `outputs/diagnostic/full_test_131k_fp64_per_lang_prf.csv`.
+- Code: `analysis/full_test_eval_131k.py` parameterized over model path, scratch
+  directory, outputs, and report label (reviewed: no writes reach the earlier
+  scratch directories, no variable shadowing, fingerprint gate prevents mixing two
+  models' predictions; one shadowing defect was caught and fixed before submission
+  because the chunk loop already binds `label`).
+- Outcome (`EXPERIMENTS_RESULTS.md` Exp 43): branch verdict HOLDS on clean
+  evidence (within-stratum overall -0.0090, tail -0.0395 [CI -0.0476, -0.0322];
+  global tail 0.4269 against the 100k model's 0.5618), with the magnitude
+  overstated by the bug (false positives into tail 32,211 clean against 51,926
+  corrupted, within 0.2% of the Exp 30 counterfactual prediction of 32,161).
+
 ### 2026-07-27: Exp 42, both fp64 retrains completed and verified
 
 - **2903767** `unilid-apertus131k-fp64`: COMPLETED, 04:36:18. **2903768**

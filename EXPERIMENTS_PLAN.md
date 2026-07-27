@@ -440,7 +440,9 @@ is open item 1 at the top of this file. Motivation and numbers in
 Ordered by readiness. Items 1 and 2 are specified well enough to launch without
 further design; items 3 and 4 need a decision first.
 
-**1. Clean re-measurement of the Apertus 131k branch (specified, not run).** The
+**1. RESOLVED 2026-07-27 (job 2911700, Exp 43): the clean re-measurement ran and the branch verdict holds.** The retrained model is negative against the 100k model on both metric views (within-stratum overall -0.0090, tail -0.0395; global tail 0.4269 against 0.5618), so the regression is a real property of the larger vocabulary. The bug had overstated it: false positives into tail labels are 32,211 clean against 51,926 corrupted, within 0.2% of the Exp 30 counterfactual. The 200k retrain could receive the same treatment but is lower priority. Original item text follows.
+
+**1 (original).** Clean re-measurement of the Apertus 131k branch. The
 Exp 29 verdict (negative on both metric views) was measured on a model containing
 a collapsed Azerbaijani row that Exp 30 showed carried about two thirds of the
 false-positive increase. The retrained model `glotlid_apertus131k_fp64.unilid`
