@@ -1,5 +1,18 @@
 # UniLID Analysis — Experiment Results
 
+> **Superseded document (note added 2026-07-27).** This is the original
+> single-file record covering the first program of work (system comparison, length
+> bias, distribution analysis, roughly Exp 1 to 9) plus the SLURM job-history
+> tables that `EXPERIMENTS_CHRONOLOGICAL.md` was reconstructed from. It is kept
+> for provenance and is not maintained. The current documents are:
+> `EXPERIMENTS_RESULTS.md` (all results, with "Current state" as the authoritative
+> summary), `EXPERIMENTS_PLAN.md` (open items and resumption notes),
+> `EXPERIMENTAL_SETUP.md` (configurations, design choices and their motivation),
+> and `EXPERIMENTS_CHRONOLOGICAL.md` (every run with job IDs and artifacts).
+> Numbers here predate several corrections recorded in those files, including the
+> macro-F1 averaging fix and the metric-view decomposition, so do not cite this
+> file.
+
 ## Overview
 
 Scientific evaluation of UniLID, a language identification system based on a Unigram tokenizer with per-language log-probability weights (1,940 languages, 100k shared vocabulary). Compared against four alternative systems on the GlotLID test set (45,627,279 samples).

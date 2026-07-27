@@ -104,7 +104,10 @@ MMI training was rejected. Full plan file: `~/.claude/plans/yes-do-both-then-gig
 ## Next set of methods to test
 
 Item numbers are stable identifiers; entries appear in the order they were added, not in
-numeric order. Current state (2026-07-19): selection runs under the balanced protocol
+numeric order. **The state paragraph below is frozen at 2026-07-19 and is retained only
+as the context in which these items were written. For current state read
+`EXPERIMENTS_RESULTS.md` "Current state (2026-07-27)" and the open items at the top of
+this file.** Historical context (2026-07-19): selection runs under the balanced protocol
 (item 10 / Exp 22), which encodes the uniform-prior objective; under it the two live
 candidates are the punctuation partial pooling (item 15, guard-passed at alpha=300) and
 the balanced-data bias refit (item 16, guard-passed at reg=0.3, adoption blocked on
@@ -401,8 +404,10 @@ recalibrated tau. E4 (floor-21 + learned bias probe) is deprioritized below thes
 two: the bias is rejected for adoption and both new compositions target the same
 strata more directly. E5 not started. Track A (Apertus 131k retrain + evaluation)
 FINISHED: negative on both views (Exp 29, within-stratum tail -0.0437, FPs into
-tail 2.3x); discontinuation recommended, user decision pending. Motivation and
-numbers in `EXPERIMENTS_RESULTS.md` Exp 24-29.
+tail 2.3x). That measurement used the model containing a collapsed row (Exp 41);
+the branch is NOT discontinued and a clean re-measurement on the retrained model
+is open item 1 at the top of this file. Motivation and numbers in
+`EXPERIMENTS_RESULTS.md` Exp 24-30, 42.
 - E1. Two-sided guard columns: add global per-language F1 and mean precision for tail
   and magnets to every selection report. For finished configurations the numbers come
   from the saved memmaps at no scoring cost; `analysis/metric_decomposition.py` has
@@ -430,47 +435,103 @@ numbers in `EXPERIMENTS_RESULTS.md` Exp 24-29.
   lines (floor-21 view) to split model error from corpus label noise before investing
   in E2 for that pair.
 
-## Open items after Exp 38-41 (2026-07-26)
+## Open items after Exp 38-42 (updated 2026-07-27)
 
-- RESOLVED 2026-07-26: the fp64 patch and the hard CHECK are adopted into the
-  fork (commits d0208d9, c5921a2), the installed binary replaced (backup
-  spm_train.pre_fp64), and BOTH Apertus models are retraining in full under the
-  corrected trainer (jobs 2903767/2903768, artifacts `*_fp64`). Pending on
-  completion: degeneracy scan on both new models, then the 131k_fp64 full-test
-  baseline to re-examine the Exp 29 branch verdict.
-- **Promising method direction from Exp 40:** a per-language method chooser over
-  the carried set (oracle bound 0.9525 vs 0.9334 best single; headroom in tail
-  +0.0724 and flat_magnets +0.0998). Any real chooser must select from
-  training-side information only (per-language N, GT counts, margin statistics);
-  its gap to the oracle measures chooser quality. Not pre-registered.
-- Carried-set status: Exp 38 (complementary structure), Exp 39 (CommonLID:
-  line-weighted accuracy positive, objective-consistent per-tag macro slightly
-  negative, scope caveat recorded), Exp 40 (oracle bound). The six remain live;
-  no narrowing decision is needed until the paper's final table.
+Ordered by readiness. Items 1 and 2 are specified well enough to launch without
+further design; items 3 and 4 need a decision first.
 
-## Notes for whoever resumes this (updated 2026-07-23)
+**1. Clean re-measurement of the Apertus 131k branch (specified, not run).** The
+Exp 29 verdict (negative on both metric views) was measured on a model containing
+a collapsed Azerbaijani row that Exp 30 showed carried about two thirds of the
+false-positive increase. The retrained model `glotlid_apertus131k_fp64.unilid`
+exists and passed the degeneracy gate (Exp 42). What is needed: a full-test
+baseline evaluation of the retrained model against the 100k production model.
+`analysis/full_test_eval_131k.py` does exactly this but hardcodes the model path
+and its scratch directory at module level, so it needs those two values
+parameterized (and a separate scratch directory, since the fingerprint gate will
+correctly refuse to reuse the old one). Roughly 3.5 hours on one node. Until it
+runs, the Exp 29 numbers stand as a measurement of the corrupted model and their
+magnitude is known to be overstated. The 200k retrain is available for the same
+treatment but is lower priority, since the 200k branch was refuted on a different
+axis (Exp 15) and its Azerbaijani row was only partially damaged.
 
-- Selection runs under the balanced protocol (Exp 22); the guard is `passes_guard`
-  (all four strata + overall improvement); three val-selected operating points were
-  overturned at full scale before this protocol existed, so do not trust small-stratum
-  claims from any pre-Exp-22 selection.
-- Every stratum row and guard column is within-stratum macro-F1 (recall view); global
-  per-language F1 ranks the rejected configurations oppositely on tail (Exp 24,
-  `outputs/tables/metric_decomposition.md`). State which view any tail or magnet claim
-  uses, and read `EXPERIMENTAL_SETUP.md` "Stratified-metric views" before running a
-  sweep.
-- Objective distinction (natural-traffic vs uniform-prior) is explicit as of Exp 22;
-  the two views disagree about every prior-style method. The headline-objective
-  decision is open (see Open paths).
-- Refuted families, do not revisit without new mechanisms: mass-toward-group-typicality
-  edits (Exp 9/13/18/19 and the curated tying re-run), length normalization (Exp 2/5),
-  floor clamps in both directions (Exp 6 up, Exp 20/23a down), heuristic variance
-  reweighting (Exp 8a), entropy sharpening.
-- Positive/informative anchors: learned bias reg=5.0 (natural-traffic, Exp 16);
-  punctuation partial pooling alpha=300 (balanced, Exp 23b, pending confirmation);
-  balanced-data bias refit reg=0.3 (Exp 23c, pending stability + decision); the
-  macrolanguage ceiling measurement (Exp 21); the special-token and floor-structure
-  facts (2026-07-18 investigations).
-- Everything since 2026-07-16 is uncommitted at the user's instruction; the artifacts
-  of record live in `outputs/tables/` and the balanced-split artifacts in
-  `outputs/diagnostic/balanced_val/`.
+**2. Per-language method chooser (the strongest open method direction).** Exp 40
+measured an oracle that picks the best of the seven configurations per language at
+0.9525 against 0.9334 for the best single configuration, with the headroom
+concentrated in languages under 1,000 documents (+0.0724) and flat-confusion
+languages (+0.0998). A real chooser must select using training-side information
+only (document count, Good-Turing statistics, margin distributions, flatness and
+nearest-confuser distance from the per-language diagnostic), never using test
+labels, and its gap to the oracle measures its quality. Modularity is preserved
+if the choice rule is a function of a language's own statistics. Not
+pre-registered; the pre-registration should fix the feature set and the choice
+rule before any measurement.
+
+**3. Objective interpretation (needs a user decision).** The primary quantity
+averages per-language F1 over natural-distribution test data. The alternative
+reading of the same instruction averages over equal-volume test data (100 lines
+per language). Exp 38's reasoning for the current choice is recorded; a
+correction is a one-line change to the record and a re-ranking of the carried set.
+
+**4. Carried-set narrowing (deliberately deferred).** Six configurations remain
+live because the selection data cannot separate them (Exp 38 shows they are
+complementary rather than redundant). No narrowing is needed until the paper's
+final table, and the oracle result argues for combination rather than selection.
+
+**Completed since the last plan revision:** the fp64 trainer fix adopted and both
+Apertus models retrained (Exp 41, 42); the carried-set comparison under the
+primary quantity (Exp 38); the CommonLID out-of-domain check including the
+objective-consistent per-tag metric (Exp 39); the oracle bound (Exp 40).
+
+## Notes for whoever resumes this (updated 2026-07-27)
+
+Read `EXPERIMENTS_RESULTS.md` "Current state (2026-07-27)" first; it is the
+single authoritative summary. These are the traps and conventions that are easy
+to get wrong.
+
+- **Three evaluation datasets, never interchanged.** Selection uses the balanced
+  validation set (draw 101, 188,061 lines, up to 100 per language). Confirmation
+  of a ranked candidate uses the held-out remainder (45,004,014 lines outside
+  draws 101 and 201), where per-language F1 counts every false positive. Final
+  reporting uses the balanced test set (draw 201, 185,204 lines). Selection never
+  touches draw 201, and exactly one candidate per track is confirmed there per
+  round, to keep that dataset's confirmation value.
+- **Two ways to compute a stratum number, and they can rank methods oppositely.**
+  A within-stratum figure restricts to examples whose true label is in the
+  stratum and therefore excludes false positives arriving from outside it; a
+  global per-language figure counts the whole confusion. The tail deficit is a
+  precision problem (0.459) invisible to the within-stratum view (0.913). Always
+  state which is used. Details in `EXPERIMENTAL_SETUP.md` "Stratified-metric
+  views" and `outputs/tables/metric_decomposition.md`.
+- **The adoption rule has six amendments** (`EXPERIMENTAL_SETUP.md`
+  "Precision-primary adoption rule"), all user decisions. The ones most likely to
+  surprise: the collapse clause tolerates up to two per-language collapses as
+  flagged investigations rather than rejecting, and near-tied candidates are all
+  carried forward rather than narrowed to one. `passes_guard` is retained only to
+  reproduce historical reports; current selection uses `passes_shortlist`,
+  `passes_two_sided`, and `passes_uniform`.
+- **The objective is decided** (2026-07-25): macro-averaged per-language F1 with
+  every language weighted equally. One interpretation choice (natural-distribution
+  versus equal-volume test data) is open and flagged in the plan's open items.
+- **Trainer integrity.** The installed `spm_train` is the patched double-precision
+  build; the pre-fix binary is kept as `~/.local/bin/spm_train.pre_fp64` for
+  reproducing historical training only. Run `analysis/degeneracy_scan.py` on every
+  newly trained model before evaluating it, and read `EXPERIMENTAL_SETUP.md`
+  "Per-language training pipeline and the trainer fix" to tell the two causes of
+  degenerate rows apart.
+- **Refuted families, do not revisit without a new mechanism:** moving mass toward
+  group typicality (Exp 9, 13, 18, 19 including the curated tying re-run), length
+  normalization (Exp 2, 5), floor clamps as a naive family (Exp 6, 20, 23a; the
+  calibrated descendants survive), heuristic variance reweighting (Exp 8a),
+  entropy sharpening.
+- **Anchors worth knowing:** the six carried configurations and their per-group
+  strengths (Exp 38); the oracle bound at 0.9525 (Exp 40); the reassignment law
+  from the margin family (Exp 31, 33, 34); the Good-Turing finding that the floor
+  overstates unseen mass for all 1,940 languages (Exp 27); the macrolanguage
+  ceiling measurement (Exp 21); the special-token structure (four tokens at
+  exactly 0.2 per row, argmax-neutral).
+- **Everything is committed and pushed** to `origin/main`; artifacts of record are
+  in `outputs/tables/` and `outputs/diagnostic/`, prediction memmaps and models on
+  scratch under `/capstor/scratch/cscs/cmeister747/unilid_analysis/`. Scratch is
+  purged after roughly two weeks without access, so re-touch the memmaps if a gap
+  in work is expected.

@@ -26,6 +26,29 @@ for the infrastructure record.
 `EXPERIMENTAL_SETUP.md` (hierarchical pooling). Full plan:
 `~/.claude/plans/yes-do-both-then-giggly-sprout.md`.
 
+### 2026-07-27: Exp 42, both fp64 retrains completed and verified
+
+- **2903767** `unilid-apertus131k-fp64`: COMPLETED, 04:36:18. **2903768**
+  `unilid-apertus200k-fp64`: COMPLETED, 07:28:27. Artifacts
+  `glotlid_apertus131k_fp64.unilid` (1,021,914,972 bytes) and
+  `glotlid_apertus200k_fp64.unilid` (1,559,144,154 bytes) on scratch; results
+  dirs `results_apertus{131k,200k}_fp64`. Both under the patched trainer
+  (fork commits d0208d9, c5921a2). Note: the 131k retrain took 4.6 h against
+  9.8 h for the corrupted run, because the collapsed Azerbaijani row no longer
+  wastes iterations.
+- Post-training gate and effect measurement (`analysis/fp64_retrain_check.py`,
+  `outputs/tables/fp64_retrain_check.md`): azj_Latn repaired in both models
+  (131k: 7 -> 22,704 entries above the row minimum, entropy 1.609 -> 3.025;
+  200k: 1,798 -> 31,210, entropy 2.473 -> 3.000, confirming the partial collapse
+  diagnosed in Exp 41); the 17 minority-script rows unchanged in kind, which
+  confirms the vocabulary-coverage class is not a numerical failure; no new
+  degenerate rows; only 20 of 1,940 (131k) and 18 of 1,940 (200k) rows moved by
+  more than 1 nat, concentrated in the long-line corpora the diagnosis predicted
+  (quc_Latn 9.43 nats, pcm_Latn, fas_Arab, mam_Latn).
+- Pending and specified, not run: a full-test baseline evaluation of the
+  retrained 131k model to re-measure the Exp 29 branch verdict without the
+  corrupted row (`EXPERIMENTS_PLAN.md` open item 1).
+
 ### 2026-07-26: fp64 trainer adopted; both Apertus models retraining (jobs 2903767, 2903768)
 
 - Patch adopted into the sentencepiece fork (user directive): commits d0208d9

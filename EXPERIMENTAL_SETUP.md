@@ -390,6 +390,190 @@ exactly one candidate per track is confirmed there per round.
    unweighted over languages; the balanced draws remain selection and
    confirmation instruments.
 
+## Standing design constraints (why the methods look the way they do)
+
+Every method in this project is designed against four constraints that were set by
+the user and are not negotiable per experiment. They explain choices that would
+otherwise look arbitrary.
+
+1. **Add-a-language modularity.** Adding a new language must be a local operation:
+   estimate that language's parameters from that language's own data, with the
+   other 1,939 languages untouched. This rules out any globally coupled fit
+   (discriminative training, MMI, a softmax over all languages) regardless of its
+   accuracy, and it is why every adopted mechanism is either a per-language
+   transformation of that language's own row or a decision rule whose parameters
+   are calibrated on that language's own training text.
+2. **Principled over ad hoc.** Preference for standard statistical constructions
+   with few free constants (Good-Turing missing-mass estimation, quantile
+   calibration) over tuned corrections. Where a constant is unavoidable it is
+   pre-registered before the run that judges it, never swept afterwards.
+3. **Likelihood-side preferred over prior-side.** Additive per-language biases
+   (a class prior) are measured and kept as reference points but disfavored for
+   adoption: they need global data to fit for a new language, and they showed
+   per-language harm (Exp 16, 25).
+4. **Per-language harm is bounded explicitly.** Aggregate improvement does not
+   license a collapse on individual languages. This is encoded in the adoption
+   rule's collapse clause and is why several strong-on-average candidates were
+   rejected or flagged for investigation.
+
+## Method families (2026-07-23 onward): configurations and motivation
+
+Each family below states what the method computes, the constants and where they
+came from, the reason for the design, and the outcome. Per-experiment results are
+in `EXPERIMENTS_RESULTS.md`; this section is the configuration record.
+
+### Floor equalization (`floor21`, Exp 20)
+
+Every row contains a large block of entries at the row's exact minimum, which are
+the tokens the estimator never observed for that language. That minimum is
+resource-tied: correlation between a row's minimum and log10 of the language's
+document count is -0.966, so small languages penalize unseen tokens far less than
+large ones and attract text they should not. `floor21` clamps each row's minimum
+block to `min(row_minimum, -21)`, one shared constant, nothing raised, observed
+tokens and the four special tokens bit-identical
+(`analysis/floor_equalization.py`). Motivation: it is the subtractive direction,
+chosen after every mass-adding variant failed (Exp 9, 13, 18, 19), and it is fully
+modular because the constant is shared and nothing is fitted. The constant was
+selected from the grid {-17, -19, -21, -23} on validation data. Status: carried,
+and top-ranked on the balanced validation set.
+
+### Good-Turing unseen mass (`gt_min`, Exp 27, 28)
+
+The principled replacement for the shared clamp: instead of one constant for all
+languages, set each language's unseen-token mass to the Good-Turing plug-in
+estimate from its own token counts. Procedure (`analysis/gt_counts.py`,
+`analysis/full_test_gt.py`): count each language's training tokens under its own
+Viterbi segmentation, giving total tokens T and the number n1 of token types
+occurring exactly once; the four special tokens occupy exactly 0.8 of every row's
+mass, so the seen-plus-unseen budget is exactly 0.2 and the target unseen mass is
+`0.2 * n1/T`, spread uniformly over the row's minimum block, with the seen
+entries rescaled by `(0.2 - target)/(0.2 - current)` so the row stays normalized.
+No tuned constant exists anywhere in this method: n1 and T come from the
+language's own data and 0.2 is a structural property of the model.
+
+Pre-registered decision (fixed before the judging run, since every mass-adding
+edit had failed): the one-sided variant `target = min(current, 0.2 * n1/T)`, which
+never raises unseen mass. The counting pass then found the direction never binds:
+the emergent floor overstates unseen mass for all 1,940 languages (tail median 9x,
+head median 12x), so the one-sided rule and the exact plug-in coincide on this
+model. Outcome: the best numbers ever measured on equal-volume validation data
+(macro-F1 0.9841) and a false-positive explosion on natural-distribution data
+(22,404 to 79,113 into tail labels). The mechanism is that per-language honesty
+preserves and widens the between-language gap in unseen-token penalties, which is
+what actually drives cross-language competition. Recorded conclusion: the floor
+pathology is a between-language externality, and per-language calibration and
+cross-language equalization are separate corrections that fix different halves.
+
+### Per-language decision margins (the margin gate family, Exp 26, 31, 33, 34, 36)
+
+A decision-layer method rather than a weight edit. For a line whose predicted
+language L is small, compute the score gap between L and the runner-up; if the gap
+is below a per-language threshold tau_L, the prediction is reassigned to a
+larger-language candidate instead. Design decisions and their reasons:
+
+- **tau_L is calibrated on L's own training lines** (the 5th percentile of the
+  gaps on lines L itself wins), never on validation or test data. This satisfies
+  modularity exactly: a new language brings its own threshold. It also bounds
+  L's own recall loss by the quantile by construction, which is why a quantile
+  was chosen over a tuned threshold.
+- **Constants, all pre-registered:** quantile 5; minimum 200 self-won training
+  lines to calibrate at all (languages below this are excluded from gating,
+  listed in the report, and keep baseline behavior, never silently defaulted);
+  at most 2,000 calibration lines per language; calibration seed 0; top-5
+  candidate list.
+- **The reassignment target evolved through three measured failures, and the
+  progression is the family's main scientific content.** Reassigning to the
+  runner-up moved false positives onto small close relatives (szy_Latn absorbed
+  82 of pwn_Latn's lines). Gating only the smallest languages moved the burden
+  onto mid-size languages under dominant neighbors (llb, arq, skr, vmk). Gating
+  all languages below 18,000 documents moved it onto languages just above that
+  threshold (aba, bam, llb, twx). The general law recorded: reassignment
+  relocates false-positive burden to the lowest-capacity permitted target near
+  the cluster. The fix is to require the target to be a top-resource language
+  (at least 100,000 documents, matching the measured source profile of the
+  original false positives: 98.9% come from sources with median 100,000
+  documents), and to keep the prediction unchanged when no such candidate is in
+  the top five.
+- **Adaptive strength (`gt_margin_adaptive`, the user-requested variant).** A
+  hard threshold at 18,000 documents creates boundary victims, so the quantile
+  decays linearly with the language's size: `q_L = 5 * (1 - min(N_L, 18000)/18000)`.
+  Full strength for the smallest languages, zero at the boundary. No new
+  constants. This recovered nearly all of the validation-set cost of the
+  all-language gate.
+
+### Composition candidates (Exp 31, 33, 34, 36)
+
+The Good-Turing rescale repairs within-language calibration and the margin gate
+repairs cross-language false-positive inflow, so the compositions apply both, with
+tau recalibrated under the modified weights (thresholds do not transfer when the
+weights change). `gt_margin_adaptive` is the surviving member and is carried.
+
+### Post-hoc infrastructure conventions shared by all of the above
+
+- Each candidate produces a full prediction memmap over the whole test pool, and
+  every builder asserts bit-identity with its parent configuration outside the
+  lines it is supposed to change, plus at least 99% agreement between the
+  recomputed top-1 and the parent's stored prediction.
+- Every rebuilt weight matrix is verified by sha256 against the fingerprint of
+  the matrix that produced the recorded numbers, so a later evaluation cannot
+  silently score a different matrix.
+- Reports are regenerated from artifacts by scripts that gate on previously
+  recorded values before emitting anything, so a wiring error aborts instead of
+  producing plausible numbers.
+
+## Per-language training pipeline and the trainer fix (2026-07-26)
+
+**Pipeline.** A retrain takes a tokenizer's token inventory as a fixed
+vocabulary and estimates per-language probabilities over it:
+`UNILID/train.py --initial-vocab <tokenizer.json> --vocab-size <n> --byte-level
+--per-lang-counts-method sp --lang-batch-size 20 --results-dir <dir>
+--corpus-dir <dir> --reuse-corpus --skip-existing-langs`, then `convert.py` packs
+the per-language tokenizers into a `.unilid` file. The vocabulary is seeded with
+uniform log-probabilities (`_convert_to_unigram_base`), then each language runs
+20 iterations of expectation-maximization over its own corpus using the forked
+`spm_train` with pruning disabled, so every language ends with a probability for
+every vocabulary entry. The per-language corpus split is tokenizer-independent
+and is reused across retrains via `--corpus-dir`.
+
+**Pre-flight checks (`analysis/preflight_131k.py`), all aborting on failure:** the
+four special-token strings must exist in the tokenizer's vocabulary (the trainer
+otherwise silently falls back to token id 0), the vocabulary size must match, and
+the corpus split must contain 1,940 files totaling the recorded line count.
+
+**Post-training gate (`analysis/degeneracy_scan.py`), added 2026-07-25.** Run on
+every new model before any evaluation. It flags rows with fewer than 100 entries
+above the row minimum. Two distinct causes produce such rows and must not be
+confused: deterministic vocabulary coverage (a script with no multi-byte pieces
+in the inventory; harmless for unique-script languages, damaging where several
+languages share a script, as with the six Cree-syllabics languages) and genuine
+training failure. The 100k production model has zero flagged rows.
+
+**The fixed-vocabulary EM bug (found 2026-07-26, Exp 41; fixed 2026-07-27,
+Exp 42).** The trainer's expectation step accumulated the forward-backward
+quantities in 32-bit floats. On very long training lines the rounding error
+breaks the identity that a lattice node's log-posterior is at most zero (measured
++351 on the trigger line), expected counts overflow to infinity, and the fork's
+own guard mapped non-finite counts to zero, deleting exactly the most frequent
+tokens and leaving a plausible-looking but collapsed model. Upstream
+SentencePiece never encounters this because it skips lines longer than 4,192
+bytes; this pipeline passes `--max_sentence_length=1000000` because discarding
+training lines silently is worse. The trigger was one 142,136-byte line in the
+Azerbaijani corpus, the longest line in all 1,940 corpora.
+
+The fix (fork commits d0208d9, c5921a2; copy at
+`patches/sentencepiece_fp64_estep.patch`) computes the trainer's forward-backward
+in double precision and converts the non-finite-count guard into a hard failure.
+It changes only the precision at which the expectation step's defining identity is
+evaluated: the vocabulary, iteration count, prior, objective, and maximization
+step are untouched, and the inference code paths keep their float versions so
+previously shipped models behave identically. An unpatched rebuild reproduces the
+previously installed binary's trained scores bit-for-bit, which is how the fix was
+validated. The corruption was graded rather than binary: at least 94 corpora
+contain lines above the upstream cap, and the 200k model's Azerbaijani row was
+partially collapsed without ever crossing the degeneracy threshold. Both Apertus
+models were retrained in full rather than repaired per language, so each model has
+single-provenance weights.
+
 ## Reproducibility limitations of this record
 
 - Only one git commit exists (`b7508fd`, 2026-04-08); per-experiment code versions are not

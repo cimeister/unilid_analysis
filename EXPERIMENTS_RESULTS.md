@@ -25,60 +25,90 @@ uniform sample (`seed=42`, without replacement).
 
 ---
 
-## Current state (2026-07-23)
+## Current state (2026-07-27)
 
-- **Adopted configuration (provisional): floor-21**, selected by the precision-primary
-  adoption rule (Exp 25; rule fixed by the user 2026-07-23, EXPERIMENTAL_SETUP.md).
-  Provisional because the Good-Turing unseen-mass candidate (plan E3) is specified as
-  the principled version that must beat it, and the margin method (E2) targets its
-  residual. The learned bias reg=5.0 is REJECTED for adoption by the per-language
-  collapse clause (llb_Latn -0.113) but remains the natural-traffic reference
-  measurement (Exp 16).
-- **Evaluation:** selection = balanced-val draw 101 shortlist (`passes_shortlist`);
-  adoption = `passes_two_sided` (balanced-val stage with symmetric tail/magnet
-  widening, full-pool precision veto minus draws 101/201, per-language collapse
-  bound); headline = balanced test draw seed 201. Three earlier val-selected operating
-  points were overturned at full scale before the balanced protocol existed.
-- **Apertus 131k branch (Exp 29):** negative on both views (tail -0.0437
-  within-stratum, FPs into tail 2.3x); the vocab-size regression is not an
-  allocation problem. Discontinuation recommended, user decision pending.
-- **Objective (user decision 2026-07-25):** the primary quantity is macro-averaged
-  per-language score, every language weighted equally within reason (extreme
-  low-resource exemptions allowed). Adopted interpretation, pending correction:
-  per-language F1 on the full natural-distribution test data (all false positives
-  counted), averaged unweighted over languages.
-- **Carried-forward set (near-tie co-selection, user decision 2026-07-25):** the
-  selection data cannot separate six eligible configurations (freq_prior,
-  learned_bias, floor21, margin_q5, margin_q5_head, gt_margin_adaptive; balanced-val
-  overall 0.9794-0.9800); all six stay live. Top-ranked floor-21; on the primary
-  quantity the order is gt_margin_adaptive 0.9334, floor-21 0.9309 (Exp 36).
-  Uniform-track champion gt_min (flagged: mev/sbs dig-ins done, Exp 32).
-- **Next-round candidate (recorded, not pre-registered):** extend the margin gate
-  to all non-head predicted labels, or repair the gt mid-band redistribution at the
-  weight level (Exp 31 mechanism).
-- **Natural-traffic objective:** the learned per-language bias reg=5.0 is the reference
-  result (Exp 16: full-test overall +0.0129, tail -0.0018 [CI -0.0035, -0.0001],
-  CommonLID 0.8452 -> 0.8879). The frequency prior (tail -0.0182) and floor
-  equalization (tail -0.0204) are not adopted; Exp 24 shows those tail deltas are
-  within-stratum (recall-view) numbers, and under global per-language F1 the same
-  configurations raise tail mean F1 (baseline 0.5618, learned bias 0.6003, freq prior
-  0.6800, floor-21 0.7655). Which view tail claims use is an open decision.
-- **Metric views (Exp 24):** every stratum row and guard column is within-stratum
-  macro-F1 and excludes cross-stratum false positives; the tail deficit under global
-  per-language F1 is precision (0.459), not recall (0.874), with 22,522 false
-  positives into tail labels, 98.9% from head sources.
-- **Uniform-prior (balanced) objective:** the unmodified baseline is the best adopted
-  configuration; two candidates passed selection on 2026-07-19 and are pending
-  confirmation (Exp 23): punctuation partial pooling alpha=300 (no negative stratum,
-  effect at the measurability edge) and the balanced-data bias refit reg=0.3
-  (sel tail +0.0299, magnets +0.0252; adoption blocked on per-draw stability, a
-  balanced-test draw, a full-test pass, and the per-language-suppression decision).
-- **Refuted families:** mass-toward-group-typicality edits (Exp 9/13/18/19), length
-  normalization (Exp 2/5), floor clamps in both directions (Exp 6, Exp 20/23a),
-  heuristic variance reweighting (Exp 8a), entropy sharpening. The macrolanguage
-  hierarchy is a null with a useful ceiling measurement (Exp 21).
-- Open paths for the next experiments are consolidated at the end of
-  `EXPERIMENTS_PLAN.md`.
+Read this block first; it supersedes any earlier state description in this file.
+Terminology used throughout (defined once here): a **row** is one language's
+vector of natural-log token probabilities in the 1,940 x 100,000 weight matrix;
+the **primary quantity** is per-language F1 on natural-distribution test data with
+all false positives counted, averaged unweighted over the 1,940 languages.
+
+**Objective (decided by the user 2026-07-25).** The primary quantity above. Every
+language is weighted equally in the average, with an allowance to exempt an
+extreme low-resource subset as unworkable and report it separately. The earlier
+open question of which test distribution headlines the paper is therefore closed
+for the average; the balanced draws remain selection and confirmation instruments,
+not the primary metric. One interpretation choice is on the record and open to
+correction: the average is taken over natural-distribution test data rather than
+equal-volume-per-language test data (Exp 38 states the reasoning).
+
+**Results under the primary quantity (Exp 38, held-out remainder, 45,004,014
+lines).** No configuration is best on every group: gt_margin_adaptive 0.9334 overall (best,
+driven by the 1,000-18,000-document band at 0.9567), floor-21 0.9309 (best on
+languages under 1,000 documents at 0.6337 and on flat-confusion languages at
+0.5345), freq_prior 0.9264, learned_bias 0.9254 (best on the largest languages at
+0.9696, on twin pairs at 0.9079, and the unique best on 602 individual
+languages), margin_q5_head 0.9215, margin_q5 0.9201, baseline 0.9121. An oracle
+that picked the best configuration per language would reach 0.9525 (Exp 40), with
+the headroom concentrated in the tail (+0.0724) and flat-confusion (+0.0998)
+groups.
+
+**Live candidate set (near-tie co-selection, user decision 2026-07-25).** The
+balanced validation set cannot separate six eligible configurations (macro-F1
+0.9794-0.9800), so all six are carried forward rather than narrowed to one:
+freq_prior, learned_bias, floor21, margin_q5, margin_q5_head, gt_margin_adaptive.
+floor-21 is top-ranked on that selection set; gt_margin_adaptive leads on the
+primary quantity. gt_min is the champion of the equal-volume (uniform-prior)
+track, flagged with two per-language dig-ins that were completed (Exp 32).
+
+**Evaluation machinery (three datasets, never interchanged).** Selection: the
+balanced validation set, draw seed 101, 188,061 lines, up to 100 lines per
+language. Confirmation of a ranked candidate: the held-out remainder, 45,004,014
+lines outside draws 101 and 201, where per-language F1 counts every false
+positive. Final reporting: the balanced test set, draw seed 201, 185,204 lines,
+disjoint from draw 101. The adoption rule and its six amendments are in
+`EXPERIMENTAL_SETUP.md`; the most consequential are the outlier-tolerant collapse
+clause (up to two per-language collapses trigger a required investigation rather
+than rejection) and the dual-track verdicts.
+
+**Out-of-domain (Exp 39, CommonLID, 373,230 web lines).** Line-weighted
+macro-aware accuracy improves for both carried leaders (floor-21 +0.0040,
+gt_margin_adaptive +0.0070) and the margin gate transfers without any refitting.
+Under the objective-consistent per-tag macro-averaged F1 both are slightly
+negative (-0.0046, -0.0061). CommonLID's 109 tags are predominantly larger
+languages and barely contain the tail labels these methods repair, so it
+structurally cannot show their benefit; out-of-domain claims should be scoped
+accordingly.
+
+**Infrastructure state.** A numerical bug in the fixed-vocabulary EM trainer was
+found, diagnosed, fixed, and the fix adopted (Exp 41, 42): the trainer's E-step
+accumulated in 32-bit floats, which breaks on very long training lines, and the
+fork silently zeroed the resulting non-finite counts. The fix is in the
+sentencepiece fork (commits d0208d9, c5921a2), the installed binary is the
+patched build (previous binary kept as `~/.local/bin/spm_train.pre_fp64`), and
+both Apertus models were retrained: `glotlid_apertus131k_fp64.unilid` and
+`glotlid_apertus200k_fp64.unilid`. The 100k production model that carries every
+main-line result was never trained through this path and is unaffected.
+
+**Open decisions and pending measurements.**
+1. The 131k branch verdict (Exp 29, negative) was measured on the corrupted
+   model, and one collapsed row carried about two thirds of its false-positive
+   excess (Exp 30). The clean re-measurement on the retrained model is specified
+   but not run.
+2. Whether to build a per-language method chooser, given the +0.0191 oracle
+   headroom (Exp 40).
+3. Whether the primary quantity should instead average over equal-volume test
+   data (see the interpretation note above).
+
+**Refuted method families (do not revisit without a new mechanism).** Moving
+probability mass toward group typicality in any form (Exp 9, 13, 18, 19), length
+normalization (Exp 2, 5), floor clamps in both directions as a family (Exp 6, 20,
+23a; the calibrated descendants floor-21 and the Good-Turing rescale are the
+survivors), heuristic variance reweighting (Exp 8a), entropy sharpening. The
+macrolanguage hierarchy is a null result with a useful ceiling measurement
+(Exp 21). Prior-style additive biases remain measured and available but are
+disfavored on modularity grounds and were rejected for adoption on per-language
+harm (Exp 16, 25).
 
 ## Headline observations (historical, Exp 1-9 era)
 
@@ -348,6 +378,51 @@ inputs). **Status:** drives the hierarchical-pooling program (`EXPERIMENTS_PLAN.
 
 ---
 
+## Experiment 42: both Apertus models retrained under the corrected trainer; the fix works and is correctly scoped (2026-07-27, jobs 2903767, 2903768)
+
+The double-precision E-step and the hard non-finite-count check were adopted into
+the sentencepiece fork (commits d0208d9, c5921a2) and the installed binary
+replaced. Both Apertus models were retrained in full rather than repaired per
+language, so each model has single-provenance weights. Row-level comparison of
+each model against its retrain (`outputs/tables/fp64_retrain_check.md`,
+`analysis/fp64_retrain_check.py`; read from the packed matrices, no scoring):
+
+| model | degenerate rows before | after | repaired | rows moved >1 nat | >5 nats |
+|---|---|---|---|---|---|
+| 131k | 18 | 17 | azj_Latn | 20 of 1,940 | 5 |
+| 200k | 17 | 17 | none flagged | 18 of 1,940 | 7 |
+
+**The collapse is repaired.** azj_Latn at 131k goes from 7 entries above the row
+minimum (entropy 1.609 nats) to 22,704 (3.025). At 200k it goes from 1,798 to
+31,210 (entropy 2.473 to 3.000), which confirms the Exp 41 finding that the
+200k row was partially collapsed even though it never crossed the degeneracy
+threshold: the corrupted 200k model was carrying a damaged Azerbaijani model
+that no gate would have caught.
+
+**The fix is correctly scoped.** The 17 minority-script rows (Syriac, Cherokee,
+Coptic, Cree syllabics, Gothic, Kali, Limbu, Lisu, Meetei, Mongolian-script)
+remain degenerate in both retrains, with unchanged above-minimum counts. This is
+the confirmation that the two phenomena were correctly separated in Exp 35: those
+rows are a deterministic vocabulary-coverage property (the Apertus inventories
+carry no multi-byte pieces for those scripts), not a numerical failure, and a
+precision fix cannot and should not change them. No row became newly degenerate.
+
+**The rest of the model is nearly untouched.** Only about 1% of rows changed by
+more than 1 nat at their largest entry, and mean row entropy moves by 0.0006 nats
+(131k) and 0.0003 (200k). The languages that moved are the long-line corpora the
+diagnosis predicted: quc_Latn (max change 9.43 nats), pcm_Latn, fas_Arab,
+mam_Latn, bod_Tibt. Controls behaved as expected: tat_Latn and fra_Latn are
+unchanged to three decimals in entropy.
+
+**Consequence for the branch verdict.** Exp 29 concluded the 131k base is
+negative on both metric views, and Exp 30 showed that a single collapsed row
+(azj_Latn) carried about two thirds of the false-positive increase into tail
+labels. That comparison used the corrupted model. The clean comparison is now
+possible and is the pending next measurement: a full-test baseline evaluation of
+`glotlid_apertus131k_fp64.unilid` against the 100k production model. Until it is
+run, the Exp 29 verdict stands as a measurement of the corrupted model, and its
+magnitude is known to be overstated.
+
 ## Experiment 41: the fixed-vocabulary EM bug diagnosed, verified, and patched in scratch (2026-07-26, two-agent investigation)
 
 **Defect, established by faithful reimplementation and dual builds (an unpatched
@@ -391,9 +466,10 @@ UniLID release), and no main-line experiment (Exp 1-40) consumes fork-trained
 weights; the corruption is confined to the Apertus branch, further caveating the
 Exp 15/29 magnitudes.
 
-**Fix, verified but NOT applied to the fork or the installed binary (user
-decision pending, per the no-unjustified-code-change constraint).** Patch at the
-session scratchpad (`em_debug/fix.patch`): compute the trainer's
+**Fix, verified [ADOPTED 2026-07-27 on user instruction: fork commits d0208d9
+and c5921a2, installed binary replaced, both models retrained; see Exp 42. The
+paragraph below describes its state at diagnosis time].** Patch preserved at
+`patches/sentencepiece_fp64_estep.patch`: compute the trainer's
 forward-backward in double precision; leave the float paths in place for
 inference so shipped models behave bit-identically. The patch changes only the
 precision at which the E-step's defining identity is evaluated: vocabulary,

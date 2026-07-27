@@ -83,7 +83,25 @@ VIRTUAL_ENV=/users/cmeister747/.pyenv/versions/3.11.5 maturin develop --release
 The submodule must be initialized first: `cd UNILID && git submodule update --init tokenizers`
 
 ### 7. Login node memory limits
-The login nodes have limited memory (~32 GB usable). The UniLID model with cached weights takes ~250 GB. Any job that loads the full model must run via SLURM, not on the login node.
+The login nodes have limited memory (~32 GB usable). Any job that loads the full model and caches its weights must run via SLURM, not on the login node.
+
+Measured footprint, correcting the "~250 GB" figure that appears in older docstrings: the 1,940 x 100,000 float32 matrix is about 776 MB, and the transient during `set_weight_sets(matrix.tolist())` is roughly 6-7 GB per call. Scoring jobs therefore run comfortably at 100 GB, and full training runs request 400 GB. The login node can host small scoring passes (tens of thousands of lines) but was killed by the out-of-memory killer (exit code 137) on the 373,230-line CommonLID pass, which is the practical boundary: anything at that scale or above goes to SLURM.
+
+### 8. The trainer binary and the fp64 fix (2026-07-27)
+`~/.local/bin/spm_train` is a build of the forked SentencePiece (`cimeister/sentencepiece`, branch `fixed-vocab-em`) that performs fixed-vocabulary EM with pruning disabled. As of 2026-07-27 the installed binary includes commits `d0208d9` (double-precision forward-backward in the training expectation step) and `c5921a2` (hard failure on non-finite expected counts). The pre-fix binary is preserved as `~/.local/bin/spm_train.pre_fp64` and should be used only to reproduce historical training runs.
+
+Rebuild after changing the fork:
+```bash
+git clone --branch fixed-vocab-em https://github.com/cimeister/sentencepiece.git
+cd sentencepiece && mkdir build && cd build
+cmake .. -DCMAKE_BUILD_TYPE=Release -DSPM_ENABLE_SHARED=OFF
+make -j 16 spm_train
+cp src/spm_train ~/.local/bin/spm_train      # keep a backup of the previous binary
+```
+Acceptance test after any trainer change: retrain `azj_Latn` alone against the 131k base tokenizer and check that its row has tens of thousands of entries above the row minimum (the pre-fix binary produced 7). Then run `python -m analysis.degeneracy_scan` on any newly packed model before evaluating it. Background and the failure mechanism are in `EXPERIMENTAL_SETUP.md`, "Per-language training pipeline and the trainer fix".
+
+### 9. Long training lines are not truncated
+The pipeline passes `--max_sentence_length=1000000`, well above the upstream default of 4,192 bytes, because silently discarding training lines is worse than keeping them. This is safe only with the fp64 trainer above; with the pre-fix binary it was the trigger for a silent model collapse. If the flag is ever lowered, record which lines are dropped and in which corpora.
 
 ## How to Run
 
