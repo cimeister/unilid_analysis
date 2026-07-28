@@ -43,7 +43,14 @@ correction: the average is taken over natural-distribution test data rather than
 equal-volume-per-language test data (Exp 38 states the reasoning).
 
 **Results under the primary quantity (Exp 38, held-out remainder, 45,004,014
-lines).** No configuration is best on every group: gt_margin_adaptive 0.9334 overall (best,
+lines).** The configuration to beat is **gt_margin_adaptive at 0.9334**, +0.0213
+over the unmodified baseline. It is the leader on the aggregate but not dominant:
+floor-21 is substantially better on the two groups this project targets
+(languages under 1,000 documents 0.6337 against 0.4620; flat-confusion languages
+0.5345 against 0.4206), and the learned bias is uniquely best on more individual
+languages (602 against 587). Any new candidate should be compared against 0.9334
+on the aggregate and against floor-21 on the small-language groups. No
+configuration is best on every group: gt_margin_adaptive 0.9334 overall (best,
 driven by the 1,000-18,000-document band at 0.9567), floor-21 0.9309 (best on
 languages under 1,000 documents at 0.6337 and on flat-confusion languages at
 0.5345), freq_prior 0.9264, learned_bias 0.9254 (best on the largest languages at

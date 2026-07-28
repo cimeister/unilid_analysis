@@ -435,6 +435,110 @@ is open item 1 at the top of this file. Motivation and numbers in
   lines (floor-21 view) to split model error from corpus label noise before investing
   in E2 for that pair.
 
+## Plan: per-language combined method (drafted 2026-07-27, pre-registration pending)
+
+**Idea.** Exp 38 showed the carried configurations are complementary rather than
+redundant, and Exp 40 measured an oracle that picks the best per language at
+0.9525 against 0.9334 for the best single configuration. Every carried method is
+either a transformation of one language's row or a decision threshold for one
+language's predictions, so a per-language assignment is implementable and keeps
+add-a-language modularity: a new language's treatment depends only on its own
+statistics.
+
+**The caveat that shapes the whole design.** The oracle number was computed by
+taking each language's F1 from a run in which all 1,940 languages used that
+configuration. A mixed matrix is a different system: prediction is an argmax
+across rows, so if language A receives a deepened floor while language B keeps a
+shallow one, the comparison between A and B changes. The oracle is therefore
+evidence that per-language heterogeneity exists, not an achievable target, and
+the combined configuration must be SCORED, never inferred. Measuring the size of
+that interaction is the experiment's guaranteed output regardless of whether the
+method wins.
+
+**Treatment set (modularity-preserving only).** Per language, one row treatment
+from {unmodified, floor-21 clamp, Good-Turing rescale} and the margin gate either
+off or on (adaptive quantile, top-resource reassignment target). The two
+prior-style methods (frequency prior, learned bias) are excluded from the combined
+candidate: they need global data to fit for a new language, which the standing
+modularity constraint rules out, and the learned bias was rejected for adoption on
+per-language harm. Consequence to measure first: the oracle restricted to the
+modular subset is the honest ceiling for this design, and it is cheaper than the
+full oracle to compute (step 1).
+
+**Assignment features, training-side only.** Document count, plus quantities
+derived from the weight matrix itself (row flatness, distance to the nearest
+confuser, whether that confuser has much higher resources) and the Good-Turing
+ratio n1/T. Provenance caution: `outputs/diagnostic/lang_diagnostic.csv` mixes
+weight-derived columns with `magnet_ratio`, which was computed from validation-half
+false-positive counts. Validation-derived features are acceptable (validation is
+selection data) but test-derived features are not, so step 0 audits every column
+before any is used.
+
+**Protocol point that keeps the evaluation clean.** The assignment rule must be
+derived from the BALANCED VALIDATION set (draw 101), not from the Exp 38 table,
+which was computed on the held-out remainder that will judge the result. Deriving
+the rule from the remainder and then evaluating on it would be selection on the
+evaluation data. Step 1 therefore recomputes the per-group leader table on draw
+101, and the rule is fixed and pre-registered from that table alone.
+
+**Steps, with agent delegation.** Model choice follows the standing policy:
+Sonnet for mechanical and search work, Opus only for correctness-critical
+verification, Haiku for trivial single-file lookups.
+
+- **Step 0, feature-provenance audit (agent, Sonnet).** For every column of
+  `lang_diagnostic.csv` and `gt_counts.csv`, state whether it derives from the
+  weight matrix alone, from training data, from validation data, or from test
+  data. Read-only, mechanical. Output: a short table appended to the step-1
+  artifact. This is exactly the kind of bounded lookup an agent should do.
+- **Step 1, evidence base (agent, Sonnet).** One script,
+  `analysis/combined_evidence.py`: (a) per-language F1 for the seven
+  configurations on the balanced validation draw 101, and the per-group leader
+  table computed there; (b) the oracle over the full carried set and over the
+  modular subset only, on the same draw. Reuses `_per_lang_stats` and the saved
+  prediction memmaps, so no scoring is required. Output:
+  `outputs/tables/combined_evidence.md`.
+- **Step 2, fix and pre-register the rule (assistant).** Write the assignment
+  rule into `EXPERIMENTS_RESULTS.md` before any scoring, in the form "if
+  <training-side condition> then <treatment>", with every threshold stated. The
+  expected shape from current evidence, to be confirmed or revised by step 1:
+  large languages unmodified and ungated, the smallest and the flat-confusion
+  languages on the floor clamp, the middle band on Good-Turing plus the gate.
+- **Step 3, implementation (agent, Sonnet, with a precise spec).**
+  `analysis/mixed_matrix.py`: build the mixed weight matrix by applying each
+  language's assigned row treatment, then score the full pool once and apply the
+  per-language gate at inference. It is a structural clone of
+  `analysis/full_test_gt.py` plus the gate loop from `analysis/gt_margin.py`, so
+  the agent's task is mechanical assembly against a known pattern, with the
+  standard gates: special-token columns bit-identical, row normalization checked,
+  fingerprints recorded, resumable chunked memmap, bit-identity for untreated
+  languages against the baseline predictions.
+- **Step 4, adversarial pre-run review (agent, Opus).** The standing discipline
+  for any code whose numbers enter the record. Focus: that each language receives
+  exactly its assigned treatment, that no test-derived feature entered the rule,
+  and that the interaction measurement in step 6 is computed correctly.
+- **Step 5, scoring (assistant, SLURM).** One pass over the full pool, about two
+  hours at 64 CPUs and 100 GB, mirroring `slurm_full_test_gt.sh`.
+- **Step 6, evaluation and the interaction measurement (agent, Sonnet; assistant
+  verifies).** Report the primary quantity against the carried set and the
+  adoption rule on both tracks. Then the scientific payload: for each language,
+  compare its F1 in the mixed system against its F1 in the single-method run of
+  its assigned treatment. The difference is the cross-language interaction, and
+  its distribution answers whether per-language treatment can be chosen
+  independently of the competition it participates in.
+- **Step 7, decision and documentation (assistant).** Adopt, iterate with a named
+  mechanism, or reject; update the four documents and commit.
+
+**Pre-registered decision criteria.** Success: the primary quantity exceeds
+0.9334 and the amended collapse clause is satisfied (at most two supported
+per-language collapses, which trigger investigation rather than rejection).
+Partial success worth iterating: the aggregate falls between 0.9309 and 0.9334
+but the small-language groups beat floor-21's 0.6337 and 0.5345. Informative
+failure: the aggregate falls below 0.9309, in which case the interaction
+measurement from step 6 quantifies why, and that result closes the naive
+per-language-assignment direction.
+
+**Compute budget.** One scoring pass plus cheap analyses over saved artifacts.
+
 ## Open items after Exp 38-42 (updated 2026-07-27)
 
 Ordered by readiness. Items 1 and 2 are specified well enough to launch without
