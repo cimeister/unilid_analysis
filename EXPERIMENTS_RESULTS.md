@@ -25,13 +25,51 @@ uniform sample (`seed=42`, without replacement).
 
 ---
 
-## Current state (2026-07-27)
+## Current state (2026-07-29)
 
 Read this block first; it supersedes any earlier state description in this file.
 Terminology used throughout (defined once here): a **row** is one language's
 vector of natural-log token probabilities in the 1,940 x 100,000 weight matrix;
 the **primary quantity** is per-language F1 on natural-distribution test data with
 all false positives counted, averaged unweighted over the 1,940 languages.
+
+**Decisions and protocol changes of 2026-07-29 (user decisions; full text in
+`EXPERIMENTAL_SETUP.md` amendment 7 and standing constraint 5).**
+1. Status vocabulary made precise (amendment 7). Three statuses: **in the pool**
+   (default: improves at least one recorded instrument or group by more than
+   0.001 and is not hard-rejected; clause failures are recorded weaknesses with
+   their required dig-ins, not removal), **promoted** (at most one per track;
+   requires clauses (A), (B), (C) on that track plus an explicit user decision),
+   **hard-rejected** (only when worse or equal on every recorded instrument and
+   group with at least one strict loss, or the improvement traces to a bug or
+   measurement artifact). Evaluation stays unconditional on all instruments of
+   both tracks for every candidate. Verdicts below are re-read under this
+   vocabulary with numbers unchanged: where an entry says "rejected for
+   adoption", read "in the pool, not promotable in current form" unless the
+   entry establishes a loss on every instrument. So gt_min, learned_bias
+   (reg 5.0), and gt_margin are in the pool with their recorded mechanisms;
+   floor-21's provisional adoption and gt_margin_adaptive's
+   configuration-to-beat status are unchanged.
+2. Plan consistency review (standing constraint 5): every plan is reviewed
+   against all prior recorded decisions before execution; any divergence from
+   committed text must be labeled as an amendment with its own user decision.
+3. The combined-method pre-registration is amended in two places, both user
+   decisions taken after an adversarial review measured the defects. (a) The
+   assignment rule is derived from a seeded 40/60 split of the held-out
+   remainder (RULE_SPLIT_SEED=301, RULE_SPLIT_FRACTION=0.40; derivation part
+   about 18.0M lines, judge part about 27.0M lines; comparators recomputed on
+   the judge part), replacing the committed draw-101 derivation. Measured
+   reason: on draw 101 the per-group leader disagrees with the held-out-remainder
+   leader in all six groups, and gt_min leads every group there, because the
+   100-line-per-language cap removes the false-positive volume the primary
+   quantity is defined on; per-language leader counts on the draw are noise
+   (1,623 of 1,940 languages tie; 58.1% leader agreement between draws 101 and
+   102 against 25% chance). This is a result about the instruments, independent
+   of the combined method's outcome: balanced draws cannot rank methods for the
+   primary quantity. (b) The bare aggregate success threshold is replaced by a
+   paired bootstrap over the 1,940 languages (BOOT_B=10,000, BOOT_SEED=0,
+   percentile, 95% level) of mixed minus gt_margin_adaptive on the judge part;
+   promotion additionally requires the full adoption rule on both tracks.
 
 **Objective (decided by the user 2026-07-25).** The primary quantity above. Every
 language is weighted equally in the average, with an allowance to exempt an
@@ -98,8 +136,13 @@ both Apertus models were retrained: `glotlid_apertus131k_fp64.unilid` and
 main-line result was never trained through this path and is unaffected.
 
 **Open decisions and pending measurements.**
-1. Whether to build a per-language method chooser, given the +0.0191 oracle
-   headroom (Exp 40). This is the strongest open method direction.
+1. The per-language combined method (the strongest open direction) is in
+   execution under the amended pre-registration (see `EXPERIMENTS_PLAN.md`,
+   "Plan: per-language combined method", with the 2026-07-29 amendments). The
+   honest ceiling for its six-combination treatment space, measured over the
+   four combinations with existing solo runs on the full remainder, is 0.9449
+   overall, tail 0.6731, flat_magnet 0.5939 (headroom +0.0115 / +0.0394 /
+   +0.0594), smaller than the Exp 40 seven-configuration oracle.
 2. Whether the primary quantity should instead average over equal-volume test
    data (see the interpretation note above).
 

@@ -437,6 +437,29 @@ is open item 1 at the top of this file. Motivation and numbers in
 
 ## Plan: per-language combined method (drafted 2026-07-27, pre-registration pending)
 
+**Amendments 2026-07-29 (user decisions, taken after two adversarial reviews of
+the implementation plan; measured findings recorded in `EXPERIMENTS_RESULTS.md`
+"Current state (2026-07-29)"). The committed text below stands as drafted, with
+three changes:**
+1. The assignment rule is derived from a seeded 40/60 split of the held-out
+   remainder (RULE_SPLIT_SEED=301, RULE_SPLIT_FRACTION=0.40; rule derived on the
+   40% part, judged on the 60% part, comparators recomputed there), not from
+   balanced draw 101 as the "Protocol point" paragraph below states. Measured
+   reason: draw 101 reverses the method ranking in all six groups and would
+   select gt_min everywhere.
+2. The decision criteria below are replaced by a paired bootstrap over the 1,940
+   languages (BOOT_B=10,000, BOOT_SEED=0, percentile, 95%) of mixed minus
+   gt_margin_adaptive on the judge part, with statuses per amendment 7 of the
+   adoption rule (`EXPERIMENTAL_SETUP.md`): promotion requires the interval
+   entirely above zero plus clauses (A), (B), (C) plus a user decision; an
+   interval containing zero keeps the method in the pool for deeper exploration;
+   hard rejection requires being worse or equal on every recorded instrument and
+   group.
+3. The treatment set stays the committed six combinations; the two combinations
+   without solo references, (unmodified, gate on) and (floor-21, gate on), get
+   solo-gate reference builds (gate post-process over `pred_baseline.npy` and
+   `pred_floor21.npy`, about 15-30 minutes each) before the rule is fixed.
+
 **Idea.** Exp 38 showed the carried configurations are complementary rather than
 redundant, and Exp 40 measured an oracle that picks the best per language at
 0.9525 against 0.9334 for the best single configuration. Every carried method is
@@ -561,7 +584,11 @@ magnitude is known to be overstated. The 200k retrain is available for the same
 treatment but is lower priority, since the 200k branch was refuted on a different
 axis (Exp 15) and its Azerbaijani row was only partially damaged.
 
-**2. Per-language method chooser (the strongest open method direction).** Exp 40
+**2. ONGOING 2026-07-29: the combined-method plan above is in execution (step 0
+and the evidence base first; no scoring before the step-2 user checkpoint).**
+Original item text follows.
+
+**2 (original). Per-language method chooser (the strongest open method direction).** Exp 40
 measured an oracle that picks the best of the seven configurations per language at
 0.9525 against 0.9334 for the best single configuration, with the headroom
 concentrated in languages under 1,000 documents (+0.0724) and flat-confusion
@@ -601,7 +628,12 @@ to get wrong.
   draws 101 and 201), where per-language F1 counts every false positive. Final
   reporting uses the balanced test set (draw 201, 185,204 lines). Selection never
   touches draw 201, and exactly one candidate per track is confirmed there per
-  round, to keep that dataset's confirmation value.
+  round, to keep that dataset's confirmation value. Amendment 2026-07-29: a
+  candidate whose parameters or rule are fit on remainder data (currently only
+  the mixed configuration) is confirmed on the judge part of the seed-301 split
+  (27,002,441 lines), and every comparison involving such a candidate is
+  computed on the judge part with comparators recomputed there; the full
+  remainder stays the confirmation instrument of record for ordinary candidates.
 - **Two ways to compute a stratum number, and they can rank methods oppositely.**
   A within-stratum figure restricts to examples whose true label is in the
   stratum and therefore excludes false positives arriving from outside it; a

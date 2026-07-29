@@ -26,6 +26,36 @@ for the infrastructure record.
 `EXPERIMENTAL_SETUP.md` (hierarchical pooling). Full plan:
 `~/.claude/plans/yes-do-both-then-giggly-sprout.md`.
 
+### 2026-07-29: combined-method plan reviewed twice, amended, and started (no jobs yet)
+
+- **No SLURM jobs.** Two adversarial Opus reviews of the implementation plan for
+  the combined method (plan file
+  `~/.claude/plans/steady-finding-abelson.md`): a mechanics review and a
+  design-consistency review against all prior recorded decisions. Findings and
+  the resulting user decisions are recorded in `EXPERIMENTS_RESULTS.md` "Current
+  state (2026-07-29)" and as amendment 7 plus standing constraint 5 in
+  `EXPERIMENTAL_SETUP.md`; the pre-registration amendments are recorded at the
+  top of the combined-method section in `EXPERIMENTS_PLAN.md`.
+- Key measured finding recorded as a result about the instruments: balanced
+  draw 101 reverses the method ranking for the primary quantity (six of six
+  group leaders disagree with the held-out remainder; gt_min leads every group
+  on the draw), so the assignment rule derives from the seed-301 40/60
+  remainder split instead (new pre-registered constants RULE_SPLIT_SEED=301,
+  RULE_SPLIT_FRACTION=0.40, BOOT_B=10,000, BOOT_SEED=0).
+- Execution started with the no-scoring steps: the feature-provenance artifact,
+  the two solo-gate reference builds (`analysis/solo_gates.py`: adaptive gate,
+  100k target bar, over `pred_baseline.npy` and `pred_floor21.npy`), and the
+  evidence base (`analysis/combined_evidence.py`, derivation part only). Every
+  new script gets an Opus pre-run review. No scoring before the step-2 user
+  checkpoint (rule sign-off).
+- Checkpoint hygiene: no deletions proposed. Upcoming artifacts: two solo-gate
+  prediction memmaps (~91 MB each), later three mixed-configuration memmaps,
+  and the split index file on scratch
+  (`full_test_eval/rule_split_seed301.npz`, ~360 MB, regenerable from the
+  seed). The `results_apertus200k/corpus` calibration files and the
+  `full_test_eval/` memmaps must be re-touched before the scoring job (14-day
+  scratch purge).
+
 ### 2026-07-27: Exp 43, clean re-measurement of the Apertus 131k branch (job 2911700)
 
 - **2911700** `unilid-ft-131k-fp64`: COMPLETED, 02:06:08. Full-test baseline

@@ -389,6 +389,34 @@ exactly one candidate per track is confirmed there per round.
    natural-distribution test data with all false positives counted, averaged
    unweighted over languages; the balanced draws remain selection and
    confirmation instruments.
+7. Status vocabulary and pool semantics (user decision 2026-07-29). The words
+   "pass" and "adopted" had accumulated several meanings in this record
+   (eligible, flagged eligible, selected, carried, track champion, provisionally
+   adopted, rejected); this amendment fixes three statuses with defined
+   consequences. Evaluation is unconditional: every candidate is measured on all
+   instruments of both tracks (selection view, veto, per-group global F1,
+   collapse diagnostics), and clauses (A), (B), (C) are computed and reported
+   for every candidate regardless of status.
+   - IN THE POOL (default): a candidate that improves at least one recorded
+     instrument or group by more than NEAR_TIE_BAND=0.001 and is not
+     hard-rejected stays a live candidate and is explored. Clause failures do
+     not remove a candidate from the pool; they are recorded as named
+     weaknesses, and the clause-C dig-in requirement is unchanged.
+   - PROMOTED (at most one per track): the configuration the paper reports for
+     that track. Promotion requires clauses (A), (B), (C) on that track plus an
+     explicit user decision; the clauses gate promotion only, not pool
+     membership. This keeps the protection against promoting a candidate over
+     the baseline on one number while it harms others.
+   - HARD-REJECTED: only when definitively worse: worse or equal on every
+     recorded instrument and group with at least one strict loss, or the
+     apparent improvement is traced to a bug or measurement artifact. A hard
+     reject closes that specific configuration, not its family or direction.
+   Prior verdicts re-read under this vocabulary, numbers unchanged: gt_min,
+   learned_bias (reg 5.0), and gt_margin move from "rejected for adoption" to
+   "in the pool, not promotable in current form", each keeping its recorded
+   mechanism; the ITERATE lane of amendment 3 is subsumed by pool membership
+   with a named mechanism; floor-21's provisional adoption and
+   gt_margin_adaptive's configuration-to-beat status are unchanged.
 
 ## Standing design constraints (why the methods look the way they do)
 
@@ -415,6 +443,16 @@ otherwise look arbitrary.
    license a collapse on individual languages. This is encoded in the adoption
    rule's collapse clause and is why several strong-on-average candidates were
    rejected or flagged for investigation.
+5. **Plan consistency review (user decision 2026-07-29).** Every experiment plan
+   is checked against all prior recorded decisions (this document's adoption
+   rule and amendments, the standing constraints, and the decision entries in
+   the results and plan documents) before execution, by an adversarial review
+   whose explicit charge includes finding silent reverts of or unlabeled
+   amendments to earlier decisions. Any divergence from committed text must be
+   labeled as an amendment with its own user decision. Origin: the 2026-07-29
+   review of the combined-method plan found four such divergences (dropped
+   adoption-rule clauses, a dropped verdict track, an unrecorded instrument
+   redefinition, an unaddressed re-admission of a rejected treatment).
 
 ## Method families (2026-07-23 onward): configurations and motivation
 
