@@ -26,6 +26,29 @@ for the infrastructure record.
 `EXPERIMENTAL_SETUP.md` (hierarchical pooling). Full plan:
 `~/.claude/plans/yes-do-both-then-giggly-sprout.md`.
 
+### 2026-07-30: Exp 46 mixed-matrix scoring submitted (job 2932154); Exp 44/45 completed
+
+- **2932154** `unilid-mixed-matrix`: 64 CPU, 100G, 06:00:00. Four fail-fast
+  stages: the pre-registered no-op scorer check (chunk 0 under W must be
+  bit-identical to pred_baseline.npy), stage A full-pool scoring under the
+  rule-v1 mixed matrix (sha 0c31f143..., 860 unmod rows + 1,080 floor-21 rows,
+  fingerprint_mixed.json), stage B adaptive gate (tau recalibrated under the
+  mixed matrix, tau_mixed.csv+json provenance binding), stage B_solotau (tau
+  read from tau_floor21_gate.csv, isolating the tau-recalibration component).
+  Outputs pred_mixed_nogate.npy, pred_mixed.npy, pred_mixed_solotau.npy.
+  Hypotheses and criteria: EXPERIMENTS_RESULTS.md "Experiment 46
+  pre-registration". Code reviewed (Opus, no blockers) with four hardening
+  fixes applied before submission; `analysis/mixed_matrix.py`.
+- Exp 44 (evidence base, seed-301 split) and Exp 45 (solo-gate references,
+  jobs 2930701/2930702, 15:23 and 13:48; floor21_gate judge-part evaluation)
+  recorded in EXPERIMENTS_RESULTS.md. User decisions 2026-07-30: rule v1
+  signed off; bootstrap anchor switched to floor21_gate (condition met);
+  clause-(A) cap question deferred to Exp 46 results; amendment scope
+  confirmed (judge part is the confirmation instrument for
+  derivation-informed candidates).
+- Checkpoint hygiene: no deletions; three new ~91 MB prediction memmaps
+  expected on scratch.
+
 ### 2026-07-29: combined-method plan reviewed twice, amended, and started (no jobs yet)
 
 - **No SLURM jobs.** Two adversarial Opus reviews of the implementation plan for

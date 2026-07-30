@@ -161,6 +161,63 @@ macrolanguage hierarchy is a null result with a useful ceiling measurement
 disfavored on modularity grounds and were rejected for adoption on per-language
 harm (Exp 16, 25).
 
+## Experiment 46 pre-registration: the mixed matrix under rule v1 (2026-07-30, before scoring)
+
+Rule v1 (user sign-off 2026-07-30, materialized by `analysis/mixed_assign.py`,
+`outputs/diagnostic/mixed_assignments.csv`): languages with N >= 18,000 keep the
+unmodified row, gate off (860 languages); every other language gets the floor-21
+row treatment with the adaptive gate on (1,080 languages). The only feature is N
+(training-side). Head is assigned unmodified rather than gt_min (derivation-part
+head means 0.9596 against 0.9594) to keep production head rows bit-identical.
+
+Decision criteria (amendment-7 vocabulary; anchor switched to floor21_gate per
+the user's conditional decision, now confirmed by Exp 45): paired bootstrap
+(B=10,000, seed 0, percentile, 95%) over the 1,940 languages of per-language F1,
+mixed minus floor21_gate, on the judge part of the seed-301 split, with the
+gt_margin_adaptive contrast reported alongside. Interval above zero plus clauses
+(A), (B), (C): promotion proposed to the user. Interval containing zero: in the
+pool, explored more deeply. Hard reject only if worse or equal on every recorded
+instrument and group. The clause-(A) cap question raised by Exp 45 is DEFERRED
+by user decision until this run's results are in.
+
+Pre-registered predictions: (1) the mixed configuration recovers most of
+floor21_gate's 0.0007 judge-part head loss; (2) it loses ground to floor21_gate
+concentrated in lowmid, correlating negatively (Spearman) with the per-language
+floor-gap shift recorded in `mixed_assignments.csv` (555 non-zero shifts, all
+negative, quartiles -3.24/-2.73/-2.23 nats, 549 of 555 in lowmid); (3) FPs into
+tail labels stay far below baseline's judge-part 13,483 (the Exp 28 falsifier).
+
+## Experiment 45: solo-gate references; floor21_gate is the strongest configuration on record (2026-07-30, jobs 2930701/2930702)
+
+The two missing codomain references built (`analysis/solo_gates.py`, top-1
+agreement 1.0000 on both; `outputs/tables/{unmod,floor21}_gate_build.md`) and
+evaluated on the judge part (`analysis/mixed_eval.py`,
+`outputs/tables/mixed_eval_floor21_gate_unmod_gate.md`). **floor21_gate
+(floor-21 rows for all 1,940 languages plus the adaptive gate, target bar
+100k) is the strongest configuration on the judging instrument**: judge-part
+overall 0.9480 against gt_margin_adaptive 0.9329, paired bootstrap +0.0151
+[+0.0112, +0.0191]; tail 0.7306 (floor-21 alone 0.6161); flat_magnet 0.6435;
+lowmid 0.9599 (also the leader); head 0.9586 against baseline 0.9593. FPs into
+tail labels 1,912 against baseline 13,483; clause (C) clean (zero supported
+collapses). Clause (A) FAILS: balanced-val tail 0.9170 -> 0.8744 (drop 0.0426)
+and magnets 0.9174 -> 0.8790 (0.0383), both beyond the 0.03 widened cap, so
+under amendment 7 floor21_gate is IN THE POOL, not promotable in current form;
+the cap decision is deferred (user, 2026-07-30) until Exp 46. unmod_gate (gate
+on unmodified rows): two-sided eligible, judge-part overall 0.9328,
+indistinguishable from gt_margin_adaptive (-0.0001 [-0.0021, +0.0018]).
+
+## Experiment 44: evidence base and the seed-301 rule split (2026-07-30)
+
+`analysis/combined_evidence.py` (`outputs/tables/combined_evidence.md`): all
+wiring gates passed (Exp 38 reproduced to 1.1e-16; gt_min veto anchor exact on
+FPs). The seed-301 split partitions the 45,004,014-line remainder into
+18,001,573 derivation and 27,002,441 judge lines. On the derivation part the
+codomain oracle is 0.9514 against floor21_gate's 0.9478 (gain +0.0036 overall,
++0.0236 tail, +0.0031 lowmid), so one uniform configuration captures nearly all
+of the per-language assignment headroom that motivated the combined method.
+Derivation-part support: tail median 8 true lines, 37 of 96 tail languages at
+10 or more, so per-language leader evidence is group-level only there.
+
 ## Headline observations (historical, Exp 1-9 era)
 
 1. All evaluated scoring modifications reduce 500k-sample accuracy relative to the 0.960
