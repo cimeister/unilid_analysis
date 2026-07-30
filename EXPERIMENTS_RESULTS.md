@@ -214,6 +214,17 @@ interaction, not by harm; floor21_gate, the simpler uniform configuration,
 stands as the strongest configuration on the judging instrument, in the pool,
 with promotion blocked only by the clause-(A) cap question (deferred to now).
 
+**Exp 45 addendum (2026-07-30, amendment 8).** Under the conditional widening
+of the clause-(A) cap (amendment 8, `EXPERIMENTAL_SETUP.md`; WIDE_CAP=0.05
+when the veto-side stratum gain exceeds GAIN_RATIO_MIN=5 times the
+within-stratum loss), floor21_gate re-evaluates to ELIGIBLE with every clause
+passing: tail gain-to-loss ratio 9.36 (0.3986/0.0426), magnets 9.35
+(0.3589/0.0384), both losses under 0.05. The replay harness reproduced the
+recorded pre-amendment verdicts exactly before the re-evaluation, and gt_min's
+rejection is unchanged (its failures are clause-B/C side). Both verdicts are
+on the record per the amendment's prospective-application rule. Promotion and
+the draw-201 confirmation await the user's decision.
+
 ## Experiment 45: solo-gate references; floor21_gate is the strongest configuration on record (2026-07-30, jobs 2930701/2930702)
 
 The two missing codomain references built (`analysis/solo_gates.py`, top-1

@@ -218,6 +218,15 @@ MAX_LANG_COLLAPSE_OUTLIERS = 2
 NEAR_TIE_BAND = 0.001
 WIDENED_STRATA = ("tail", "magnets")
 
+# Conditional widening of the clause-(A) cap (amendment 8, user decision
+# 2026-07-30, pre-registered, not swept; EXPERIMENTAL_SETUP.md "Precision-primary
+# adoption rule" amendment 8). For tail/magnets only, the TAIL_RECALL_TOL cap
+# widens further to WIDE_CAP when the veto-instrument global mean F1 gain exceeds
+# GAIN_RATIO_MIN times the within-stratum loss. WIDE_CAP is a hard outer bound:
+# no gain ratio extends it further.
+WIDE_CAP = 0.05          # amendment 8 (2026-07-30, pre-registered, not swept)
+GAIN_RATIO_MIN = 5.0     # amendment 8 (2026-07-30, pre-registered, not swept)
+
 
 def passes_uniform(cand, base, prefix=""):
     """Uniform-prior track selection (added 2026-07-24, gating reconsideration):
@@ -266,7 +275,10 @@ def passes_two_sided(cand_val, base_val, cand_f1, base_f1, strata_masks, support
 
     (A) Balanced-val stage: overall may drop at most GUARD_TOL; twins/head bounded by
         GUARD_TOL; tail and magnets bounded by TAIL_RECALL_TOL when that stratum's
-        global mean F1 gain exceeds its within-stratum loss, else GUARD_TOL.
+        global mean F1 gain exceeds its within-stratum loss, widened further to
+        WIDE_CAP when that gain exceeds GAIN_RATIO_MIN times the loss (amendment 8,
+        2026-07-30; WIDE_CAP is a hard outer bound, no gain ratio extends it further),
+        else GUARD_TOL.
     (B) Veto stage: overall global macro-F1 may not drop more than GUARD_TOL
         (amended 2026-07-24); tail and magnet global mean F1 may not drop by more
         than PREC_TOL.
@@ -281,12 +293,14 @@ def passes_two_sided(cand_val, base_val, cand_f1, base_f1, strata_masks, support
         reasons.append(f"val overall drops more than {GUARD_TOL}")
     for st in GUARD_STRATA:
         loss = base_val[f"{prefix}{st}"] - cand_val[f"{prefix}{st}"]
-        if st in WIDENED_STRATA and gains[st] > max(loss, 0.0):
-            tol = TAIL_RECALL_TOL
+        if st in WIDENED_STRATA and gains[st] > GAIN_RATIO_MIN * max(loss, 0.0):
+            tol, cap_name = WIDE_CAP, "WIDE_CAP"
+        elif st in WIDENED_STRATA and gains[st] > max(loss, 0.0):
+            tol, cap_name = TAIL_RECALL_TOL, "TAIL_RECALL_TOL"
         else:
-            tol = GUARD_TOL
+            tol, cap_name = GUARD_TOL, "GUARD_TOL"
         if loss > tol:
-            reasons.append(f"val {st} drops {loss:.4f} > {tol}")
+            reasons.append(f"val {st} drops {loss:.4f} > {tol} ({cap_name})")
     # Amended 2026-07-24 (gating reconsideration, recorded in EXPERIMENTAL_SETUP):
     # was "must improve"; a tail-repair candidate should not fail on a sub-noise
     # overall dip. Ranking still rewards overall via the selection instrument.

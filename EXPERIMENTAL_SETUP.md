@@ -417,6 +417,19 @@ exactly one candidate per track is confirmed there per round.
    mechanism; the ITERATE lane of amendment 3 is subsumed by pool membership
    with a named mechanism; floor-21's provisional adoption and
    gt_margin_adaptive's configuration-to-beat status are unchanged.
+8. Conditional widening of the clause-(A) cap (user decision 2026-07-30, taken
+   with the Exp 45/46 evidence in hand). For the tail and magnet strata only,
+   the clause-(A) cap extends from TAIL_RECALL_TOL=0.03 to WIDE_CAP=0.05 when
+   that stratum's veto-instrument global mean F1 gain exceeds
+   GAIN_RATIO_MIN=5 times its within-stratum loss on the selection view.
+   WIDE_CAP is a hard outer bound: no gain ratio extends the cap further.
+   Both constants are pre-registered here, not swept; the motivating case is
+   floor21_gate (Exp 45: balanced-val tail drop 0.0426 and magnets 0.0383
+   against veto-side gains of +0.3987 and +0.3590, gain-to-loss ratios above
+   9). Applied prospectively; recorded verdicts are not rewritten, but a
+   configuration may be explicitly re-evaluated under this amendment with
+   both verdicts recorded. Implemented in `passes_two_sided`
+   (`analysis/hierarchical_pool.py`).
 
 ## Standing design constraints (why the methods look the way they do)
 
