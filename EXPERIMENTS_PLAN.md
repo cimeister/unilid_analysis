@@ -460,6 +460,15 @@ three changes:**
    solo-gate reference builds (gate post-process over `pred_baseline.npy` and
    `pred_floor21.npy`, about 15-30 minutes each) before the rule is fixed.
 
+**Status (2026-07-30).** Steps 0-7 executed 2026-07-29/30 (Exp 44, 45, 46).
+Outcome: the mixed matrix under rule v1 is indistinguishable from uniform
+floor21_gate on the judge part (paired bootstrap +0.0002 [-0.0003, +0.0006]);
+the per-language assignment direction is closed for this treatment space by a
+null interaction, not by harm. floor21_gate is promoted under amendment 8,
+with the draw-201 confirmation recorded in
+`outputs/tables/floor21_gate_confirmation_201.md`. Nothing in the committed
+step text below remains open.
+
 **Idea.** Exp 38 showed the carried configurations are complementary rather than
 redundant, and Exp 40 measured an oracle that picks the best per language at
 0.9525 against 0.9334 for the best single configuration. Every carried method is

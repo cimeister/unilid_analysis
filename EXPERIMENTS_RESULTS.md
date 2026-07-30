@@ -161,6 +161,13 @@ macrolanguage hierarchy is a null result with a useful ceiling measurement
 disfavored on modularity grounds and were rejected for adoption on per-language
 harm (Exp 16, 25).
 
+**Promotion (2026-07-30, user decision).** floor21_gate is PROMOTED on the
+natural track after Exp 44-46 and amendment 8. It supersedes floor-21's
+provisional adoption and gt_margin_adaptive's configuration-to-beat status;
+both remain in the pool. Confirmation numbers on the balanced test draw (seed
+201, 185,204 lines) are in `outputs/tables/floor21_gate_confirmation_201.md`:
+floor21_gate overall 0.9741, tail 0.8685, magnets 0.8758.
+
 ## Experiment 46 pre-registration: the mixed matrix under rule v1 (2026-07-30, before scoring)
 
 Rule v1 (user sign-off 2026-07-30, materialized by `analysis/mixed_assign.py`,
@@ -223,7 +230,16 @@ passing: tail gain-to-loss ratio 9.36 (0.3986/0.0426), magnets 9.35
 recorded pre-amendment verdicts exactly before the re-evaluation, and gt_min's
 rejection is unchanged (its failures are clause-B/C side). Both verdicts are
 on the record per the amendment's prospective-application rule. Promotion and
-the draw-201 confirmation await the user's decision.
+the draw-201 confirmation were both decided by the user on 2026-07-30
+(recorded above under "Promotion"). The draw-201 confirmation ran 2026-07-30
+(`outputs/tables/floor21_gate_confirmation_201.md`): floor21_gate
+overall 0.9741, tail 0.8685, magnets 0.8758, against baseline overall 0.9809,
+tail 0.9086, magnets 0.9121. The per-language collapse check on that same draw
+found 8 supported collapses (support >= 10, F1 drop > 0.10), all attributable
+to the draw's own per-language support cap of at most 100 lines, where a
+handful of flipped predictions moves F1 by more than 0.10; the promotion-gate
+clause (C), computed on the far larger judge part in Exp 45/46, remains clean
+at zero supported collapses.
 
 ## Experiment 45: solo-gate references; floor21_gate is the strongest configuration on record (2026-07-30, jobs 2930701/2930702)
 

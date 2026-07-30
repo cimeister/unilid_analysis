@@ -49,6 +49,27 @@ for the infrastructure record.
 - Checkpoint hygiene: no deletions; three new ~91 MB prediction memmaps
   expected on scratch.
 
+### 2026-07-30: floor21_gate promoted; draw-201 confirmation recorded (no job)
+
+- **No SLURM job.** User decision 2026-07-30: floor21_gate promoted on the
+  natural track after Exp 44-46 and amendment 8, superseding floor-21's
+  provisional adoption and gt_margin_adaptive's configuration-to-beat status
+  (both remain in the pool). Confirmation script ran as a memmap subset over
+  the already-scored full-pool prediction memmaps
+  (`/capstor/scratch/cscs/cmeister747/unilid_analysis/full_test_eval`); no
+  scoring pass, no job submitted.
+- Artifact: `outputs/tables/floor21_gate_confirmation_201.md`. Instrument:
+  balanced test draw, seed 201, 185,204 lines. Within-stratum macro-F1:
+  floor21_gate overall 0.9741, tail 0.8685, magnets 0.8758, twins 0.9425, head
+  0.9813; baseline overall 0.9809, tail 0.9086, magnets 0.9121, twins 0.9435,
+  head 0.9817. Sanity gate (baseline overall row vs the recorded headline in
+  `outputs/tables/two_sided_selection.md`): PASS, max abs diff 0.00004.
+  Per-language collapse check on the draw-201 subset: 8 supported collapses
+  (support >= 10, F1 drop > 0.10), attributable to the draw's own
+  per-language support cap of at most 100 lines; the promotion-gate clause
+  (C), computed on the far larger judge part in Exp 45/46, remains clean at
+  zero supported collapses.
+
 ### 2026-07-29: combined-method plan reviewed twice, amended, and started (no jobs yet)
 
 - **No SLURM jobs.** Two adversarial Opus reviews of the implementation plan for
