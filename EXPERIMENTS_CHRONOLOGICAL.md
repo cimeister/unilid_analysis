@@ -42,12 +42,22 @@ for the infrastructure record.
   on the draw), so the assignment rule derives from the seed-301 40/60
   remainder split instead (new pre-registered constants RULE_SPLIT_SEED=301,
   RULE_SPLIT_FRACTION=0.40, BOOT_B=10,000, BOOT_SEED=0).
-- Execution started with the no-scoring steps: the feature-provenance artifact,
-  the two solo-gate reference builds (`analysis/solo_gates.py`: adaptive gate,
-  100k target bar, over `pred_baseline.npy` and `pred_floor21.npy`), and the
-  evidence base (`analysis/combined_evidence.py`, derivation part only). Every
-  new script gets an Opus pre-run review. No scoring before the step-2 user
-  checkpoint (rule sign-off).
+- Execution started with the no-scoring steps: the feature-provenance artifact
+  (`outputs/tables/combined_feature_provenance.md`), the two solo-gate
+  reference builds (`analysis/solo_gates.py`: adaptive gate, 100k target bar,
+  over `pred_baseline.npy` and `pred_floor21.npy`), and the evidence base
+  (`analysis/combined_evidence.py`, derivation part only). Both scripts passed
+  an Opus pre-run review (no blockers; seven should-fixes applied before any
+  run, including the sha256_base_W provenance gate on the unmod branch, the
+  memmap provenance table, the fixed contrasts against gt_margin_adaptive, and
+  the carried-set oracle). No scoring before the step-2 user checkpoint (rule
+  sign-off).
+- **Solo-gate builds: jobs 2930701 (unmod) and 2930702 (floor21)**, each 1
+  node, 64 CPU, 100G, 04:00:00, submitted 2026-07-29 after a login-node
+  attempt was killed at exit 137 (memory) during the 2,175,310-line affected
+  scoring stage; the affected count matched the review's predicted volume, so
+  the failure is resource-side, not code-side. Expected run time about 15
+  minutes each once scheduled (precedent: job 2895821, 00:14:11).
 - Checkpoint hygiene: no deletions proposed. Upcoming artifacts: two solo-gate
   prediction memmaps (~91 MB each), later three mixed-configuration memmaps,
   and the split index file on scratch
