@@ -187,6 +187,33 @@ floor-gap shift recorded in `mixed_assignments.csv` (555 non-zero shifts, all
 negative, quartiles -3.24/-2.73/-2.23 nats, 549 of 555 in lowmid); (3) FPs into
 tail labels stay far below baseline's judge-part 13,483 (the Exp 28 falsifier).
 
+## Experiment 46: the mixed matrix under rule v1 is indistinguishable from uniform floor21_gate (2026-07-30, job 2932154)
+
+All four stages clean (no-op gate bit-identical on 497,188 chunk-0 lines; gate
+agreement 1.0000; `outputs/tables/mixed_matrix_build.md`,
+`outputs/tables/mixed_eval_mixed_mixed_solotau.md`). Judge-part results: mixed
+0.9482 overall against floor21_gate 0.9480, paired bootstrap +0.0002
+[-0.0003, +0.0006]; the interval contains zero, so under the pre-registered
+criteria the mixed configuration is in the pool as a near-tie, and the
+per-language assignment adds nothing measurable over the uniform composition.
+Both pre-registered mechanism predictions were refuted in sign: the head
+carve-out lowered head further (0.9580 against floor21_gate's 0.9586; the
+restored shallower head floors absorb more contested lines, the reassignment
+law operating through floors) while raising every non-head group slightly
+(tail 0.7323 vs 0.7306, lowmid 0.9606 vs 0.9599, flat_magnet 0.6464 vs
+0.6435); the floor-gap-shift correlation is absent within the shifted subset
+(Spearman r=0.037, p=0.39, n=555; shifted languages averaged +0.00074 against
+-0.00030 for unshifted; computed from
+`outputs/diagnostic/mixed_eval_judge_f1_mixed_mixed_solotau.csv` and
+`outputs/diagnostic/mixed_assignments.csv`). The tau-recalibration component
+is +0.0003 (mixed 0.9482 against mixed_solotau 0.9479). Clause (A) fails as
+predicted (balanced-val tail drop 0.0457, magnets 0.0416, against the 0.03
+cap); both tracks otherwise as for floor21_gate. Conclusion: the naive
+per-language-assignment direction is closed for this codomain by a null
+interaction, not by harm; floor21_gate, the simpler uniform configuration,
+stands as the strongest configuration on the judging instrument, in the pool,
+with promotion blocked only by the clause-(A) cap question (deferred to now).
+
 ## Experiment 45: solo-gate references; floor21_gate is the strongest configuration on record (2026-07-30, jobs 2930701/2930702)
 
 The two missing codomain references built (`analysis/solo_gates.py`, top-1

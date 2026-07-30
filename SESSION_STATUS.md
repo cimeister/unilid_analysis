@@ -1,9 +1,7 @@
 # Session Status
 
 ## Ongoing experiments
-- Exp 46 (mixed matrix, rule v1) running as job 2932154: no-op scorer gate, then full-pool scoring, gate stage, and solotau variant, fail-fast; ~2.5 h once scheduled; monitor armed
-- On completion: `analysis/mixed_eval.py` with configs=("mixed",) delivers the judge-part verdict (anchor floor21_gate, gt_margin_adaptive alongside), the mixed-minus-solo decomposition, and the floor-gap-shift correlation test
-- floor21_gate stands as the strongest configuration on the judging instrument (judge part 0.9480, +0.0151 [+0.0112, +0.0191] over gt_margin_adaptive), in the pool, not promotable under the current clause (A)
+- Exp 46 complete and recorded: mixed matrix indistinguishable from uniform floor21_gate (+0.0002 [-0.0003, +0.0006]); per-language assignment direction closed by null interaction; floor21_gate stands as the strongest configuration on the judging instrument (0.9480, tail 0.7306, FPs into tail 1,912 vs baseline 13,483)
 
 ## Open decisions
-- Clause-(A) promotion cap (user deferred 2026-07-30): decide with the Exp 46 results in hand
+- Clause-(A) promotion cap (asked): floor21_gate and mixed both fail the 0.03 balanced-val recall cap while satisfying the widening condition about ninefold; amend the cap (amendment 8 draft) or keep it and leave gt_margin_adaptive the promotable leader
