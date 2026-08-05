@@ -26,6 +26,25 @@ for the infrastructure record.
 `EXPERIMENTAL_SETUP.md` (hierarchical pooling). Full plan:
 `~/.claude/plans/yes-do-both-then-giggly-sprout.md`.
 
+### 2026-08-06: Exp 47-50, the four candidate directions in order (jobs 3014614, 3015805, 3016337, 3016380)
+
+- **3014614** gate_variants topk plus apply shared9_bar18k (Exp 47, 07:06):
+  candidate arrays banked, shared-threshold variant built; verdict in the pool
+  (best aggregate 0.9534, class-level clause-C fail, 9 collapses).
+- **3015805** apply flat4_tau5 (Exp 48, 00:33): eligible, 0.9486, zero
+  collapses; four flat large-corpus languages and their neighbours all gained.
+- **3016337** apply flat4_prox21 (Exp 49, 00:18): in-job reproduction gate
+  passed; eligible, 0.9498, the strongest eligible configuration; refinement
+  contrast +0.0012 [+0.0007, +0.0016] over gate_flat4_tau5.
+- **3016380** `slurm_full_test_bgfloor.sh` (Exp 50, running): full-pool scoring
+  under the pooled-frequency unseen-token values (c = -8.4740; assigned plateau
+  range -27.61 to -12.31; alignment of the base distribution verified four
+  independent ways in review). Output pred_bgfloor.npy; first verdict is the
+  gate-less judge-part comparison against floor21 solo.
+- All four scripts Opus-reviewed before their runs; every verdict recorded in
+  EXPERIMENTS_RESULTS.md Exp 47-50. Checkpoint hygiene: no deletions; new
+  artifacts are three candidate arrays, four prediction memmaps, tau_flat4.csv.
+
 ### 2026-08-05: Exp 47 submitted (job 3014614): shared re-examination threshold
 
 - **3014614** `slurm_gate_variants.sh`: 64 CPU, 100G, 03:00:00. Stage one saves
