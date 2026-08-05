@@ -168,6 +168,33 @@ both remain in the pool. Confirmation numbers on the balanced test draw (seed
 201, 185,204 lines) are in `outputs/tables/floor21_gate_confirmation_201.md`:
 floor21_gate overall 0.9741, tail 0.8685, magnets 0.8758.
 
+## Experiment 50 pre-registration: unseen-token values from the pooled token frequency (direction 4; 2026-08-06, before any run)
+
+The rule under test, in full: in every language's row, each entry at the row
+minimum (the tokens never seen in that language's training data) is set to
+c + log p_base(token), where p_base is the base Unigram tokenizer distribution
+already stored in the model file (the pooled training-data token
+distribution), and c is one shared constant fixed so that the mean assigned
+value over the non-special vocabulary equals -21.0 (c = -21.0 minus the mean
+of log p_base). A token common in the pooled data but absent from one
+language's data thus scores higher in that language than a token rare
+everywhere; the promoted family's single value -21 is the special case of a
+flat p_base. Seen entries and the four special tokens are untouched; the
+special columns must be bit-identical to the unmodified matrix. No per-language
+fitting; a new language inherits both the constant and p_base.
+
+Procedure: matrix build plus one full-pool scoring pass cloned from the
+recorded full_test_floor21.py pattern (chunked, resumable, fingerprinted, all
+alignment gates), output pred_bgfloor.npy. First evaluation is the
+like-for-like gate-less comparison: judge-part per-language F1 against floor21
+solo (0.9300) and baseline (0.9117), paired bootstrap per the standard
+constants. If the interval against floor21 is above zero, a second step
+rebuilds the Experiment 49 gate rule on top (fresh candidate arrays under the
+new matrix) for the composed comparison against gate_flat4_prox21 (0.9498).
+Derivation-side prior evidence (80,000-line sample): line accuracy 96.138%
+against floor-21's 96.097%, no increase in wrong predictions onto small
+labels; the sign on per-language F1 is what this experiment establishes.
+
 ## Experiment 49: score-proximity condition on the replacement; eligible, the strongest eligible configuration (2026-08-06, job 3016337)
 
 The in-job reproduction gate passed (the reimplemented two-step walk with the
