@@ -1,7 +1,7 @@
 # Session Status
 
 ## Ongoing experiments
-- None running. floor21_gate promoted on the natural track (user decision 2026-07-30); draw-201 confirmation recorded in outputs/tables/floor21_gate_confirmation_201.md (overall 0.9741, tail 0.8685, magnets 0.8758; sanity gate against the recorded baseline headline PASS, max diff 0.00004; 8 supported per-language collapses, attributable to the draw's 100-line-per-language support cap).
+- Directions 1-4 in execution, in order (user 2026-08-05). Exp 47 (direction 1: one shared re-examination threshold of 9.0, replacement-candidate minimum 18,000 training lines) pre-registered in EXPERIMENTS_RESULTS.md; `analysis/gate_variants.py` being implemented (Sonnet agent), then Opus review, one candidate-saving pass over the pool, the variant build, and the judge-part verdict via mixed_eval. Directions 2 and 3 reuse the same saved candidate arrays; direction 4 (unseen-token values from pooled token frequency) needs one full scoring pass and follows.
 
 ## Open decisions
-- None.
+- None pending from the user until the Exp 47 verdict.

@@ -26,6 +26,22 @@ for the infrastructure record.
 `EXPERIMENTAL_SETUP.md` (hierarchical pooling). Full plan:
 `~/.claude/plans/yes-do-both-then-giggly-sprout.md`.
 
+### 2026-08-05: Exp 47 submitted (job 3014614): shared re-examination threshold
+
+- **3014614** `slurm_gate_variants.sh`: 64 CPU, 100G, 03:00:00. Stage one saves
+  the top five candidate languages and scores under the floor-21 matrix for the
+  2,236,864 kept lines whose floor-21 prediction is a language with under
+  18,000 training lines or in the flat-distribution category (the saved arrays
+  also serve Experiments 48 and 49 with no further scoring). Stage two builds
+  the Experiment 47 variant: one shared threshold of 9.0, replacement-candidate
+  minimum 18,000 training lines. Pre-registration: EXPERIMENTS_RESULTS.md
+  "Experiment 47 pre-registration". Code `analysis/gate_variants.py`, Opus
+  review found two blockers (a label-set inflation to 12.0M lines and a false
+  timing claim), both fixed with nine hardening items before submission.
+- Directions 1 through 4 are being tried in order (user 2026-08-05).
+  Checkpoint hygiene: no deletions; new artifacts are the three candidate
+  arrays (about 130 MB total) and one prediction memmap per variant.
+
 ### 2026-07-30: Exp 46 mixed-matrix scoring submitted (job 2932154); Exp 44/45 completed
 
 - **2932154** `unilid-mixed-matrix`: 64 CPU, 100G, 06:00:00. Four fail-fast

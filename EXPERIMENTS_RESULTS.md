@@ -168,6 +168,34 @@ both remain in the pool. Confirmation numbers on the balanced test draw (seed
 201, 185,204 lines) are in `outputs/tables/floor21_gate_confirmation_201.md`:
 floor21_gate overall 0.9741, tail 0.8685, magnets 0.8758.
 
+## Experiment 47 pre-registration: shared re-examination threshold (direction 1; 2026-08-05, before any run)
+
+The user directed trying candidate directions 1 through 4 in order (2026-08-05),
+which also resolves the recorded concern for direction 1: the shared threshold
+is equivalent to a corpus-size-indexed score adjustment, a family previously
+set aside; the user approved trying it with that equivalence on the record.
+
+The rule under test, in full: keep the promoted configuration's weight matrix
+(every unseen token at -21). For every line whose predicted language has fewer
+than 18,000 training lines, move the prediction to the highest-scoring
+alternative among the top five candidates whose training corpus has at least
+18,000 lines, whenever the winning score exceeds the second-place score by
+less than a single shared threshold of 9.0 (natural-log units). No
+per-language calibration anywhere. Constants, both chosen on the derivation
+part of the seed-301 split from the recorded sweep
+(`outputs/diagnostic/gate_threshold_sweep_20260730.csv`, optimum flat between
+7 and 12): SHARED_TAU = 9.0, replacement-candidate minimum 18,000 (the
+existing head boundary, not a new constant).
+
+Decision criteria: paired bootstrap (B=10,000, seed 0, percentile, 95%) of
+per-language F1, candidate minus floor21_gate, on the judge part. Interval
+above zero plus the adoption-rule clauses: promotion proposed to the user.
+Interval containing zero: in the pool. Hard reject only if worse or equal on
+every recorded instrument and group. Derivation-part predictions to be checked
+against the judge part: overall +0.0052, languages under 1,000 training lines
++0.0103, flat-distribution group +0.0329, languages at or above 18,000
+training lines -0.0033.
+
 ## Experiment 46 pre-registration: the mixed matrix under rule v1 (2026-07-30, before scoring)
 
 Rule v1 (user sign-off 2026-07-30, materialized by `analysis/mixed_assign.py`,

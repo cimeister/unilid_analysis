@@ -571,6 +571,141 @@ per-language-assignment direction.
 
 **Compute budget.** One scoring pass plus cheap analyses over saved artifacts.
 
+## Candidate directions from the post-promotion error analysis (2026-07-30, none started)
+
+Source: a joint analysis of the errors that remain after the promoted
+configuration, run on 2026-07-30. None of these is pre-registered; each needs
+its own pre-registration (exact rule, constants, decision criteria) before any
+scoring run. The quoted numbers trace to the committed per-language CSVs in
+`outputs/diagnostic/` and to `outputs/diagnostic/gate_threshold_sweep_20260730.csv`;
+the larger intermediate arrays were session artifacts and are regenerable from
+the prediction memmaps on scratch.
+
+Definitions used throughout this section. The promoted configuration
+(floor21_gate) does two things. First, in every language's row (its vector of
+100,000 log token probabilities), all entries at the row minimum, which are the
+tokens never seen in that language's training data, are lowered to the value
+-21. Second, a decision-time re-examination step: for every line whose
+predicted language has fewer than 18,000 training lines, if the winning score
+exceeds the second-place score by less than a threshold calibrated on that
+language's own training lines, the prediction is moved to the highest-scoring
+alternative among the top five candidates whose training corpus has at least
+100,000 lines. Evaluation uses the seed-301 split of the held-out data: rules
+and constants may be chosen on the derivation part (18,001,573 lines), and
+final judgment uses only the judge part (27,002,441 lines). "Average F1" below
+always means per-language F1 averaged unweighted over the 1,940 languages, the
+project's primary quantity. After the promoted configuration, 962,633 wrong
+predictions remain on the judge part.
+
+**Direction 1: one shared re-examination threshold instead of 1,080
+per-language thresholds, and a lower size requirement for replacement
+candidates.** Replace the per-language thresholds with a single shared value
+of 9 (scores are natural-log values, so the unit is nats), and allow
+replacement candidates with at least 18,000 training lines instead of at
+least 100,000. Measured on the derivation part: average F1 0.9530 against the
+promoted configuration's 0.9478; languages under 1,000 training lines 0.7433
+against 0.7330; the 118 languages with unusually flat token distributions
+0.6763 against 0.6434; languages with at least 18,000 training lines 0.9553
+against 0.9586. The optimum in the shared value is flat between 7 and 12.
+Supporting pattern: this is the third case in the record where one shared
+constant beats per-language estimates (the -21 level itself, which the pooled
+Good-Turing statistics independently derive as -20.60; and the refutation of
+per-script or per-size floor levels). It also removes the per-language
+calibration requirement that currently excludes 26 languages with too few
+usable training lines. Caution, flagged for a user decision: subtracting
+nothing from large-language candidates while re-examining small-language wins
+with one shared threshold is equivalent to lowering every small language's
+effective score by a constant, which is an adjustment indexed on corpus size,
+and the project has previously set aside score adjustments of that family.
+Cost: a post-processing pass over saved predictions, no rescoring. Refuted
+if, on the judge part, the paired bootstrap interval against the promoted
+configuration contains zero, or the group of languages with at least 18,000
+training lines loses more than 0.01, or the balanced-validation check fails
+by more than the promoted configuration's recorded amounts.
+
+**Direction 2: choose the re-examined languages by distribution shape instead
+of corpus size.** Four languages with corpora above 18,000 lines (Scots,
+Banjar Latin-script, Aragonese, West Flemish) are each written almost
+identically to a much larger language (English, Indonesian, Spanish, Dutch)
+and have token distributions that are unusually flat for their script, per
+the zH column of `outputs/diagnostic/lang_diagnostic.csv` (median
+flatness score 1.46 for the risky group against 0.00 overall). Because the
+re-examination step only applies to languages under 18,000 training lines,
+these four are exempt, and they receive 63,842 of the 118,006 remaining wrong
+predictions into small-language or flat-distribution labels (54.1%). The
+proposal is to add a language to the re-examined set when its flatness score
+is high, regardless of corpus size. Upper bound if all such wrong predictions
+were removed: +0.0012 average F1, +0.0204 on the flat-distribution group.
+Cost: rescoring only the lines predicted as those languages. Refuted if the
+four languages lose more from re-examination of their genuine lines than
+their neighbors gain in precision.
+
+**Direction 3: a quality condition on the replacement label.** Of the 138,077
+predictions the re-examination step moved on the judge part, 78,651 landed on
+the correct language and 59,426 did not; 10,504 of the wrong ones landed on
+Maltese alone, against 442 correct ones there. Simply moving fewer
+predictions is measured to be worse (reverting all wrong moves' lines to
+their pre-move labels scores 0.9397, below 0.9478, because a wrong prediction
+on a large language costs less average F1 than the same wrong prediction on a
+small one). The proposal is a per-candidate acceptance condition on the
+replacement label, with the exact form fixed at pre-registration (it must be
+computable from training-side or selection-side data only, never from
+held-out data). Upper bound if every wrong move were prevented while keeping
+every correct one: +0.0056 average F1. Cost: post-processing only.
+
+**Direction 4: give unseen tokens values according to their overall
+frequency, instead of one identical value.** In the promoted configuration
+every token unseen in a language's training data gets the same value, -21,
+and such tokens are 92.4% of a typical row. The proposal is standard back-off
+to a background distribution: the value becomes a shared constant plus the
+token's log frequency in the pooled training data of all languages, which is
+already stored in the model file as the base tokenizer distribution. A token
+common across languages but absent from one language's data then scores
+higher in that language than a token rare everywhere. Measured on 80,000
+random derivation-part lines: line-level accuracy 96.138% against 96.097%,
+with 52 lines flipping to correct against 20 flipping to wrong, and no
+increase in wrong predictions onto small-language labels. The effect is
+small and its sign on average F1 is not yet established; one full scoring
+pass would establish it.
+
+**Direction 5: keep a small language's unseen-token value higher when -21
+would make it lose on its own text.** For any ordered pair of languages, the
+expected score difference per token when text genuinely from the first
+language is scored under both rows is computable from the weight matrix
+alone. Under the unmodified matrix this difference is positive for every one
+of the 3,761,660 pairs, meaning every language is expected to win on its own
+text. After lowering all unseen-token values to -21, it is negative for 762
+pairs involving 12 languages, each with 85 to 410 training lines. The two of
+those twelve with at least 10 judge-part lines lose 0.0333 mean recall
+against the unmodified baseline, against 0.0065 for all other languages. The
+proposal: for exactly those languages, lower the unseen-token value only to
+the deepest level at which the expected difference stays non-negative. Cost:
+one matrix computation plus one scoring pass; 12 rows change.
+
+**Measured and set aside.** Honest per-language unseen-token mass (the
+Good-Turing rescale) recovers most of the small-language recall that -21
+sacrifices but adds 40% more wrong predictions onto small labels and loses
+on line accuracy (187 against 8 paired flips), so it runs against the
+precision-limited objective. Per-script levels for the unseen-token value
+cannot address the 99.5% of remaining errors that occur between languages of
+the same script. Corpus-size-indexed levels can recover at most 4,079 of the
+962,633 remaining wrong predictions. Scaling the re-examination threshold
+with line length scores 0.9512 or lower against 0.9530 for a constant.
+Doubling every per-language threshold scores 0.9325.
+
+**The boundary this family cannot cross.** 98.7% of the remaining wrong
+predictions are lines whose true language has at least 18,000 training
+lines, and 88.2% of those are confused with another such language,
+concentrated in close pairs (Indonesian and Malay, English and Scots,
+Mandarin and Wu Chinese). Both rows in such a pair cover the text well, so
+no treatment of unseen tokens changes their comparison materially (the
+measured change is at most 0.14 nats per token). Progress past roughly
+0.955 average F1 requires a mechanism that separates specific pairs. The
+open question, unresolved and not yet designed: whether such a mechanism can
+keep the add-a-language property, since adding a new language would only
+require computing pair corrections between the new language and the
+existing, unchanged rows, from the new language's own data.
+
 ## Open items after Exp 38-42 (updated 2026-07-27)
 
 Ordered by readiness. Items 1 and 2 are specified well enough to launch without
