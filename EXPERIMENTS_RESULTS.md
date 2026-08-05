@@ -168,6 +168,34 @@ both remain in the pool. Confirmation numbers on the balanced test draw (seed
 201, 185,204 lines) are in `outputs/tables/floor21_gate_confirmation_201.md`:
 floor21_gate overall 0.9741, tail 0.8685, magnets 0.8758.
 
+## Experiment 47: shared re-examination threshold; best aggregate on record, but a class-level per-language failure (2026-08-06, job 3014614)
+
+Build clean (2,236,864 candidate lines saved, one top-1 disagreement; 387,039
+predictions moved, 213,146 to the true label;
+`outputs/tables/gate_shared9_bar18k_build.md`). Judge part
+(`outputs/tables/mixed_eval_gate_shared9_bar18k.md`): overall 0.9534, +0.0054
+[+0.0031, +0.0078] over the promoted floor21_gate, the best aggregate on
+record; languages under 1,000 training lines 0.7579; the 1,000-to-18,000 band
+0.9714; the flat-distribution group 0.6869; languages at or above 18,000
+training lines 0.9547 (floor21_gate 0.9586). The derivation-part predictions
+were confirmed (predicted +0.0052 overall, measured +0.0054).
+
+But clause (C) fails at class level: 9 languages with judge-part support 15 to
+2,947 lose more than 0.10 F1 against baseline (worst llb_Latn 0.9244 to
+0.5716 at support 2,523; also zgh_Tfng 0.9292 to 0.6148, bpr_Latn, bps_Latn,
+cya_Latn, mrj_Cyrl, nhe_Latn, twx_Latn, thv_Latn), and clause (A) fails on
+every stratum (balanced-val tail drop 0.0964, magnets 0.1117, twins 0.0209).
+Mechanism: the single shared threshold removes the bound on own-recall loss
+that the per-language calibrated thresholds provided by construction (a
+threshold at the 5th percentile of a language's own margins caps its own
+recall loss near 5%); the nine victims are languages whose genuine lines have
+small margins against a much larger neighbour, so a 9.0 threshold moves their
+true lines away wholesale. Status under amendment 7: in the pool, not
+promotable in current form; floor21_gate remains promoted. Recorded follow-up
+candidate, not pre-registered: a hybrid threshold, the smaller of 9.0 and a
+per-language cap from own-train margins, to keep the aggregate gain while
+restoring the per-language bound.
+
 ## Experiment 47 pre-registration: shared re-examination threshold (direction 1; 2026-08-05, before any run)
 
 The user directed trying candidate directions 1 through 4 in order (2026-08-05),
