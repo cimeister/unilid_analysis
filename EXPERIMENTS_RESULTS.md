@@ -168,6 +168,57 @@ both remain in the pool. Confirmation numbers on the balanced test draw (seed
 201, 185,204 lines) are in `outputs/tables/floor21_gate_confirmation_201.md`:
 floor21_gate overall 0.9741, tail 0.8685, magnets 0.8758.
 
+## Experiment 48: re-examining the four flat large-corpus languages; eligible, improves the promoted configuration everywhere (2026-08-06, job 3015805)
+
+Build clean (thresholds 2.93 to 5.88 nats from 1,866 to 1,971 self-won
+calibration lines per language; 84,586 of 133,606 in-set lines moved, 56,491
+to the true label, 66.8% move precision;
+`outputs/tables/gate_flat4_tau5_build.md`). Judge part
+(`outputs/tables/mixed_eval_gate_flat4_tau5.md`): overall 0.9486, +0.0006
+[+0.0001, +0.0013] over the promoted floor21_gate, interval above zero;
++0.0157 over gt_margin_adaptive. Two-sided ELIGIBLE; clause (C) clean, zero
+supported collapses. The pre-registered refutation condition inverted: the
+four re-examined languages gained the most (sco_Latn 0.2870 to 0.6189,
+bjn_Latn 0.3276 to 0.6790, arg_Latn 0.4209 to 0.7185, vls_Latn 0.4577 to
+0.7746) because their precision was low enough that shedding false positives
+outweighed the recall cost, and their large neighbours also gained (eng_Latn
++0.0087, ind_Latn +0.0051, spa_Latn +0.0028, nld_Latn +0.0030). The
+large-language group is 0.9600, above the unmodified baseline's 0.9593, so
+the promoted configuration's one recorded weakness (its head loss) is
+repaired. Status: the strongest eligible configuration on record; the
+promotion proposal is deferred until directions 3 and 4 are tried, since they
+build on this configuration.
+
+## Experiment 48 pre-registration: re-examining the four flat large-corpus languages (direction 2; 2026-08-06, before the run)
+
+The rule under test, in full: start from the promoted configuration's
+predictions (floor21_gate). Additionally re-examine every line whose predicted
+language is one of the four languages that are in the flat-distribution
+category while having at least 18,000 training lines (sco_Latn, bjn_Latn,
+arg_Latn, vls_Latn; the promoted configuration exempts them because its
+re-examined set is defined by corpus size alone, and they receive 54.1% of the
+remaining wrong predictions into small-language or flat-distribution labels).
+For each of the four, the threshold is the 5th percentile of the score margins
+that language achieves on its own training lines, computed under the floor-21
+weight matrix (the fixed-percentile form, because the promoted configuration's
+size-adaptive percentile is zero at or above 18,000 lines). A re-examined line
+moves to the highest-scoring candidate ranked 2 to 5 with at least 100,000
+training lines (the promoted configuration's own replacement bar; the four
+languages' large neighbours, English, Indonesian, Spanish, and Dutch, all
+qualify). Constants: MARGIN_Q = 5, CALIB_MAX = 2,000, CALIB_SEED = 0, all the
+recorded calibration constants; no new constants. Modularity caveat, recorded:
+the flat-distribution category uses one validation-derived input, so a new
+language's membership needs either a validation scoring pass or the
+weights-only flatness score alone; which rule generalizes is left to the
+write-up if the direction succeeds.
+
+Decision criteria: paired bootstrap (B=10,000, seed 0, percentile, 95%) of
+per-language F1, candidate minus floor21_gate, judge part; statuses per
+amendment 7. Bounds from the analysis: at most +0.0012 overall and +0.0204 on
+the flat-distribution group if every removed wrong prediction were removed;
+refuted if the four languages lose more from re-examination of their genuine
+lines than their neighbours gain in precision.
+
 ## Experiment 47: shared re-examination threshold; best aggregate on record, but a class-level per-language failure (2026-08-06, job 3014614)
 
 Build clean (2,236,864 candidate lines saved, one top-1 disagreement; 387,039

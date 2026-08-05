@@ -42,8 +42,17 @@ gate_topk_scores.npy, and gate_topk_fingerprint.json.
 
 Stage "apply" (run("apply", variant=NAME)) reads those three saved arrays and the
 fingerprint, and builds one full-pool prediction file for a named rule variant
-declared in the VARIANTS dict below. No further scoring happens in this stage. The
-first variant, "shared9_bar18k", implements direction 1 (Experiment 47,
+declared in the VARIANTS dict below. No test-pool scoring happens in this stage:
+gate_topk_ids.npy and gate_topk_scores.npy already carry every candidate score this
+stage needs. One variant, "flat4_tau5" (direction 2), does its own scoring inside
+this stage, but only of calibration lines drawn from training corpora, to compute
+its per-language thresholds; that scoring is separate from, and does not modify,
+gate_topk_*. Every variant declares a "base_pred" field naming the SCRATCH_DIR
+prediction file its output is a copy-and-selectively-modify of: the first variant,
+"shared9_bar18k", uses pred_floor21.npy; the second, "flat4_tau5", uses
+pred_floor21_gate.npy (the promoted configuration's own predictions).
+
+The first variant, "shared9_bar18k", implements direction 1 (Experiment 47,
 pre-registered in EXPERIMENTS_RESULTS.md): the re-examined set is exactly the
 languages with fewer than HEAD_N training lines (the flat-distribution languages
 added to the topk-stage candidate universe by the flat_magnet-category criterion
@@ -57,14 +66,40 @@ configuration's own replacement bar of RES_CAP, 100,000, lines. Lines whose save
 top-1 disagrees with pred_floor21.npy are left unchanged and counted separately, not
 re-examined.
 
+The second variant, "flat4_tau5", implements direction 2 (Experiment 48,
+pre-registered in EXPERIMENTS_RESULTS.md): the re-examined set is exactly the four
+flat_magnet-category languages with at least HEAD_N training lines (sco_Latn,
+bjn_Latn, arg_Latn, vls_Latn), re-examined on top of the promoted configuration's
+own predictions (base_pred = pred_floor21_gate.npy) rather than pred_floor21.npy.
+Because all four have N at or above HEAD_N, none of them is in floor21_gate's own
+re-examined set (lines predicted into them pass through floor21_gate unchanged);
+and because all four have N below RES_CAP, 100,000, floor21_gate never moves a line
+into them either (its replacement bar requires N >= RES_CAP). The set
+of lines predicted into one of the four is therefore identical under
+pred_floor21_gate.npy and pred_floor21.npy, which this module asserts by count
+equality rather than assuming (see _run_apply). The threshold is calibrated
+separately per language (_calibrate_flat4_tau5): the floor-21 matrix is rebuilt and
+sha256-verified (via _build_verified_floor21_matrix, the helper also used by stage
+"topk"), cached with set_weight_sets, and for each of the four languages a sample of
+up to CALIB_MAX training lines is scored; tau_L is the fixed MARGIN_Q-th (5th)
+percentile of the finite margins on the lines L itself wins, aborting (not
+excluding) if fewer than MIN_CALIB_LINES win, since these four languages have large
+corpora and predicted-line counts and a shortfall would indicate a wiring error.
+Thresholds are written to outputs/diagnostic/tau_flat4.csv (same columns as the
+other tau CSVs). The acceptance bar for a replacement candidate is RES_CAP, 100,000,
+the promoted configuration's own bar (unchanged, unlike direction 1).
+
 Pattern sources: analysis/solo_gates.py (floor-21 matrix rebuild and sha256
 verification against fingerprint_floor21.json, affected-line selection, model
-loading, _topk_batch usage, the per-line reassignment loop over saved candidates);
-analysis/mixed_matrix.py (fingerprint and chunked resumable full-pool conventions);
-analysis/full_test_eval.py (SCRATCH_DIR, memmap sentinels, _parse_line).
+loading, _topk_batch usage, the per-line reassignment loop over saved candidates,
+and for flat4_tau5 specifically, its per-language calibration loop: rng creation,
+corpus sampling, own-win margin collection); analysis/mixed_matrix.py (fingerprint
+and chunked resumable full-pool conventions); analysis/full_test_eval.py
+(SCRATCH_DIR, memmap sentinels, _parse_line).
 
 Constants imported, never redefined here: HEAD_N (analysis.full_test_margin),
-FLOOR_TARGET (analysis.full_test_floor21), TOPK_MARGIN and PRF_CSV
+FLOOR_TARGET (analysis.full_test_floor21), TOPK_MARGIN, PRF_CSV, MARGIN_Q,
+MIN_CALIB_LINES, CALIB_MAX, CALIB_SEED, CORPUS_DIR, and _gap
 (analysis.margin_diagnostic), RES_CAP and DIAG_CSV (analysis.hierarchical_pool),
 ZH_MAGNET (analysis.diagnostic).
 """
@@ -86,7 +121,9 @@ from analysis.full_test_margin import HEAD_N
 from analysis.full_test_floor21 import FLOOR_TARGET
 from analysis.floor_equalization import build_equalized_weights
 from analysis.hierarchical_pool import RES_CAP, DIAG_CSV
-from analysis.margin_diagnostic import _topk_batch, PRF_CSV, TOPK_MARGIN
+from analysis.margin_diagnostic import (_topk_batch, _gap, PRF_CSV, TOPK_MARGIN,
+                                        MARGIN_Q, MIN_CALIB_LINES, CALIB_MAX,
+                                        CALIB_SEED, CORPUS_DIR)
 from analysis.diagnostic import ZH_MAGNET
 
 # Bounds peak memory for the topk stage's saved-candidate accumulation: a prior
@@ -108,6 +145,137 @@ TOP1_AGREE_MIN = 0.99
 # (outputs/diagnostic/gate_threshold_sweep_20260730.csv) found the derivation-part
 # optimum flat between 7 and 12; this value is fixed, not swept, in this module.
 SHARED_TAU_V1 = 9.0
+# Experiment 48 pre-registration (EXPERIMENTS_RESULTS.md, direction 2): output path
+# for the flat4_tau5 variant's four per-language calibrated thresholds, written by
+# _calibrate_flat4_tau5 in the same format as the other tau_*.csv files (e.g.
+# outputs/diagnostic/tau_floor21_gate.csv).
+TAU_FLAT4_CSV = "outputs/diagnostic/tau_flat4.csv"
+
+
+def _build_verified_floor21_matrix(langs: list) -> tuple[np.ndarray, str, str]:
+    """Loads the model's weight matrix, verifies it against fingerprint_floor21
+    .json's sha256_base_W, builds the floor-21 clamp (build_equalized_weights at
+    FLOOR_TARGET), and verifies the result against the fingerprint's sha256_w21.
+    `langs` must be the caller's own language order (checked against the model's);
+    the caller does not need to separately verify either sha256. Returns
+    (matrix, sha256_base_W_hex, sha256_w21_hex). Shared by stage "topk" (_run_topk)
+    and the flat4_tau5 calibration helper (_calibrate_flat4_tau5), both of which
+    need a bit-identical rebuild of the same floor-21 matrix."""
+    n_lang = len(langs)
+    weights, langs_m, _lang_to_idx = _load_model_data()
+    if langs_m != langs:
+        raise RuntimeError("model language order does not match the caller's "
+                           f"language list ({PRF_CSV})")
+    W = np.array(weights, dtype=np.float32)
+    del weights
+
+    fp21_path = os.path.join(SCRATCH_DIR, "fingerprint_floor21.json")
+    with open(fp21_path) as f:
+        fp21 = json.load(f)
+    sha_w = hashlib.sha256(W.tobytes()).hexdigest()
+    if sha_w != fp21["sha256_base_W"]:
+        raise RuntimeError(f"loaded W does not match sha256_base_W in {fp21_path}")
+
+    matrix, n_mod = build_equalized_weights(W, FLOOR_TARGET)
+    if n_mod != n_lang:
+        raise RuntimeError(f"floor {FLOOR_TARGET} modified {n_mod} of {n_lang} "
+                           "rows; expected all of them (row floors all exceed the "
+                           "target, the precedent this model has always shown)")
+    if not np.array_equal(matrix[:, :4], W[:, :4]):
+        raise RuntimeError("special-token columns (0:4) were modified by the clamp")
+    sha_w21 = hashlib.sha256(matrix.tobytes()).hexdigest()
+    if sha_w21 != fp21["sha256_w21"]:
+        raise RuntimeError(f"rebuilt floor-21 matrix does not match sha256_w21 in "
+                           f"{fp21_path}")
+    del W
+    return matrix, sha_w, sha_w21
+
+
+def _calibrate_flat4_tau5(langs: list, N: np.ndarray, reexam_idx: np.ndarray) -> dict:
+    """Experiment 48 (direction 2) per-language threshold calibration for the
+    flat4_tau5 variant, run inside the apply stage (no scoring happens in stage
+    "topk" for this variant beyond what it already does for every language in the
+    expanded label set). `reexam_idx` must be exactly the four flat-distribution,
+    at-or-above-HEAD_N language indices (sco_Latn, bjn_Latn, arg_Latn, vls_Latn per
+    the pre-registration); this is checked by the caller (_run_apply) before this
+    function is invoked, and re-asserted here as a defensive invariant before the
+    expensive matrix rebuild and model load.
+
+    Rebuilds and sha256-verifies the floor-21 weight matrix (_build_verified_
+    floor21_matrix, the same fingerprinted path stage "topk" and
+    analysis/solo_gates.py use), caches it with set_weight_sets, then for each of
+    the four languages samples up to CALIB_MAX training lines (seed CALIB_SEED, the
+    same sampling pattern as analysis/solo_gates.py's calibration loop: one rng
+    instance shared across languages, sorted np.random.Generator.choice indices)
+    from its own CORPUS_DIR/{lang}_train.txt, scores the top TOPK_MARGIN candidates
+    with _topk_batch, and sets tau_L to the MARGIN_Q-th percentile (fixed at 5, NOT
+    the size-adaptive formula analysis/solo_gates.py uses for its own gate) of the
+    finite top1-minus-top2 margins on the lines L itself wins (top1 == L).
+
+    Aborts if any of the four has fewer than MIN_CALIB_LINES winning lines. This is
+    an abort, not analysis/solo_gates.py's exclude-and-log convention: these four
+    languages have 13,911 to 89,109 predicted test lines apiece and large training
+    corpora, so a calibration shortfall here would indicate a wiring error (wrong
+    corpus file, wrong cached matrix, wrong language index), not a genuine
+    low-resource case.
+
+    Writes the four thresholds to TAU_FLAT4_CSV with the same columns as the other
+    tau_*.csv files (lang, n_scoreable, n_self_won, tau, excluded, cause); "excluded"
+    is always False and "cause" always empty here because a language that would
+    need excluding instead aborts the run, per the above. Returns
+    {language_index: tau} for exactly the four languages in reexam_idx."""
+    reexam_idx = [int(i) for i in reexam_idx]
+    if len(reexam_idx) != 4:
+        raise RuntimeError("flat4_tau5 calibration expects exactly 4 re-examined "
+                           f"languages, got {len(reexam_idx)}: "
+                           f"{[langs[i] for i in reexam_idx]}")
+
+    matrix, _sha_w, _sha_w21 = _build_verified_floor21_matrix(langs)
+    model = _load_unilid_model()
+    print("Caching floor-21 weights for flat4_tau5 calibration...", flush=True)
+    model.model.set_weight_sets(matrix.tolist())
+    del matrix
+
+    rng = np.random.default_rng(CALIB_SEED)
+    tau = {}
+    calib_rows = []
+    for li in reexam_idx:
+        lang = langs[li]
+        path = os.path.join(CORPUS_DIR, f"{lang}_train.txt")
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"corpus file missing: {path}")
+        with open(path) as f:
+            lines = [l.rstrip("\n") for l in f if l.rstrip("\n")]
+        if len(lines) > CALIB_MAX:
+            lines = [lines[k] for k in
+                     sorted(rng.choice(len(lines), CALIB_MAX, replace=False))]
+        cdrop = []
+        _cpos, ctopk = _topk_batch(model, lines, cdrop)
+        wins = [c for c in ctopk if c and c[0][0] == li]
+        gaps = np.array([_gap(c) for c in wins])
+        gaps = gaps[np.isfinite(gaps)]
+        if len(gaps) < MIN_CALIB_LINES:
+            raise RuntimeError(
+                f"{lang} has {len(gaps)} finite winning calibration margins, below "
+                f"MIN_CALIB_LINES={MIN_CALIB_LINES}; flat4_tau5's four languages "
+                "have large corpora and predicted-line counts, so this indicates a "
+                "wiring error, not a genuine calibration shortfall, and aborts "
+                "rather than excluding the language")
+        t = float(np.percentile(gaps, MARGIN_Q))
+        tau[li] = t
+        calib_rows.append({"lang": lang, "n_scoreable": len(ctopk),
+                           "n_self_won": len(wins), "tau": t,
+                           "excluded": False, "cause": ""})
+        print(f"flat4_tau5 calibration: {lang} tau={t:.4f} nats "
+              f"({len(gaps):,} finite winning margins of {len(wins):,} self-won "
+              f"lines, {len(ctopk):,} scoreable of {len(lines):,} sampled)",
+              flush=True)
+
+    os.makedirs(os.path.dirname(TAU_FLAT4_CSV), exist_ok=True)
+    pd.DataFrame(calib_rows).to_csv(TAU_FLAT4_CSV, index=False)
+    print(f"Wrote {TAU_FLAT4_CSV}")
+    return tau
+
 
 VARIANTS = {
     "shared9_bar18k": {
@@ -120,30 +288,105 @@ VARIANTS = {
             f"promoted configuration's own bar) to HEAD_N ({HEAD_N:,} training "
             "lines)."
         ),
-        # Re-examined set: languages with N < HEAD_N only. Takes (N, zH); zH is
-        # ignored here (the flat-distribution additions to the topk-stage candidate
-        # universe are direction 2's concern, not direction 1's).
-        "reexamined_set": lambda N, zH: N < HEAD_N,
+        # base_pred: the SCRATCH_DIR prediction file this variant's output is a
+        # copy-and-selectively-modify of. Direction 1 re-examines pred_floor21.npy
+        # directly (the same array stage "topk" anchored its affected-line
+        # selection on).
+        "base_pred": "pred_floor21.npy",
+        # Re-examined set: languages with N < HEAD_N only. Takes (N, zH, category);
+        # zH and category are ignored here (the flat-distribution additions to the
+        # topk-stage candidate universe are direction 2's concern, not direction
+        # 1's).
+        "reexamined_set": lambda N, zH, category: N < HEAD_N,
         "reexamined_set_desc": (
             f"languages with N < HEAD_N ({HEAD_N:,} training lines) only; the "
             "flat-distribution languages added to the topk-stage candidate universe "
             "by the category == 'flat_magnet' criterion are excluded from this "
             "variant's re-examined set."
         ),
+        # No fixed expectation on how many languages fall under N < HEAD_N (roughly
+        # 1,080; not asserted to an exact count the way flat4_tau5's four are).
+        "expected_reexam_langs": None,
         "threshold": SHARED_TAU_V1,
+        "calibrate": None,
+        "tau_csv": None,
         "replacement_min_n": HEAD_N,
+        "replacement_min_n_desc": (
+            f"HEAD_N ({HEAD_N:,} training lines), lowered from the promoted "
+            f"configuration's own bar of RES_CAP ({RES_CAP:,} training lines)."
+        ),
         # Optional per-candidate acceptance function, signature (candidate_lang_idx,
         # N) -> bool. None means the default: N[candidate_lang_idx] >=
-        # replacement_min_n. Later variants (directions 2 and 3) can override this
-        # with a custom condition without changing the apply code below.
+        # replacement_min_n. Later variants (direction 3) can override this with a
+        # custom condition without changing the apply code below.
+        "accept": None,
+    },
+    "flat4_tau5": {
+        "experiment": 48,
+        "description": (
+            "Direction 2 (Experiment 48): re-examine every line whose promoted-"
+            "configuration prediction (pred_floor21_gate.npy) is one of the four "
+            "flat_magnet-category languages with at least HEAD_N training lines "
+            "(sco_Latn, bjn_Latn, arg_Latn, vls_Latn), using a threshold calibrated "
+            f"separately for each of the four (the fixed {MARGIN_Q}th percentile, "
+            "MARGIN_Q, of that language's own training-line margins under the "
+            "floor-21 matrix, not the promoted configuration's size-adaptive "
+            f"formula) and the promoted configuration's own replacement-candidate "
+            f"minimum, RES_CAP ({RES_CAP:,} training lines, unchanged from "
+            "direction 1's lowered HEAD_N bar)."
+        ),
+        "base_pred": "pred_floor21_gate.npy",
+        # Re-examined set: the flat_magnet-category languages with N >= HEAD_N
+        # (exactly 4 by construction of the category; see EXPERIMENTS_RESULTS.md's
+        # Experiment 48 pre-registration). N and zH from PRF_CSV/DIAG_CSV order;
+        # category is diag.category.values, passed in by _run_apply.
+        "reexamined_set": lambda N, zH, category: (
+            (category == "flat_magnet") & (N >= HEAD_N)),
+        "reexamined_set_desc": (
+            "the four flat_magnet-category languages (outputs/diagnostic/"
+            f"lang_diagnostic.csv) with N >= HEAD_N ({HEAD_N:,} training lines): "
+            "sco_Latn, bjn_Latn, arg_Latn, vls_Latn."
+        ),
+        "expected_reexam_langs": 4,
+        # threshold=None + calibrate=callable selects the per-language calibrated
+        # path in _run_apply, instead of one fixed scalar nats value.
+        "threshold": None,
+        "calibrate": _calibrate_flat4_tau5,
+        "tau_csv": TAU_FLAT4_CSV,
+        "replacement_min_n": RES_CAP,
+        "replacement_min_n_desc": (
+            f"RES_CAP ({RES_CAP:,} training lines), the promoted configuration's "
+            "own replacement-candidate bar (unchanged, unlike direction 1's "
+            "lowered bar)."
+        ),
         "accept": None,
     },
 }
 for _vname, _ventry in VARIANTS.items():
-    if "accept" not in _ventry:
-        raise RuntimeError(f"VARIANTS[{_vname!r}] must declare 'accept' explicitly "
-                           "(None selects the default N >= replacement_min_n rule)")
-del _vname, _ventry
+    for _key, _hint in (
+        ("accept", "None selects the default N >= replacement_min_n rule"),
+        ("base_pred", "the SCRATCH_DIR prediction file this variant's output is a "
+                      "copy-and-selectively-modify of"),
+        ("expected_reexam_langs", "None disables the exact-language-count check"),
+        ("calibrate", "None when 'threshold' is a fixed scalar nats value; a "
+                      "(langs, N, reexam_idx) -> {lang_idx: tau} callable when "
+                      "'threshold' is None"),
+        ("tau_csv", "None when 'threshold' is a fixed scalar (no calibration CSV "
+                    "is written)"),
+        ("replacement_min_n_desc", "plain-language description of "
+                                   "replacement_min_n for the build markdown"),
+    ):
+        if _key not in _ventry:
+            raise RuntimeError(f"VARIANTS[{_vname!r}] must declare {_key!r} "
+                               f"explicitly ({_hint})")
+    if (_ventry["threshold"] is None) == (_ventry["calibrate"] is None):
+        raise RuntimeError(f"VARIANTS[{_vname!r}] must set exactly one of "
+                           "'threshold' (fixed scalar) or 'calibrate' (per-language "
+                           "callable), not both or neither")
+    if (_ventry["threshold"] is None) != (_ventry["tau_csv"] is not None):
+        raise RuntimeError(f"VARIANTS[{_vname!r}]: 'tau_csv' must be set if and "
+                           "only if 'threshold' is None ('calibrate' is in use)")
+del _vname, _ventry, _key, _hint
 
 
 def _read_wanted_lines(path: str, wanted: set) -> tuple[dict, int]:
@@ -217,10 +460,6 @@ def _run_topk() -> str:
     N = prf.N.values
     n_lang = len(langs)
 
-    weights, langs_m, _lang_to_idx = _load_model_data()
-    if langs_m != langs:
-        raise RuntimeError(f"model language order does not match {PRF_CSV}")
-
     diag = pd.read_csv(DIAG_CSV)
     if diag.lang.tolist() != langs:
         raise RuntimeError(f"{DIAG_CSV} language order does not match {PRF_CSV}")
@@ -230,27 +469,7 @@ def _run_topk() -> str:
     expanded_mask = low_n_mask | flat_mask
     expanded_idx = np.where(expanded_mask)[0]
 
-    W = np.array(weights, dtype=np.float32)
-    del weights
-    fp21_path = os.path.join(SCRATCH_DIR, "fingerprint_floor21.json")
-    with open(fp21_path) as f:
-        fp21 = json.load(f)
-    sha_w = hashlib.sha256(W.tobytes()).hexdigest()
-    if sha_w != fp21["sha256_base_W"]:
-        raise RuntimeError(f"loaded W does not match sha256_base_W in {fp21_path}")
-
-    matrix, n_mod = build_equalized_weights(W, FLOOR_TARGET)
-    if n_mod != n_lang:
-        raise RuntimeError(f"floor {FLOOR_TARGET} modified {n_mod} of {n_lang} "
-                           "rows; expected all of them (row floors all exceed the "
-                           "target, the precedent this model has always shown)")
-    if not np.array_equal(matrix[:, :4], W[:, :4]):
-        raise RuntimeError("special-token columns (0:4) were modified by the clamp")
-    sha_w21 = hashlib.sha256(matrix.tobytes()).hexdigest()
-    if sha_w21 != fp21["sha256_w21"]:
-        raise RuntimeError(f"rebuilt floor-21 matrix does not match sha256_w21 in "
-                           f"{fp21_path}")
-    del W
+    matrix, sha_w, sha_w21 = _build_verified_floor21_matrix(langs)
 
     y = np.asarray(np.lib.format.open_memmap(
         os.path.join(SCRATCH_DIR, "y_true.npy"), mode="r"))
@@ -454,6 +673,7 @@ def _run_apply(variant: str) -> str:
     if diag.lang.tolist() != langs:
         raise RuntimeError(f"{DIAG_CSV} language order does not match {PRF_CSV}")
     zH = diag.zH.values
+    category = diag.category.values
 
     low_n_mask = N < HEAD_N
     flat_mask = (diag.category == "flat_magnet").values
@@ -483,11 +703,49 @@ def _run_apply(variant: str) -> str:
                            "with a negative int16 index silently wraps to the end "
                            "of the language array instead of failing")
 
-    reexam_lang_mask = entry["reexamined_set"](N, zH)
+    reexam_lang_mask = entry["reexamined_set"](N, zH, category)
     if (reexam_lang_mask & ~expanded_mask).any():
         raise RuntimeError(f"variant {variant!r}'s re-examined-set mask includes "
                            "language(s) outside the topk-stage expanded label set; "
                            "the topk stage never saved candidates for those lines")
+    reexam_idx = np.where(reexam_lang_mask)[0]
+    expected_reexam_langs = entry["expected_reexam_langs"]
+    if (expected_reexam_langs is not None
+            and len(reexam_idx) != expected_reexam_langs):
+        raise RuntimeError(f"variant {variant!r}'s re-examined set has "
+                           f"{len(reexam_idx)} language(s), expected "
+                           f"{expected_reexam_langs}")
+    if expected_reexam_langs is not None:
+        print(f"variant {variant!r} re-examined-set languages "
+              f"({len(reexam_idx)}): {[langs[int(i)] for i in reexam_idx]}")
+
+    # base_pred: the array this variant's output is a copy-and-selectively-modify
+    # of. It need not be pred_floor21.npy (flat4_tau5 uses pred_floor21_gate.npy),
+    # but the topk-stage arrays (lines/ids/scores/pf21_line_pred, computed above)
+    # are always anchored on pred_floor21.npy, so a variant with a different
+    # base_pred must verify its re-examined-set languages are predicted identically
+    # under both arrays before reusing pf21-derived masks against base_pred lines.
+    base_pred_name = entry["base_pred"]
+    base_pred_path = os.path.join(SCRATCH_DIR, base_pred_name)
+    base_pred_arr = np.asarray(np.lib.format.open_memmap(base_pred_path, mode="r"))
+    if base_pred_arr.shape != (TOTAL_LINES,):
+        raise RuntimeError(f"{base_pred_path} shape {base_pred_arr.shape} != "
+                           f"({TOTAL_LINES},)")
+    if base_pred_name != "pred_floor21.npy":
+        pf21_in = np.isin(pf21, reexam_idx)
+        base_in = np.isin(base_pred_arr, reexam_idx)
+        either = pf21_in | base_in
+        if not np.array_equal(pf21[either], base_pred_arr[either]):
+            raise RuntimeError(
+                "pred_floor21 and the variant base disagree on lines predicted "
+                "into the re-examined set; per-language thresholds would be "
+                "misapplied")
+        pf21_in_reexam = int(pf21_in.sum())
+        base_in_reexam = int(base_in.sum())
+        print(f"pred_floor21.npy and {base_pred_name} agree on {pf21_in_reexam:,} "
+              "lines predicted into the re-examined-set languages (count equality "
+              "verified).")
+
     in_set_mask = reexam_lang_mask[pf21_line_pred]
     n_in_set = int(in_set_mask.sum())
 
@@ -509,7 +767,29 @@ def _run_apply(variant: str) -> str:
     # without a special case.
     gap = scores[:, 0] - scores[:, 1]
     threshold = entry["threshold"]
-    below_mask = gated_mask & (gap < threshold)
+    calibrate = entry["calibrate"]
+    if threshold is None:
+        # Per-language calibrated threshold (flat4_tau5 / direction 2): calibrate()
+        # does its own model load, floor-21 matrix rebuild, and corpus scoring, and
+        # returns {language_index: tau} for exactly reexam_idx's languages.
+        tau_by_lang = calibrate(langs, N, reexam_idx)
+        missing = [int(i) for i in reexam_idx if int(i) not in tau_by_lang]
+        if missing:
+            raise RuntimeError(f"calibrate() for variant {variant!r} returned no "
+                               f"threshold for language index/indices {missing}")
+        tau_arr = np.full(len(langs), -np.inf, dtype=np.float64)
+        for li, t in tau_by_lang.items():
+            tau_arr[li] = t
+        per_line_threshold = tau_arr[pf21_line_pred]
+        below_mask = gated_mask & (gap < per_line_threshold)
+        threshold_desc = ("per-language calibrated (" + entry["tau_csv"] + "): " +
+                          "; ".join(f"{langs[li]}={t:.4f} nats"
+                                   for li, t in sorted(tau_by_lang.items())))
+        threshold_for_meta = {langs[li]: t for li, t in sorted(tau_by_lang.items())}
+    else:
+        below_mask = gated_mask & (gap < threshold)
+        threshold_desc = f"{threshold} nats (shared across the re-examined set)"
+        threshold_for_meta = threshold
     n_below = int(below_mask.sum())
     n_gap_ok = n_gated - n_below
 
@@ -520,7 +800,7 @@ def _run_apply(variant: str) -> str:
     else:
         accept_fn = lambda cid: accept(cid, N)  # noqa: E731
 
-    pred = np.array(pf21, dtype=np.int16)
+    pred = np.array(base_pred_arr, dtype=np.int16)
     n_moved = n_to_true = n_no_cand = 0
     for r in np.where(below_mask)[0].tolist():
         line = int(lines[r])
@@ -544,11 +824,11 @@ def _run_apply(variant: str) -> str:
                            "kept-no-candidate; this indicates a bug in the "
                            "replacement loop")
 
-    n_diff = int((pred != pf21).sum())
+    n_diff = int((pred != base_pred_arr).sum())
     if n_diff != n_moved:
-        raise RuntimeError(f"{n_diff:,} lines differ from pred_floor21.npy but "
+        raise RuntimeError(f"{n_diff:,} lines differ from {base_pred_name} but "
                            f"n_moved={n_moved:,}; the moved-set count does not "
-                           "match the actual diff against pred_floor21.npy")
+                           f"match the actual diff against {base_pred_name}")
 
     out_pred = os.path.join(SCRATCH_DIR, f"pred_gate_{variant}.npy")
     np.save(out_pred, pred)
@@ -563,7 +843,9 @@ def _run_apply(variant: str) -> str:
     meta = {
         "topk_fingerprint": fp,
         "variant": variant,
-        "threshold": threshold,
+        "base_pred": base_pred_name,
+        "threshold": threshold_for_meta,
+        "tau_csv": entry["tau_csv"],
         "replacement_min_n": replacement_min_n,
         "reexamined_set_desc": entry["reexamined_set_desc"],
         "counts": {
@@ -579,6 +861,13 @@ def _run_apply(variant: str) -> str:
         },
         "git_commit": git_commit,
     }
+    if threshold is None:
+        meta["calibration"] = {
+            "MARGIN_Q": MARGIN_Q,
+            "CALIB_MAX": CALIB_MAX,
+            "CALIB_SEED": CALIB_SEED,
+            "MIN_CALIB_LINES": MIN_CALIB_LINES,
+        }
     out_meta = os.path.join(SCRATCH_DIR, f"pred_gate_{variant}_meta.json")
     with open(out_meta + ".tmp", "w") as f:
         json.dump(meta, f)
@@ -592,20 +881,30 @@ def _run_apply(variant: str) -> str:
         f"criterion); flat_magnet category from {DIAG_CSV} (the topk-stage "
         f"flatness criterion; ZH_MAGNET = {ZH_MAGNET} is one of several inputs to "
         "that classification in analysis/diagnostic.py, not applied directly "
-        f"here); TOPK_MARGIN = {TOPK_MARGIN} saved candidates per affected line; "
-        f"this variant's re-examination threshold is {threshold} nats; RES_CAP = "
-        f"{RES_CAP:,} training lines is the promoted configuration's own "
-        "replacement-candidate bar, not used by this variant.",
+        f"here); TOPK_MARGIN = {TOPK_MARGIN} saved candidates per affected line. "
+        f"Base predictions for this variant: {base_pred_name}. This variant's "
+        f"re-examination threshold: {threshold_desc}. Replacement-candidate "
+        f"minimum: {entry['replacement_min_n_desc']}",
         f"- Re-examined set for this variant: {entry['reexamined_set_desc']}",
+    ]
+    if isinstance(threshold_for_meta, dict):
+        lines_out.append(
+            f"- Per-language calibrated thresholds ({entry['tau_csv']}, the "
+            f"{MARGIN_Q}th percentile of each language's own finite winning "
+            "calibration margins under the floor-21 matrix): " +
+            "; ".join(f"{lang} {t:.4f} nats"
+                     for lang, t in threshold_for_meta.items()) + ".")
+    lines_out += [
         f"- Affected: {n_affected:,} lines carry a saved floor21-prediction "
-        "candidate list (the topk-stage expanded label set).",
+        "candidate list (the topk-stage expanded label set, always keyed on "
+        "pred_floor21.npy regardless of this variant's base_pred).",
         f"- In-set: {n_in_set:,} of {n_affected:,} affected lines have a floor21 "
         "prediction in this variant's re-examined set.",
         f"- Top1-disagreements: {n_disagree:,} in-set lines whose saved top-1 "
         "candidate disagrees with pred_floor21.npy; left unchanged.",
         f"- Of the remaining {n_gated:,} in-set, agreeing lines: {n_gap_ok:,} have "
-        f"a top1-minus-top2 score gap at or above {threshold} nats and are kept "
-        f"unchanged; {n_below:,} fall below {threshold} nats and are re-examined.",
+        f"a top1-minus-top2 score gap at or above their threshold and are kept "
+        f"unchanged; {n_below:,} fall below threshold and are re-examined.",
         f"- Moved: {n_moved:,} of the {n_below:,} re-examined lines move to a "
         f"replacement candidate ranked 2 to {TOPK_MARGIN} with N >= "
         f"{replacement_min_n:,} training lines.",
@@ -613,13 +912,13 @@ def _run_apply(variant: str) -> str:
         "the true label recorded in y_true.npy.",
         f"- Kept-no-candidate: {n_no_cand:,} re-examined lines have no candidate "
         f"ranked 2 to {TOPK_MARGIN} meeting the acceptance condition, and keep the "
-        "floor21 prediction.",
+        f"{base_pred_name} prediction.",
         f"- Short candidate lists: the topk stage recorded {fp['n_short_cands']:,} "
         f"affected lines with fewer than {TOPK_MARGIN} saved candidates, of which "
         f"{fp['n_inf_margin']:,} had fewer than 2 and are treated as having "
         "infinite margin (never moved), following the recorded margin-gate "
         "convention (analysis/margin_diagnostic.py's _gap()).",
-        f"- All lines outside the moved set are bit-identical to pred_floor21.npy "
+        f"- All lines outside the moved set are bit-identical to {base_pred_name} "
         f"({n_diff:,} lines differ, verified equal to n_moved). Output: "
         f"{out_pred}; metadata: {out_meta}.",
     ]
