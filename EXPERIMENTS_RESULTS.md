@@ -168,6 +168,61 @@ both remain in the pool. Confirmation numbers on the balanced test draw (seed
 201, 185,204 lines) are in `outputs/tables/floor21_gate_confirmation_201.md`:
 floor21_gate overall 0.9741, tail 0.8685, magnets 0.8758.
 
+## Experiment 49: score-proximity condition on the replacement; eligible, the strongest eligible configuration (2026-08-06, job 3016337)
+
+The in-job reproduction gate passed (the reimplemented two-step walk with the
+condition disabled matched pred_gate_flat4_tau5.npy bit-identically), then the
+conditioned build moved 314,314 lines. Judge part
+(`outputs/tables/mixed_eval_gate_flat4_prox21.md`): overall 0.9498, +0.0018
+[+0.0010, +0.0026] over the promoted floor21_gate; the refinement contrast
+against gate_flat4_tau5 is +0.0012 [+0.0007, +0.0016] (paired bootstrap,
+B=10,000, seed 0, from the two per-language CSVs). Two-sided ELIGIBLE, clause
+(C) clean, zero supported collapses. The three languages flagged by the
+derivation-part design are confirmed as real costs relative to gate_flat4_tau5
+(tly_Latn 0.5242 to 0.3502, shu_Arab 0.9713 to 0.8319, las_Latn 0.9155 to
+0.7580; all remain far above baseline, which is why clause (C) is clean):
+blocking a far-fetched replacement keeps the false positive on the small
+source language, and these three absorb some of those kept lines. Maltese is
+unchanged (0.9357 to 0.9362), as pre-registered. Status: the strongest
+eligible configuration on record (the eligible arc is floor21_gate 0.9480,
+gate_flat4_tau5 0.9486, gate_flat4_prox21 0.9498; Exp 47's 0.9534 remains in
+the pool with its class-level collapse failure). Promotion proposal still
+deferred until direction 4 is tried.
+
+## Experiment 49 pre-registration: score-proximity condition on the replacement candidate (direction 3; 2026-08-06, before the run)
+
+The rule under test, in full: gate_flat4_tau5's two re-examination steps stay
+exactly as built (per-language thresholds from tau_floor21_gate.csv for lines
+predicted into languages under 18,000 training lines, and from tau_flat4.csv
+for the four flat large-corpus languages; replacement candidates walked in
+rank order 2 to 5; each must have at least 100,000 training lines). One added
+condition: a replacement candidate must also have a saved score within
+D3_PROX = 21.0 natural-log units of the top-1 saved score; a candidate
+failing either check is skipped and the walk continues; a line with no
+acceptable candidate keeps its pre-move prediction. D3_PROX was chosen on the
+derivation part (grid 0.5 to 100 in steps of 1; the optimum plateau spans
+roughly 15 to 35 within 0.0003, so 21.0 is representative, not finely tuned).
+The condition needs only the saved per-line candidate scores; no calibration.
+
+Implementation gate, required before the conditioned build is trusted: with
+the condition disabled, the reimplementation of the two-step rule must
+reproduce pred_gate_flat4_tau5.npy bit-identically (the design analysis
+already reproduced it with zero mismatches on all 814,787 derivation-part
+affected lines).
+
+Derivation-part predictions: aggregate 0.9484 to 0.9499 (+0.0015), every
+group at or above gate_flat4_tau5. Recorded caveats: the motivating Maltese
+example is mostly not repaired by this form (its wrong moves sit close to the
+top-1 score); every target-identity form that does repair it was measured and
+costs aggregate F1, because blocking a move relocates the false positive from
+a large language back onto a small one under unweighted per-language
+averaging. Three languages lose more than 0.10 against gate_flat4_tau5 on the
+derivation part (tly_Latn, shu_Arab, las_Latn) and are checked on the judge
+part. Decision criteria: paired bootstrap (B=10,000, seed 0, percentile, 95%)
+against floor21_gate via the standard evaluation, plus the same bootstrap
+against gate_flat4_tau5 computed from the two per-language CSVs; statuses per
+amendment 7.
+
 ## Experiment 48: re-examining the four flat large-corpus languages; eligible, improves the promoted configuration everywhere (2026-08-06, job 3015805)
 
 Build clean (thresholds 2.93 to 5.88 nats from 1,866 to 1,971 self-won

@@ -50,7 +50,14 @@ its per-language thresholds; that scoring is separate from, and does not modify,
 gate_topk_*. Every variant declares a "base_pred" field naming the SCRATCH_DIR
 prediction file its output is a copy-and-selectively-modify of: the first variant,
 "shared9_bar18k", uses pred_floor21.npy; the second, "flat4_tau5", uses
-pred_floor21_gate.npy (the promoted configuration's own predictions).
+pred_floor21_gate.npy (the promoted configuration's own predictions); the third,
+"flat4_prox21", uses pred_floor21.npy again (both of the promoted configuration's
+re-examination steps are re-run fresh from there, not chained through
+pred_floor21_gate.npy, so the added proximity condition described below applies to
+step 1's moves too, not only step 2's). "flat4_prox21" does not run through the
+generic single-threshold apply logic the other two variants share; it has its own
+dedicated function, _run_apply_flat4_prox21, dispatched from _run_apply by variant
+name (see that function's docstring).
 
 The first variant, "shared9_bar18k", implements direction 1 (Experiment 47,
 pre-registered in EXPERIMENTS_RESULTS.md): the re-examined set is exactly the
@@ -88,6 +95,24 @@ corpora and predicted-line counts and a shortfall would indicate a wiring error.
 Thresholds are written to outputs/diagnostic/tau_flat4.csv (same columns as the
 other tau CSVs). The acceptance bar for a replacement candidate is RES_CAP, 100,000,
 the promoted configuration's own bar (unchanged, unlike direction 1).
+
+The third variant, "flat4_prox21", implements direction 3 (Experiment 49,
+pre-registered in EXPERIMENTS_RESULTS.md): a full reimplementation of the promoted
+configuration's own two re-examination steps (step 1: languages with N < HEAD_N,
+thresholds read directly from tau_floor21_gate.csv, the CSV analysis/solo_gates.py's
+run("floor21") already wrote; step 2: the same four flat_magnet languages as
+flat4_tau5, thresholds read directly from tau_flat4.csv), plus one added acceptance
+condition on the shared replacement-candidate walk: a candidate must have a saved
+score within D3_PROX, 21.0 nats, of the saved top-1 score, in addition to the
+existing N >= RES_CAP bar. Because step 1 is re-run from pred_floor21.npy rather
+than resumed from pred_floor21_gate.npy, the D3_PROX condition governs step 1's
+moves as well as step 2's. Both tau CSVs are read directly (_load_tau_csv), not
+recalibrated: this variant reuses the two prior variants' own calibration outputs
+rather than re-deriving them. A mandatory self-check (inside
+_run_apply_flat4_prox21, before the conditioned build is trusted) reruns the
+identical two-step walk with the D3_PROX condition disabled and requires the result
+to be bit-identical to SCRATCH_DIR/pred_gate_flat4_tau5.npy (flat4_tau5's own
+output) over the full array, aborting otherwise.
 
 Pattern sources: analysis/solo_gates.py (floor-21 matrix rebuild and sha256
 verification against fingerprint_floor21.json, affected-line selection, model
@@ -150,6 +175,20 @@ SHARED_TAU_V1 = 9.0
 # _calibrate_flat4_tau5 in the same format as the other tau_*.csv files (e.g.
 # outputs/diagnostic/tau_floor21_gate.csv).
 TAU_FLAT4_CSV = "outputs/diagnostic/tau_flat4.csv"
+# Experiment 49 pre-registration (EXPERIMENTS_RESULTS.md, direction 3): input path
+# for the flat4_prox21 variant's step-1 per-language thresholds. This CSV already
+# exists (written by analysis/solo_gates.py's run("floor21"), the promoted
+# configuration's own build); flat4_prox21 reads it directly rather than
+# recalibrating, since the promoted configuration's step 1 is being re-run
+# unchanged, only with the added proximity condition on the replacement walk.
+TAU_FLOOR21_GATE_CSV = "outputs/diagnostic/tau_floor21_gate.csv"
+# Experiment 49 pre-registration (direction 3): score-proximity bound on a
+# replacement candidate, in natural-log units (top1_score - candidate_score must be
+# at or below this to be accepted). Chosen on the derivation part by a grid search
+# from 0.5 to 100 in steps of 1; the optimum plateau spans roughly 15 to 35, all
+# within 0.0003 of each other, so 21.0 is representative of the plateau, not a
+# finely-tuned optimum.
+D3_PROX = 21.0
 
 
 def _build_verified_floor21_matrix(langs: list) -> tuple[np.ndarray, str, str]:
@@ -277,6 +316,56 @@ def _calibrate_flat4_tau5(langs: list, N: np.ndarray, reexam_idx: np.ndarray) ->
     return tau
 
 
+def _load_tau_csv(path: str, langs: list, expected_langs: set) -> tuple[np.ndarray, str]:
+    """Reads a tau_*.csv (the format written by analysis/solo_gates.py and
+    _calibrate_flat4_tau5: columns lang, n_scoreable, n_self_won, tau, excluded,
+    cause) and returns (tau_arr, sha256_hex). tau_arr has one entry per language in
+    `langs` (same order), filled with -inf for every language not present in the
+    CSV. For a language present in the CSV, tau_arr is set to -inf if its
+    "excluded" column is True, else to its "tau" column value; this is asserted
+    explicitly here (not merely assumed) even though both existing tau CSVs already
+    write -inf into "tau" for excluded rows themselves, because a variant reading a
+    third-party CSV should not depend on that convention holding silently.
+
+    Aborts if the set of languages present in the CSV does not exactly equal
+    `expected_langs`: a tau CSV that is missing a re-examined language, or that
+    carries an extra one, would silently leave a threshold at -inf (never
+    re-examined) or apply a threshold to a language never scored, either of which
+    is a wiring error, not a case to tolerate."""
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"tau CSV missing: {path}")
+    with open(path, "rb") as f:
+        sha = hashlib.sha256(f.read()).hexdigest()
+    df = pd.read_csv(path)
+    missing_cols = [c for c in ("lang", "tau", "excluded") if c not in df.columns]
+    if missing_cols:
+        raise RuntimeError(f"{path} is missing required column(s) {missing_cols}")
+    if df.excluded.dtype != bool:
+        raise RuntimeError(
+            f"{path} column 'excluded' has dtype {df.excluded.dtype}, expected "
+            "bool; a non-bool dtype (e.g. an object column of string 'True'/"
+            "'False', or ambiguous 0/1 integers) would silently corrupt the "
+            "-inf/tau selection below")
+    dup_langs = df.lang[df.lang.duplicated()].tolist()
+    if dup_langs:
+        raise RuntimeError(
+            f"{path} has duplicate lang value(s): {dup_langs}; each language "
+            "must appear at most once, or the tau_arr assignment below would "
+            "silently keep only the last matching row's value")
+    csv_langs = set(df.lang)
+    if csv_langs != expected_langs:
+        raise RuntimeError(
+            f"{path} languages do not match the expected re-examined set: "
+            f"{len(csv_langs - expected_langs)} language(s) in the CSV but not "
+            f"expected, {len(expected_langs - csv_langs)} expected but missing "
+            "from the CSV")
+    lang_to_idx = {lang: i for i, lang in enumerate(langs)}
+    tau_arr = np.full(len(langs), -np.inf, dtype=np.float64)
+    for row in df.itertuples():
+        tau_arr[lang_to_idx[row.lang]] = -np.inf if row.excluded else float(row.tau)
+    return tau_arr, sha
+
+
 VARIANTS = {
     "shared9_bar18k": {
         "experiment": 47,
@@ -361,6 +450,70 @@ VARIANTS = {
         ),
         "accept": None,
     },
+    "flat4_prox21": {
+        "experiment": 49,
+        "description": (
+            "Direction 3 (Experiment 49): a full reimplementation of the promoted "
+            "configuration's two re-examination steps (step 1: languages with "
+            f"N < HEAD_N ({HEAD_N:,} training lines), thresholds from "
+            f"{TAU_FLOOR21_GATE_CSV}; step 2: the four flat_magnet-category "
+            f"languages with N >= HEAD_N, thresholds from {TAU_FLAT4_CSV}), both "
+            "re-run fresh from pred_floor21.npy (not chained through "
+            "pred_floor21_gate.npy) so the added condition below applies to step "
+            "1's moves too. Added condition: a replacement candidate must also "
+            f"have a saved score within D3_PROX ({D3_PROX} nats) of the saved "
+            "top-1 score, in addition to the existing N >= RES_CAP "
+            f"({RES_CAP:,} training lines) bar; a candidate failing either check "
+            "is skipped and the walk continues to the next of the saved "
+            f"top-{TOPK_MARGIN} candidates; a line with no acceptable candidate "
+            "keeps its pre-move (pred_floor21.npy) prediction. This variant does "
+            "not go through the generic single-threshold apply logic below "
+            "(_run_apply): it layers two different tau sources and a shared "
+            "score-proximity acceptance condition the generic path does not "
+            "support, so it has its own dedicated apply function, "
+            "_run_apply_flat4_prox21, dispatched from _run_apply by variant name. "
+            "The fields below are still declared, and still pass the module-level "
+            "validation loop, for documentation and consistency with the other "
+            "variants; 'reexamined_set' and 'accept' are not called by "
+            "_run_apply_flat4_prox21 (see its docstring for what is actually run "
+            "in their place)."
+        ),
+        "base_pred": "pred_floor21.npy",
+        # Documents the union of both steps' re-examined languages (the same
+        # union the topk stage's expanded_mask uses); _run_apply_flat4_prox21
+        # recomputes step 1's and step 2's masks separately (they need separate
+        # tau sources), not via this lambda.
+        "reexamined_set": lambda N, zH, category: (
+            (N < HEAD_N) | ((category == "flat_magnet") & (N >= HEAD_N))),
+        "reexamined_set_desc": (
+            f"the union of step 1 (languages with N < HEAD_N, {HEAD_N:,} training "
+            "lines) and step 2 (the four flat_magnet-category languages with "
+            "N >= HEAD_N: sco_Latn, bjn_Latn, arg_Latn, vls_Latn); the same union "
+            "the topk stage's expanded label set uses."
+        ),
+        # Not used for a generic exact-count check (_run_apply_flat4_prox21 checks
+        # step 2's count is exactly 4 directly); left None per the "disables the
+        # exact-language-count check" convention.
+        "expected_reexam_langs": None,
+        "threshold": None,
+        "calibrate": None,
+        # Third tau_csv pattern (see the validation loop below): two pre-computed
+        # CSVs, read directly by _load_tau_csv, no fresh calibration in this
+        # module.
+        "tau_csv": (TAU_FLOOR21_GATE_CSV, TAU_FLAT4_CSV),
+        "replacement_min_n": RES_CAP,
+        "replacement_min_n_desc": (
+            f"RES_CAP ({RES_CAP:,} training lines), the promoted configuration's "
+            "own replacement-candidate bar, unchanged, plus the added D3_PROX "
+            f"({D3_PROX} nats) score-proximity condition described above."
+        ),
+        # The N >= replacement_min_n check is still applied (inside
+        # _run_apply_flat4_prox21's own walk), but the added score-proximity
+        # condition cannot be expressed as an (candidate_lang_idx, N) -> bool
+        # callable, so this field is not used for flat4_prox21; left None per
+        # convention.
+        "accept": None,
+    },
 }
 for _vname, _ventry in VARIANTS.items():
     for _key, _hint in (
@@ -379,14 +532,40 @@ for _vname, _ventry in VARIANTS.items():
         if _key not in _ventry:
             raise RuntimeError(f"VARIANTS[{_vname!r}] must declare {_key!r} "
                                f"explicitly ({_hint})")
-    if (_ventry["threshold"] is None) == (_ventry["calibrate"] is None):
-        raise RuntimeError(f"VARIANTS[{_vname!r}] must set exactly one of "
-                           "'threshold' (fixed scalar) or 'calibrate' (per-language "
-                           "callable), not both or neither")
-    if (_ventry["threshold"] is None) != (_ventry["tau_csv"] is not None):
-        raise RuntimeError(f"VARIANTS[{_vname!r}]: 'tau_csv' must be set if and "
-                           "only if 'threshold' is None ('calibrate' is in use)")
-del _vname, _ventry, _key, _hint
+    # Three mutually exclusive threshold/calibrate/tau_csv patterns:
+    #  1. threshold is a fixed scalar nats value; calibrate and tau_csv both None
+    #     (e.g. shared9_bar18k).
+    #  2. threshold is None and calibrate is a (langs, N, reexam_idx) -> {lang_idx:
+    #     tau} callable that calibrates and writes one tau CSV inside the apply
+    #     stage; tau_csv names that single CSV path (e.g. flat4_tau5).
+    #  3. threshold and calibrate are both None; tau_csv is a 2-tuple/list of CSV
+    #     paths read directly, pre-computed, with no fresh calibration in this
+    #     module (flat4_prox21, Experiment 49: it reads two existing tau CSVs from
+    #     prior variants' builds).
+    _threshold = _ventry["threshold"]
+    _calibrate = _ventry["calibrate"]
+    _tau_csv = _ventry["tau_csv"]
+    if _threshold is not None:
+        if _calibrate is not None or _tau_csv is not None:
+            raise RuntimeError(f"VARIANTS[{_vname!r}]: 'threshold' is a fixed "
+                               "scalar; 'calibrate' and 'tau_csv' must both be "
+                               "None")
+    elif _calibrate is not None:
+        if not isinstance(_tau_csv, str):
+            raise RuntimeError(f"VARIANTS[{_vname!r}]: 'calibrate' is set; "
+                               "'tau_csv' must be a single CSV path (str)")
+    elif isinstance(_tau_csv, (tuple, list)):
+        if len(_tau_csv) != 2 or not all(isinstance(p, str) for p in _tau_csv):
+            raise RuntimeError(f"VARIANTS[{_vname!r}]: the pre-computed-CSV "
+                               "pattern requires 'tau_csv' to be a 2-tuple/list of "
+                               "CSV path strings")
+    else:
+        raise RuntimeError(f"VARIANTS[{_vname!r}] must set exactly one of: "
+                           "'threshold' (fixed scalar nats value), 'calibrate' "
+                           "(per-language callable, with 'tau_csv' a single CSV "
+                           "path), or leave both None with 'tau_csv' a 2-tuple of "
+                           "pre-computed CSV paths")
+del _vname, _ventry, _key, _hint, _threshold, _calibrate, _tau_csv
 
 
 def _read_wanted_lines(path: str, wanted: set) -> tuple[dict, int]:
@@ -643,12 +822,416 @@ def _run_topk() -> str:
     return lines_path
 
 
+def _walk_replacement(prox_limit: float | None, replacement_min_n: int,
+                      ids_row: np.ndarray, scores_row: np.ndarray,
+                      N: np.ndarray) -> tuple[str, int | None]:
+    """Shared replacement-candidate walk for _run_apply_flat4_prox21's two steps.
+    Walks `ids_row`/`scores_row` (one gate_topk row: index 0 is the saved top-1,
+    indices 1..TOPK_MARGIN-1 are the saved rank-2..TOPK_MARGIN candidates, in saved
+    rank order) starting at index 1. A candidate at index j is accepted if
+    N[ids_row[j]] >= replacement_min_n and, when `prox_limit` is not None,
+    scores_row[0] - scores_row[j] <= prox_limit (an unfilled slot, ids_row[j] ==
+    -1, is skipped). The first accepted candidate is taken. `replacement_min_n`
+    is fed in by the caller from the variant entry's own "replacement_min_n"
+    field (RES_CAP for every current variant that reaches this function; see
+    VARIANTS), not hardcoded here.
+
+    Returns (outcome, candidate_or_None):
+    - ("moved", cid): the first candidate meeting every active condition.
+    - ("blocked_by_proximity", None): at least one candidate met
+      N >= replacement_min_n, but none of those also met the D3_PROX bound. Only
+      reachable when prox_limit is not None, since with prox_limit=None the first
+      N >= replacement_min_n candidate is always accepted immediately.
+    - ("no_cand", None): no candidate met N >= replacement_min_n at all,
+      regardless of `prox_limit`.
+
+    With prox_limit=None this reproduces, candidate-for-candidate, the replacement
+    rule analysis/solo_gates.py's run("floor21") and this module's flat4_tau5
+    variant both use (first saved rank-2..TOPK_MARGIN candidate with
+    N >= replacement_min_n); this identity is what _run_apply_flat4_prox21's
+    mandatory self-check verifies before the D3_PROX-conditioned build is
+    trusted."""
+    top1_score = scores_row[0]
+    saw_min_n = False
+    for j in range(1, TOPK_MARGIN):
+        cid = int(ids_row[j])
+        if cid < 0:
+            continue  # unfilled candidate slot (topk stage short list); skip
+        if N[cid] < replacement_min_n:
+            continue
+        saw_min_n = True
+        if prox_limit is not None and (top1_score - scores_row[j]) > prox_limit:
+            continue
+        return "moved", cid
+    if saw_min_n:
+        return "blocked_by_proximity", None
+    return "no_cand", None
+
+
+def _flat4_prox21_two_step_pred(prox_limit: float | None, replacement_min_n: int,
+                                below1: np.ndarray, below2: np.ndarray,
+                                lines: np.ndarray, ids: np.ndarray,
+                                scores: np.ndarray, N: np.ndarray, y: np.ndarray,
+                                base_pred_arr: np.ndarray) -> dict:
+    """Runs _walk_replacement over every gate_topk row flagged by `below1` (step 1:
+    N < HEAD_N languages) and `below2` (step 2: the four flat_magnet, N >= HEAD_N
+    languages) separately, each starting from a fresh copy of `base_pred_arr`
+    (pred_floor21.npy), then merges the two sets of line-level diffs into one
+    TOTAL_LINES-length prediction array. below1 and below2 index disjoint sets of
+    gate_topk rows (step 1's and step 2's re-examined languages are disjoint by
+    construction; see the module docstring and _run_apply_flat4_prox21), so the
+    merge cannot conflict; this is asserted, not assumed. `replacement_min_n` is
+    passed straight through to every _walk_replacement call (the caller reads it
+    from the variant entry's own "replacement_min_n" field).
+
+    Returns a dict with keys "pred" (the merged TOTAL_LINES array) and, for each of
+    "step1", "step2", "combined": "n_moved", "n_to_true", "n_no_cand",
+    "n_blocked_prox"."""
+    def _run_step(below_mask):
+        pred = np.array(base_pred_arr, dtype=np.int16)
+        n_moved = n_to_true = n_no_cand = n_blocked = 0
+        for r in np.where(below_mask)[0].tolist():
+            outcome, cid = _walk_replacement(prox_limit, replacement_min_n,
+                                             ids[r], scores[r], N)
+            if outcome == "moved":
+                line = int(lines[r])
+                pred[line] = np.int16(cid)
+                n_moved += 1
+                if cid == int(y[line]):
+                    n_to_true += 1
+            elif outcome == "blocked_by_proximity":
+                n_blocked += 1
+            else:
+                n_no_cand += 1
+        if prox_limit is None and n_blocked:
+            raise RuntimeError(f"{n_blocked} lines reported blocked_by_proximity "
+                               "with prox_limit=None; _walk_replacement should "
+                               "never return that outcome when the proximity "
+                               "condition is disabled")
+        return pred, {"n_moved": n_moved, "n_to_true": n_to_true,
+                     "n_no_cand": n_no_cand, "n_blocked_prox": n_blocked}
+
+    pred1, stats1 = _run_step(below1)
+    pred2, stats2 = _run_step(below2)
+    diff1 = pred1 != base_pred_arr
+    diff2 = pred2 != base_pred_arr
+    if (diff1 & diff2).any():
+        raise RuntimeError("step 1 and step 2 modified the same line(s); their "
+                           "re-examined-set languages are supposed to be disjoint")
+    merged = np.array(base_pred_arr, dtype=np.int16)
+    merged[diff1] = pred1[diff1]
+    merged[diff2] = pred2[diff2]
+    combined = {k: stats1[k] + stats2[k] for k in stats1}
+    return {"pred": merged, "step1": stats1, "step2": stats2, "combined": combined}
+
+
+def _run_apply_flat4_prox21() -> str:
+    """Dedicated apply path for the flat4_prox21 variant (Experiment 49, direction
+    3), dispatched from _run_apply by variant name because this variant is a full
+    reimplementation of the promoted configuration's two re-examination steps, not
+    an instance of the generic single-threshold logic the rest of _run_apply runs
+    for every other VARIANTS entry: it needs two different tau sources (step 1
+    from TAU_FLOOR21_GATE_CSV, step 2 from TAU_FLAT4_CSV) and a shared
+    score-proximity acceptance condition (D3_PROX) that the generic path's
+    (candidate_lang_idx, N) -> bool 'accept' callable cannot express.
+
+    Both steps are re-run fresh from pred_floor21.npy (never from
+    pred_floor21_gate.npy), so the added D3_PROX condition governs step 1's moves
+    as well as step 2's, per the pre-registration.
+
+    Mandatory self-check before the conditioned build is trusted: the identical
+    two-step walk with the proximity condition disabled (prox_limit=None) must
+    reproduce SCRATCH_DIR/pred_gate_flat4_tau5.npy bit-identically over the full
+    TOTAL_LINES-length array (np.array_equal); this aborts, not warns, on any
+    mismatch. Only after that passes is the D3_PROX=21.0 conditioned build run and
+    saved."""
+    entry = VARIANTS["flat4_prox21"]
+
+    lines, ids, scores, fp = _load_topk_arrays()
+    if fp["head_n"] != HEAD_N:
+        raise RuntimeError(f"gate_topk_fingerprint.json head_n={fp['head_n']} != "
+                           f"the current HEAD_N={HEAD_N}; the topk-stage output was "
+                           "built under a different HEAD_N than this apply run")
+
+    prf = pd.read_csv(PRF_CSV)
+    langs = prf.lang.tolist()
+    N = prf.N.values
+    if len(langs) != fp["n_lang"]:
+        raise RuntimeError(f"{PRF_CSV} has {len(langs)} languages, "
+                           f"gate_topk_fingerprint.json records {fp['n_lang']}")
+    langs_sha = hashlib.sha256("|".join(langs).encode()).hexdigest()
+    if langs_sha != fp["langs_sha256"]:
+        raise RuntimeError(f"{PRF_CSV} language list does not match "
+                           "gate_topk_fingerprint.json's langs_sha256; the language "
+                           "table changed since stage 'topk' ran")
+
+    diag = pd.read_csv(DIAG_CSV)
+    if diag.lang.tolist() != langs:
+        raise RuntimeError(f"{DIAG_CSV} language order does not match {PRF_CSV}")
+    category = diag.category.values
+
+    low_n_mask = N < HEAD_N
+    flat_mask = (category == "flat_magnet")
+    expanded_mask = low_n_mask | flat_mask
+    expanded_sha = hashlib.sha256(expanded_mask.tobytes()).hexdigest()
+    if expanded_sha != fp["sha256_expanded_mask"]:
+        raise RuntimeError(f"expanded mask recomputed from {PRF_CSV}/{DIAG_CSV} "
+                           f"(sha256 {expanded_sha}) does not match "
+                           "gate_topk_fingerprint.json's sha256_expanded_mask "
+                           f"({fp['sha256_expanded_mask']}); one of those CSVs "
+                           "changed since stage 'topk' ran")
+
+    step1_mask = low_n_mask
+    step2_mask = flat_mask & (N >= HEAD_N)
+    if (step1_mask & step2_mask).any():
+        raise RuntimeError("step 1 and step 2 re-examined-set language masks "
+                           "overlap; expected disjoint (step 1 is N < HEAD_N, step "
+                           "2 is N >= HEAD_N)")
+    n_step2_langs = int(step2_mask.sum())
+    if n_step2_langs != 4:
+        raise RuntimeError(f"step 2's re-examined set has {n_step2_langs} "
+                           "language(s), expected exactly 4 (sco_Latn, bjn_Latn, "
+                           "arg_Latn, vls_Latn)")
+
+    y = np.asarray(np.lib.format.open_memmap(
+        os.path.join(SCRATCH_DIR, "y_true.npy"), mode="r"))
+    if y.shape != (TOTAL_LINES,):
+        raise RuntimeError(f"y_true.npy shape {y.shape} != ({TOTAL_LINES},)")
+    base_pred_path = os.path.join(SCRATCH_DIR, entry["base_pred"])
+    base_pred_arr = np.asarray(np.lib.format.open_memmap(base_pred_path, mode="r"))
+    if base_pred_arr.shape != (TOTAL_LINES,):
+        raise RuntimeError(f"{base_pred_path} shape {base_pred_arr.shape} != "
+                           f"({TOTAL_LINES},)")
+
+    n_affected = len(lines)
+    base_line_pred = base_pred_arr[lines]
+    if (base_line_pred < 0).any():
+        raise RuntimeError(f"{base_pred_path} has a negative prediction at one or "
+                           "more gate_topk_lines.npy indices; numpy fancy indexing "
+                           "with a negative int16 index silently wraps to the end "
+                           "of the language array instead of failing")
+
+    in_set1 = step1_mask[base_line_pred]
+    in_set2 = step2_mask[base_line_pred]
+    if (in_set1 & in_set2).any():
+        raise RuntimeError("internal count mismatch: a line falls in both step "
+                           "1's and step 2's in-set masks; this indicates a bug, "
+                           "since the two steps' re-examined-set languages are "
+                           "disjoint by construction")
+    n_in_set1 = int(in_set1.sum())
+    n_in_set2 = int(in_set2.sum())
+    if n_in_set1 + n_in_set2 != n_affected:
+        raise RuntimeError(
+            f"n_in_set1({n_in_set1:,}) + n_in_set2({n_in_set2:,}) != "
+            f"n_affected({n_affected:,}); step 1's and step 2's in-set masks are "
+            "expected to partition the full banked expanded set (every affected "
+            "line's base prediction falls in exactly one step's re-examined "
+            "languages)")
+
+    step1_lang_set = {langs[i] for i in np.where(step1_mask)[0]}
+    step2_lang_set = {langs[i] for i in np.where(step2_mask)[0]}
+    tau1, sha_tau1 = _load_tau_csv(TAU_FLOOR21_GATE_CSV, langs, step1_lang_set)
+    tau2, sha_tau2 = _load_tau_csv(TAU_FLAT4_CSV, langs, step2_lang_set)
+
+    top1 = ids[:, 0]
+    agree_mask = top1 == base_line_pred
+    gap = scores[:, 0] - scores[:, 1]
+
+    def _step_below(in_set, tau_arr):
+        disagree = in_set & ~agree_mask
+        gated = in_set & agree_mask
+        below = gated & (gap < tau_arr[base_line_pred])
+        return disagree, gated, below
+
+    disagree1, gated1, below1 = _step_below(in_set1, tau1)
+    disagree2, gated2, below2 = _step_below(in_set2, tau2)
+    n_disagree1, n_gated1, n_below1 = (int(disagree1.sum()), int(gated1.sum()),
+                                       int(below1.sum()))
+    n_disagree2, n_gated2, n_below2 = (int(disagree2.sum()), int(gated2.sum()),
+                                       int(below2.sum()))
+
+    # --- mandatory self-check: reproduce pred_gate_flat4_tau5.npy with the ---
+    # --- proximity condition disabled, before trusting the conditioned build ---
+    ref_path = os.path.join(SCRATCH_DIR, "pred_gate_flat4_tau5.npy")
+    if not os.path.exists(ref_path):
+        raise RuntimeError(f"self-check reference missing: {ref_path}; run "
+                           "Experiment 48's flat4_tau5 apply stage first")
+    reference = np.asarray(np.lib.format.open_memmap(ref_path, mode="r"))
+    if reference.shape != (TOTAL_LINES,):
+        raise RuntimeError(f"{ref_path} shape {reference.shape} != "
+                           f"({TOTAL_LINES},)")
+
+    none_result = _flat4_prox21_two_step_pred(
+        None, entry["replacement_min_n"], below1, below2, lines, ids, scores, N, y,
+        base_pred_arr)
+    self_check_pred = none_result["pred"]
+    if not np.array_equal(self_check_pred, reference):
+        n_mismatch = int((self_check_pred != reference).sum())
+        mismatch_idx = np.where(self_check_pred != reference)[0][:10].tolist()
+        raise RuntimeError(
+            "flat4_prox21 self-check FAILED: the two-step walk with the "
+            f"proximity condition disabled differs from {ref_path} on "
+            f"{n_mismatch:,} of {TOTAL_LINES:,} lines (first differing indices: "
+            f"{mismatch_idx}); the conditioned (D3_PROX={D3_PROX}) build is not "
+            "trusted until this reproduces bit-identically. Aborting without "
+            "building the conditioned output.")
+    print(f"flat4_prox21 self-check passed: the D=None two-step walk is "
+          f"bit-identical to {ref_path} on all {TOTAL_LINES:,} lines.")
+
+    # --- conditioned (D3_PROX) build, only reached after the self-check passes ---
+    result = _flat4_prox21_two_step_pred(
+        D3_PROX, entry["replacement_min_n"], below1, below2, lines, ids, scores, N,
+        y, base_pred_arr)
+    pred = result["pred"]
+
+    # Partition assertion, both the self-check pass (prox_limit=None) and the
+    # conditioned (D3_PROX) build: every re-examined line (n_below, the count of
+    # gate_topk rows that fell below tau and were walked) must land in exactly one
+    # of moved, kept-no-candidate, or blocked-by-proximity. A mismatch means the
+    # walk's outcome bookkeeping in _flat4_prox21_two_step_pred/_walk_replacement
+    # dropped or double-counted a row.
+    for check_name, res in (("self-check (prox_limit=None)", none_result),
+                            ("conditioned (D3_PROX)", result)):
+        for k, nb in (("step1", n_below1), ("step2", n_below2)):
+            s = res[k]
+            if nb != s["n_moved"] + s["n_no_cand"] + s["n_blocked_prox"]:
+                raise RuntimeError(
+                    f"{check_name} {k}: n_below={nb:,} does not equal "
+                    f"n_moved({s['n_moved']:,}) + n_no_cand({s['n_no_cand']:,}) + "
+                    f"n_blocked_prox({s['n_blocked_prox']:,}); the re-examined "
+                    "rows for this step do not partition into moved, kept-no-"
+                    "candidate, and blocked-by-proximity outcomes")
+
+    n_diff = int((pred != base_pred_arr).sum())
+    n_moved = result["combined"]["n_moved"]
+    if n_diff != n_moved:
+        raise RuntimeError(f"{n_diff:,} lines differ from {entry['base_pred']} but "
+                           f"n_moved={n_moved:,}; the moved-set count does not "
+                           f"match the actual diff against {entry['base_pred']}")
+
+    out_pred = os.path.join(SCRATCH_DIR, "pred_gate_flat4_prox21.npy")
+    np.save(out_pred, pred)
+
+    try:
+        git_commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True,
+        ).stdout.strip()
+    except (subprocess.CalledProcessError, OSError) as e:
+        raise RuntimeError(f"git rev-parse HEAD failed: {e}") from e
+
+    meta = {
+        "topk_fingerprint": fp,
+        "variant": "flat4_prox21",
+        "base_pred": entry["base_pred"],
+        "d3_prox": D3_PROX,
+        "replacement_min_n": RES_CAP,
+        "tau_csv": {
+            "step1_floor21_gate": {"path": TAU_FLOOR21_GATE_CSV,
+                                   "sha256": sha_tau1},
+            "step2_flat4": {"path": TAU_FLAT4_CSV, "sha256": sha_tau2},
+        },
+        "reexamined_set_desc": entry["reexamined_set_desc"],
+        "self_check": {
+            "reference": ref_path,
+            "n_lines_compared": TOTAL_LINES,
+            "bit_identical": True,
+        },
+        "counts": {
+            "n_affected": n_affected,
+            "step1": {"n_in_set": n_in_set1, "n_disagree": n_disagree1,
+                     "n_gated": n_gated1, "n_gap_ok": n_gated1 - n_below1,
+                     "n_below": n_below1, **result["step1"]},
+            "step2": {"n_in_set": n_in_set2, "n_disagree": n_disagree2,
+                     "n_gated": n_gated2, "n_gap_ok": n_gated2 - n_below2,
+                     "n_below": n_below2, **result["step2"]},
+            "combined": {
+                "n_in_set": n_in_set1 + n_in_set2,
+                "n_disagree": n_disagree1 + n_disagree2,
+                "n_gated": n_gated1 + n_gated2,
+                "n_gap_ok": (n_gated1 - n_below1) + (n_gated2 - n_below2),
+                "n_below": n_below1 + n_below2,
+                **result["combined"],
+            },
+        },
+        "git_commit": git_commit,
+    }
+    out_meta = os.path.join(SCRATCH_DIR, "pred_gate_flat4_prox21_meta.json")
+    with open(out_meta + ".tmp", "w") as f:
+        json.dump(meta, f)
+    os.replace(out_meta + ".tmp", out_meta)
+
+    c = meta["counts"]
+    lines_out = [
+        "# flat4_prox21 candidate build (Experiment 49)\n",
+        entry["description"],
+        "",
+        f"- Reproduction check passed: the two-step walk, run with the D3_PROX "
+        f"condition disabled, is bit-identical to {ref_path} across all "
+        f"{TOTAL_LINES:,} lines (np.array_equal over the full array).",
+        f"- Constants: HEAD_N = {HEAD_N:,} training lines (step 1's re-examined-"
+        f"set boundary); RES_CAP = {RES_CAP:,} training lines (the replacement-"
+        f"candidate minimum, both steps); TOPK_MARGIN = {TOPK_MARGIN} saved "
+        f"candidates per affected line; D3_PROX = {D3_PROX} nats (the added "
+        "score-proximity bound, derivation-part grid search, plateau 15 to 35). "
+        f"Base predictions: {entry['base_pred']}.",
+        f"- Tau sources: step 1 from {TAU_FLOOR21_GATE_CSV} (sha256 "
+        f"{sha_tau1[:16]}...); step 2 from {TAU_FLAT4_CSV} (sha256 "
+        f"{sha_tau2[:16]}...).",
+        f"- Affected: {n_affected:,} lines carry a saved floor21-prediction "
+        "candidate list (the topk-stage expanded label set).",
+        "",
+        "| step | in-set | disagreements | gated (in-set, agreeing) | gap-ok "
+        "(kept) | re-examined (below tau) | moved | moved-to-true | "
+        "kept-no-candidate | blocked-by-proximity |",
+        "|---|---|---|---|---|---|---|---|---|---|",
+    ]
+    for label, key in (("step 1 (N < HEAD_N)", "step1"),
+                       ("step 2 (flat4, N >= HEAD_N)", "step2"),
+                       ("combined", "combined")):
+        s = c[key]
+        lines_out.append(
+            f"| {label} | {s['n_in_set']:,} | {s['n_disagree']:,} | "
+            f"{s['n_gated']:,} | {s['n_gap_ok']:,} | {s['n_below']:,} | "
+            f"{s['n_moved']:,} | {s['n_to_true']:,} | {s['n_no_cand']:,} | "
+            f"{s['n_blocked_prox']:,} |")
+    lines_out += [
+        "",
+        f"- Disagreements: lines whose saved top-1 candidate disagrees with "
+        f"{entry['base_pred']} are left unchanged and counted, not re-examined "
+        "(the recorded top-1-agreement convention).",
+        f"- Blocked-by-proximity: re-examined lines where at least one candidate "
+        f"ranked 2 to {TOPK_MARGIN} met the N >= RES_CAP bar, but none of those "
+        f"also met the D3_PROX = {D3_PROX} nats bound, so the line keeps its "
+        f"{entry['base_pred']} prediction (distinct from kept-no-candidate: no "
+        "candidate met the N >= RES_CAP bar at all).",
+        f"- Moved: {c['combined']['n_moved']:,} lines total move to a replacement "
+        f"candidate; {c['combined']['n_to_true']:,} of those land on the true "
+        "label recorded in y_true.npy.",
+        f"- All lines outside the moved set are bit-identical to "
+        f"{entry['base_pred']} ({n_diff:,} lines differ, verified equal to "
+        f"n_moved={n_moved:,}). Output: {out_pred}; metadata: {out_meta}.",
+    ]
+    out_md = "outputs/tables/gate_flat4_prox21_build.md"
+    os.makedirs(os.path.dirname(out_md), exist_ok=True)
+    with open(out_md, "w") as f:
+        f.write("\n".join(lines_out) + "\n")
+    print("\n".join(lines_out))
+    print(f"\nWrote {out_pred}, {out_meta}, and {out_md}")
+    return out_pred
+
+
 def _run_apply(variant: str) -> str:
     """Stage "apply": post-processes the saved stage-"topk" arrays into a full-pool
-    prediction file for one named entry in VARIANTS. No scoring happens here."""
+    prediction file for one named entry in VARIANTS. No scoring happens here.
+
+    "flat4_prox21" (Experiment 49) is dispatched to its own dedicated function,
+    _run_apply_flat4_prox21, instead of running the generic single-threshold logic
+    below: see that function's docstring for why."""
     if variant not in VARIANTS:
         raise ValueError(f"unknown variant {variant!r}; must be one of "
                          f"{sorted(VARIANTS)}")
+    if variant == "flat4_prox21":
+        return _run_apply_flat4_prox21()
     entry = VARIANTS[variant]
 
     lines, ids, scores, fp = _load_topk_arrays()

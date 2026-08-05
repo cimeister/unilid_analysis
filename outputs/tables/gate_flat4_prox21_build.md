@@ -1,0 +1,19 @@
+# flat4_prox21 candidate build (Experiment 49)
+
+Direction 3 (Experiment 49): a full reimplementation of the promoted configuration's two re-examination steps (step 1: languages with N < HEAD_N (18,000 training lines), thresholds from outputs/diagnostic/tau_floor21_gate.csv; step 2: the four flat_magnet-category languages with N >= HEAD_N, thresholds from outputs/diagnostic/tau_flat4.csv), both re-run fresh from pred_floor21.npy (not chained through pred_floor21_gate.npy) so the added condition below applies to step 1's moves too. Added condition: a replacement candidate must also have a saved score within D3_PROX (21.0 nats) of the saved top-1 score, in addition to the existing N >= RES_CAP (100,000 training lines) bar; a candidate failing either check is skipped and the walk continues to the next of the saved top-5 candidates; a line with no acceptable candidate keeps its pre-move (pred_floor21.npy) prediction. This variant does not go through the generic single-threshold apply logic below (_run_apply): it layers two different tau sources and a shared score-proximity acceptance condition the generic path does not support, so it has its own dedicated apply function, _run_apply_flat4_prox21, dispatched from _run_apply by variant name. The fields below are still declared, and still pass the module-level validation loop, for documentation and consistency with the other variants; 'reexamined_set' and 'accept' are not called by _run_apply_flat4_prox21 (see its docstring for what is actually run in their place).
+
+- Reproduction check passed: the two-step walk, run with the D3_PROX condition disabled, is bit-identical to /capstor/scratch/cscs/cmeister747/unilid_analysis/full_test_eval/pred_gate_flat4_tau5.npy across all 45,627,279 lines (np.array_equal over the full array).
+- Constants: HEAD_N = 18,000 training lines (step 1's re-examined-set boundary); RES_CAP = 100,000 training lines (the replacement-candidate minimum, both steps); TOPK_MARGIN = 5 saved candidates per affected line; D3_PROX = 21.0 nats (the added score-proximity bound, derivation-part grid search, plateau 15 to 35). Base predictions: pred_floor21.npy.
+- Tau sources: step 1 from outputs/diagnostic/tau_floor21_gate.csv (sha256 8ad290e36409c085...); step 2 from outputs/diagnostic/tau_flat4.csv (sha256 9f85dd5f2bb5f9db...).
+- Affected: 2,236,864 lines carry a saved floor21-prediction candidate list (the topk-stage expanded label set).
+
+| step | in-set | disagreements | gated (in-set, agreeing) | gap-ok (kept) | re-examined (below tau) | moved | moved-to-true | kept-no-candidate | blocked-by-proximity |
+|---|---|---|---|---|---|---|---|---|---|
+| step 1 (N < HEAD_N) | 2,103,258 | 1 | 2,103,257 | 1,835,576 | 267,681 | 229,769 | 139,952 | 24,029 | 13,883 |
+| step 2 (flat4, N >= HEAD_N) | 133,606 | 0 | 133,606 | 48,143 | 85,463 | 84,545 | 56,484 | 877 | 41 |
+| combined | 2,236,864 | 1 | 2,236,863 | 1,883,719 | 353,144 | 314,314 | 196,436 | 24,906 | 13,924 |
+
+- Disagreements: lines whose saved top-1 candidate disagrees with pred_floor21.npy are left unchanged and counted, not re-examined (the recorded top-1-agreement convention).
+- Blocked-by-proximity: re-examined lines where at least one candidate ranked 2 to 5 met the N >= RES_CAP bar, but none of those also met the D3_PROX = 21.0 nats bound, so the line keeps its pred_floor21.npy prediction (distinct from kept-no-candidate: no candidate met the N >= RES_CAP bar at all).
+- Moved: 314,314 lines total move to a replacement candidate; 196,436 of those land on the true label recorded in y_true.npy.
+- All lines outside the moved set are bit-identical to pred_floor21.npy (314,314 lines differ, verified equal to n_moved=314,314). Output: /capstor/scratch/cscs/cmeister747/unilid_analysis/full_test_eval/pred_gate_flat4_prox21.npy; metadata: /capstor/scratch/cscs/cmeister747/unilid_analysis/full_test_eval/pred_gate_flat4_prox21_meta.json.
