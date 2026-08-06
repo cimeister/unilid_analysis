@@ -25,7 +25,187 @@ uniform sample (`seed=42`, without replacement).
 
 ---
 
-## Current state (2026-07-29)
+## Current state (2026-08-06)
+
+Read this block first; it supersedes the 2026-07-29 block below, which is
+retained for the decision trail and marked superseded there. Terminology
+used throughout (repeated from the superseded block): a **row** is one
+language's vector of natural-log token probabilities in the 1,940 x 100,000
+weight matrix; the **primary quantity** is per-language F1 on
+natural-distribution test data with all false positives counted, averaged
+unweighted over the 1,940 languages.
+
+**Promoted configuration: gate_flat4_prox21 (user decision 2026-08-06).**
+gate_flat4_prox21 is promoted on the natural track, superseding floor21_gate,
+which remains in the pool. It has three mechanisms, computed on a line's
+prediction in this order.
+1. Floor-21 unseen-token clamp on all 1,940 rows: every entry at a row's
+   minimum, the tokens never seen in that language's training data, is set
+   to -21 natural-log units (Exp 20).
+2. Re-examination of lines predicted into a language with fewer than 18,000
+   training lines, and separately of lines predicted into one of four flat
+   large-corpus languages: sco_Latn, bjn_Latn, arg_Latn, vls_Latn. Each of
+   these four has more than 18,000 training lines but a token distribution
+   unusually flat for its script, identified in Exp 48 from the zH flatness
+   column of `outputs/diagnostic/lang_diagnostic.csv`. Each group is
+   re-examined against its own per-language threshold, a percentile of the
+   score margins that language achieves on its own training lines, computed
+   under the floor-21 weight matrix. For the under-18,000 group the
+   percentile decays with corpus size, q_L = 5 * (1 - N_L / 18,000) for a
+   language with N_L training lines (`tau_floor21_gate.csv`); for the four
+   flat languages it is fixed at the 5th percentile (`tau_flat4.csv`). A
+   line is re-examined when its winning score exceeds the runner-up score
+   by less than its predicted language's threshold.
+3. A re-examined line is walked through the candidates ranked 2 to 5 of its
+   saved top-five candidate list, in rank order. A candidate is accepted
+   only if it has at least 100,000 training lines (RES_CAP, the resource
+   cap established in Exp 33/34) and its saved score is within
+   D3_PROX = 21.0 natural-log units of the top-1
+   saved score (Exp 49; chosen from a derivation-part grid search from 0.5
+   to 100 in steps of 1, where the optimum plateau spans roughly 15 to 35).
+   A line with no accepted candidate keeps its pre-move prediction.
+
+Judge-part overall F1 is 0.9498, +0.0018 [+0.0010, +0.0026] over floor21_gate
+(paired bootstrap, B=10,000, seed 0, percentile, 95%, Exp 49), zero supported
+collapses (clause C). Confirmation on the balanced test draw (seed 201,
+185,204 lines) is in `outputs/tables/gate_flat4_prox21_confirmation_201.md`:
+overall 0.9781, tail 0.8763, magnets 0.8811.
+
+**Promotion lineage.** Baseline, the unmodified weight matrix, has
+judge-part overall F1 0.9117. floor21_gate (mechanisms 1 and 2 above
+restricted to the under-18,000 group only, mechanism 3 without the D3_PROX
+condition) has 0.9480 and was promoted 2026-07-30 (user decision, recorded
+in the superseded block below). gate_flat4_prox21 has 0.9498 and was
+promoted 2026-08-06, superseding floor21_gate.
+
+**The pool, with named mechanisms.** Experiment 47's shared re-examination
+threshold (one shared value of 9.0 in place of the per-language thresholds
+of mechanism 2, and the replacement bar of mechanism 3 lowered to 18,000
+training lines) has judge-part overall F1 0.9534, the highest aggregate on
+record, but fails clause C at class level: 9 languages with judge-part
+support 15 to 2,947 lose more than 0.10 F1 against baseline, because a
+per-language threshold set at a percentile of that language's own margins
+bounds its own recall loss by that percentile and a shared value does not.
+It is in the pool, not promotable in current form. Experiment 50's
+pooled-frequency floor (bgfloor: unseen-token entries set to a shared
+constant plus the token's log frequency in the pooled training data,
+instead of one flat value) has judge-part overall F1 +0.000412 [+0.000043,
++0.000837] over floor-21 solo (paired bootstrap, B=10,000, seed 0), a real
+but small gain at the edge of resolution. The user declined the
+pre-registered composed step of rebuilding the Exp 49 gate on this matrix
+(2026-08-06); bgfloor stays in the pool at this gate-less result.
+
+**Evaluation instruments.** Selection: the balanced validation set, draw
+seed 101, 188,061 lines. Confirmation of an ordinary candidate: the
+held-out remainder, 45,004,014 lines outside draws 101 and 201. Final
+reporting: the balanced test set, draw seed 201, 185,204 lines. For a
+candidate whose rule or constants are chosen using remainder data (Exp 47
+through 50, and the mixed matrix before them), the remainder is further
+split by a seeded 40/60 partition (RULE_SPLIT_SEED=301,
+RULE_SPLIT_FRACTION=0.40, Exp 44): an 18.0M-line derivation part
+(18,001,573 lines) where rules and constants may be chosen, and a
+27.0M-line judge part (27,002,441 lines) used for the one confirming
+measurement per candidate, with comparators recomputed there.
+
+**Open items.** (1) The objective interpretation question is unchanged: the
+primary quantity averages per-language F1 over natural-distribution test
+data rather than equal-volume-per-language test data, a choice recorded in
+Exp 38 and open to correction. (2) Recorded follow-ups, none started: a
+hybrid re-examination threshold (the smaller of Exp 47's shared 9.0 and a
+per-language cap from own-train margins, to keep Exp 47's aggregate gain
+while restoring the per-language collapse bound); the declined Exp 50
+composed step (rebuilding the Exp 49 gate on the bgfloor matrix); direction
+5 of the candidate-directions list in `EXPERIMENTS_PLAN.md` (raising the
+unseen-token floor above -21 for the 12 languages where -21 makes them lose
+on their own text), never tried. (3) The largest remaining error category,
+measured on floor21_gate's residual as of 2026-07-30 (not re-measured
+against gate_flat4_prox21's smaller residual set): of the 962,633 wrong
+predictions remaining after floor21_gate on the judge part, 98.7% are lines
+whose true language has at least 18,000 training lines, and 88.2% of those
+are confused with another such language, concentrated in close pairs
+(Indonesian and Malay, English and Scots, Mandarin and Wu Chinese;
+`EXPERIMENTS_PLAN.md`, "The boundary this family cannot cross"). No
+unseen-token treatment changes such a pair's score comparison materially
+(at most 0.14 natural-log units per token). Whether a pairwise mechanism
+can close this gap while keeping the add-a-language property, a new
+language's parameters depending only on that language's own data, is open
+and undesigned.
+
+## Patterns established by Experiments 44 to 50 (2026-08-06)
+
+(a) Balanced draws cannot rank methods for the primary quantity. On the
+balanced validation draw (seed 101), the per-group leader disagreed with
+the held-out-remainder leader in all six groups tested, and gt_min led
+every group on the draw, because the draw's 100-line-per-language cap
+removes the false-positive volume the primary quantity is defined on.
+Per-language leader counts on the draw are noise: 1,623 of the 1,940
+languages tied, and leader agreement between draws 101 and 102 was 58.1%
+against a 25% chance level. Measured 2026-07-29, recorded in the decisions
+block of the superseded "Current state (2026-07-29)" block below.
+
+(b) Shared calibration constants score higher in aggregate than
+per-language estimates in three measured cases: the floor level (-21 for
+all languages, close to the pooled Good-Turing derivation of -20.60 in
+`outputs/diagnostic/gt_counts.csv`), the refutation of per-script or
+per-size floor levels, and the Exp 47 shared re-examination threshold
+(SHARED_TAU=9.0, judge-part overall 0.9534 against floor21_gate's 0.9480).
+The one measured exception: a shared re-examination threshold with no
+per-language bound produces class-level collapses (Exp 47, 9 languages
+losing more than 0.10 F1 against baseline), because a per-language
+threshold set at a percentile of that language's own margins bounds its own
+recall loss by that percentile and a shared value does not.
+gate_flat4_prox21 therefore keeps per-language thresholds for own-recall
+protection (`tau_floor21_gate.csv`, `tau_flat4.csv`) while using shared
+constants for the floor level (-21),
+the replacement-candidate resource bar (RES_CAP=100,000), and the proximity
+condition (D3_PROX=21.0).
+
+(c) Blocking a re-examination move relocates the false positive it would
+have caused from the large target language back onto the small source
+language. Under unweighted per-language averaging that relocation costs
+more aggregate F1 than it saves, so an acceptance condition based on the
+replacement candidate's identity costs aggregate F1, while a condition
+based on score proximity to the top-1 candidate does not. Every
+target-identity form of the direction-3 acceptance condition that repaired
+the motivating Maltese example was measured on the derivation part and cost
+aggregate F1 (Exp 49 pre-registration; `EXPERIMENTS_PLAN.md`, "Candidate
+directions from the post-promotion error analysis", direction 3); the
+score-proximity form (D3_PROX=21.0) does not have this cost and is the form
+in the promoted configuration.
+
+(d) A shallower unseen-token floor absorbs contested lines rather than
+returning them to their true language. Exp 46 pre-registered two
+predictions for a per-language mixed weight matrix (languages at or above
+18,000 training lines keep the unmodified row, all others get the floor-21
+row): that a head carve-out would recover most of floor21_gate's head loss,
+and that non-head groups would gain from the per-language assignment. Both
+predictions were refuted in sign: judge-part head group mean F1 fell
+further under the carve-out (0.9580 against floor21_gate's 0.9586) while
+every non-head group's judge-part mean F1 rose slightly (tail 0.7323
+against 0.7306, lowmid 0.9606 against 0.9599, flat_magnet 0.6464 against
+0.6435). The restored, shallower head floor absorbed more contested lines
+instead of returning them to the head languages.
+
+(e) Most of the remaining wrong predictions are confusions between two
+large languages. `EXPERIMENTS_PLAN.md` ("The boundary this family cannot
+cross") measured, on floor21_gate's residual as of 2026-07-30 (the promoted
+configuration at that date; not re-measured against gate_flat4_prox21's
+smaller residual set): of the 962,633 wrong predictions remaining on the
+judge part, 98.7% are lines whose true language has at least 18,000
+training lines, and 88.2% of those are confused with another language that
+also has at least 18,000 training lines, concentrated in close pairs
+(Indonesian and Malay, English and Scots, Mandarin and Wu Chinese). No
+unseen-token treatment changes such a pair's score comparison materially
+(at most 0.14 natural-log units per token); a mechanism reaching past this
+point would need to separate specific language pairs directly, and whether
+such a mechanism can keep the add-a-language property (a new language's
+parameters depend only on that language's own data) is open.
+
+## Current state (2026-07-29) (superseded by the 2026-08-06 block above; retained for the decision trail)
+
+This block is kept as originally written, including its own claim below to
+supersede earlier state descriptions; where it conflicts with the
+2026-08-06 block above, the 2026-08-06 block is authoritative.
 
 Read this block first; it supersedes any earlier state description in this file.
 Terminology used throughout (defined once here): a **row** is one language's

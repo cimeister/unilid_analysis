@@ -106,7 +106,7 @@ MMI training was rejected. Full plan file: `~/.claude/plans/yes-do-both-then-gig
 Item numbers are stable identifiers; entries appear in the order they were added, not in
 numeric order. **The state paragraph below is frozen at 2026-07-19 and is retained only
 as the context in which these items were written. For current state read
-`EXPERIMENTS_RESULTS.md` "Current state (2026-07-27)" and the open items at the top of
+`EXPERIMENTS_RESULTS.md` "Current state (2026-08-06)" and the open items at the top of
 this file.** Historical context (2026-07-19): selection runs under the balanced protocol
 (item 10 / Exp 22), which encodes the uniform-prior objective; under it the two live
 candidates are the punctuation partial pooling (item 15, guard-passed at alpha=300) and
@@ -623,6 +623,14 @@ configuration contains zero, or the group of languages with at least 18,000
 training lines loses more than 0.01, or the balanced-validation check fails
 by more than the promoted configuration's recorded amounts.
 
+**Outcome (2026-08-05/06, Exp 47).** Tried. The shared threshold
+(SHARED_TAU=9.0, replacement bar lowered to 18,000 training lines) scored
+average F1 0.9534 on the judge part, the highest aggregate on record, but
+failed clause C at class level: 9 languages with judge-part support 15 to
+2,947 lost more than 0.10 F1 against baseline. In the pool, not promotable in
+current form. A hybrid follow-up (the smaller of 9.0 and a per-language cap
+from own-train margins) is recorded but not pre-registered or run.
+
 **Direction 2: choose the re-examined languages by distribution shape instead
 of corpus size.** Four languages with corpora above 18,000 lines (Scots,
 Banjar Latin-script, Aragonese, West Flemish) are each written almost
@@ -640,6 +648,12 @@ Cost: rescoring only the lines predicted as those languages. Refuted if the
 four languages lose more from re-examination of their genuine lines than
 their neighbors gain in precision.
 
+**Outcome (2026-08-06, Exp 48).** Tried. Re-examining the four flat
+large-corpus languages at their own 5th-percentile thresholds scored
+average F1 0.9486 on the judge part, +0.0006 [+0.0001, +0.0013] over
+floor21_gate, zero supported collapses. Eligible; a component of the
+promoted configuration gate_flat4_prox21.
+
 **Direction 3: a quality condition on the replacement label.** Of the 138,077
 predictions the re-examination step moved on the judge part, 78,651 landed on
 the correct language and 59,426 did not; 10,504 of the wrong ones landed on
@@ -652,6 +666,15 @@ replacement label, with the exact form fixed at pre-registration (it must be
 computable from training-side or selection-side data only, never from
 held-out data). Upper bound if every wrong move were prevented while keeping
 every correct one: +0.0056 average F1. Cost: post-processing only.
+
+**Outcome (2026-08-06, Exp 49).** Tried. The score-proximity condition
+(D3_PROX=21.0 natural-log units) scored average F1 0.9498 on the judge
+part, +0.0012 [+0.0007, +0.0016] over the direction-2 configuration
+(gate_flat4_tau5), zero supported collapses. Eligible; a component of the
+promoted configuration gate_flat4_prox21. Target-identity forms of this condition
+were also measured and set aside in favor of the score-proximity form (see
+`EXPERIMENTS_RESULTS.md`, "Patterns established by Experiments 44 to 50",
+pattern (c)).
 
 **Direction 4: give unseen tokens values according to their overall
 frequency, instead of one identical value.** In the promoted configuration
@@ -668,6 +691,14 @@ increase in wrong predictions onto small-language labels. The effect is
 small and its sign on average F1 is not yet established; one full scoring
 pass would establish it.
 
+**Outcome (2026-08-06, Exp 50).** Tried. The pooled-frequency unseen-token
+value (bgfloor) scored +0.000412 [+0.000043, +0.000837] in average F1 over
+floor-21 solo on the judge part (paired bootstrap, B=10,000, seed 0), a
+real but small gain at the edge of resolution. Eligible. The pre-registered
+composed step (rebuilding the Exp 49 gate on this matrix) was declined by the user
+(2026-08-06); bgfloor stays in the pool at this gate-less result, not
+incorporated into gate_flat4_prox21.
+
 **Direction 5: keep a small language's unseen-token value higher when -21
 would make it lose on its own text.** For any ordered pair of languages, the
 expected score difference per token when text genuinely from the first
@@ -681,6 +712,8 @@ against the unmodified baseline, against 0.0065 for all other languages. The
 proposal: for exactly those languages, lower the unseen-token value only to
 the deepest level at which the expected difference stays non-negative. Cost:
 one matrix computation plus one scoring pass; 12 rows change.
+
+**Outcome.** Not tried. Still open.
 
 **Measured and set aside.** Honest per-language unseen-token mass (the
 Good-Turing rescale) recovers most of the small-language recall that -21
@@ -728,9 +761,18 @@ magnitude is known to be overstated. The 200k retrain is available for the same
 treatment but is lower priority, since the 200k branch was refuted on a different
 axis (Exp 15) and its Azerbaijani row was only partially damaged.
 
-**2. ONGOING 2026-07-29: the combined-method plan above is in execution (step 0
-and the evidence base first; no scoring before the step-2 user checkpoint).**
-Original item text follows.
+**2. RESOLVED 2026-07-30 (Exp 44-46, amendment 8), then superseded 2026-08-06
+(Exp 47-50).** The combined-method plan (the per-language mixed weight
+matrix) ran to completion: the mixed configuration scored indistinguishably
+from the uniform floor21_gate configuration on the judge part (paired
+bootstrap of per-language F1 averaged over the 1,940 languages, mixed minus
+floor21_gate, +0.0002 [-0.0003, +0.0006]), so the per-language-assignment
+direction closed for the combined method's six-combination treatment space
+by a null interaction, not by harm. floor21_gate, the simpler uniform
+configuration, was promoted instead (2026-07-30). floor21_gate was itself
+superseded 2026-08-06 by gate_flat4_prox21 after Exp 47-50 (see "Candidate directions from the
+post-promotion error analysis" above and `EXPERIMENTS_RESULTS.md`, "Current
+state (2026-08-06)"). Original item text follows.
 
 **2 (original). Per-language method chooser (the strongest open method direction).** Exp 40
 measured an oracle that picks the best of the seven configurations per language at
@@ -760,9 +802,9 @@ Apertus models retrained (Exp 41, 42); the carried-set comparison under the
 primary quantity (Exp 38); the CommonLID out-of-domain check including the
 objective-consistent per-tag metric (Exp 39); the oracle bound (Exp 40).
 
-## Notes for whoever resumes this (updated 2026-07-27)
+## Notes for whoever resumes this (updated 2026-07-27; pointer corrected 2026-08-06)
 
-Read `EXPERIMENTS_RESULTS.md` "Current state (2026-07-27)" first; it is the
+Read `EXPERIMENTS_RESULTS.md` "Current state (2026-08-06)" first; it is the
 single authoritative summary. These are the traps and conventions that are easy
 to get wrong.
 

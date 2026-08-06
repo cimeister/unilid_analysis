@@ -559,6 +559,124 @@ repairs cross-language false-positive inflow, so the compositions apply both, wi
 tau recalibrated under the modified weights (thresholds do not transfer when the
 weights change). `gt_margin_adaptive` is the surviving member and is carried.
 
+### The re-examination family and the promoted configuration (Exp 44 to 50)
+
+This family extends the margin gate family above (same mechanism: a
+per-language decision-time threshold, plus a minimum training-corpus size
+for the replacement candidate), applied uniformly to all 1,940 languages on
+top of the floor-21 weight matrix, then refined by four post-promotion
+candidates (Exp 47 to 50). gate_flat4_prox21, described below, is the
+configuration the project currently promotes.
+
+**floor21_gate (Exp 44, 45; promoted 2026-07-30).** Floor-21 rows for all
+1,940 languages (the "Floor equalization" mechanism above), plus the margin
+gate applied to every language with fewer than 18,000 training lines
+instead of only the smallest languages, with the replacement-candidate bar
+raised to RES_CAP = 100,000 training lines. RES_CAP was established in Exp
+33/34 (`EXPERIMENTS_RESULTS.md`, Exp 33 pre-registration of
+`gt_margin_all_100k`): 98.9% of the false positives this family repairs
+come from source languages with a median of 100,000 training lines, so a
+reassignment target below that bar is not a genuine repair. Thresholds:
+`tau_floor21_gate.csv`, one per gated language, at the size-adaptive
+quantile of that language's own training-line score margins, q_L = 5 * (1 -
+N_L / 18,000) for a language with N_L training lines, the same calibration
+as `gt_margin_adaptive` above. Judge-part overall F1 0.9480, +0.0151
+[+0.0112, +0.0191] over gt_margin_adaptive.
+
+**Exp 47: shared re-examination threshold (in the pool, not promoted).**
+Replaces the 1,080 per-language thresholds with SHARED_TAU = 9.0
+natural-log units and lowers the replacement-candidate bar to 18,000
+training lines. SHARED_TAU was chosen from a derivation-part sweep
+(`outputs/diagnostic/gate_threshold_sweep_20260730.csv`, optimum flat
+between 7 and 12). Scores highest on aggregate (judge-part overall 0.9534)
+but fails the per-language collapse clause at class level: 9 languages with
+judge-part support 15 to 2,947 lose more than 0.10 F1 against baseline,
+because a per-language threshold set at a percentile of that language's own
+margins bounds its own recall loss by that percentile and a shared value
+does not. Not incorporated into the promoted configuration for this reason.
+Recorded follow-up, not pre-registered: a hybrid threshold, the smaller of 9.0 and a
+per-language cap from own-train margins.
+
+**Exp 48: the four flat large-corpus languages (component of the promoted
+configuration).** Four languages with more than 18,000 training lines each
+have a token distribution unusually flat for their script: sco_Latn,
+bjn_Latn, arg_Latn, vls_Latn, identified by the zH column of
+`outputs/diagnostic/lang_diagnostic.csv` (their zH values are 1.567 to
+3.228, median 2.51, against a median of 0.00 over all 1,940 languages).
+floor21_gate's corpus-size-only gate exempts these four even though they
+receive 63,842 of the 118,006 wrong predictions into small-language or
+flat-distribution labels that remain after floor21_gate (54.1%). Exp 48
+re-examines the four under their own thresholds (`tau_flat4.csv`), at a
+fixed 5th percentile rather than floor21_gate's size-adaptive quantile,
+which is zero at or above 18,000 training lines, and with the same RES_CAP
+= 100,000 replacement-candidate bar. Judge-part overall F1 0.9486, +0.0006
+[+0.0001, +0.0013] over floor21_gate.
+
+**Exp 49: score-proximity condition on the replacement candidate (component
+of the promoted configuration).** Adds one condition to the
+replacement-candidate walk used by both the under-18,000 gate and the flat4
+gate: a candidate must have a saved score within D3_PROX = 21.0 natural-log
+units of the top-1 saved score, in addition to the existing RES_CAP =
+100,000 training-line bar. D3_PROX was chosen on the derivation part from a
+grid search of 0.5 to 100 in steps of 1; the optimum plateau spans roughly
+15 to 35 within 0.0003 of the derivation-part score, so 21.0 represents the
+plateau rather than a finely tuned value. Judge-part overall F1 0.9498,
++0.0018 [+0.0010, +0.0026] over floor21_gate. This condition was chosen
+over target-identity conditions (accepting or rejecting a replacement by
+which language it is): every target-identity form that repaired the
+motivating errors was measured to cost aggregate F1, because it relocates a
+false positive from a large language back onto the small source language,
+which costs more under unweighted per-language averaging than it saves
+(`EXPERIMENTS_PLAN.md`, "Candidate directions from the post-promotion error
+analysis", direction 3).
+
+**gate_flat4_prox21: floor21_gate's gate extended to the four flat
+languages (Exp 48), with the score-proximity condition added (Exp 49).**
+Judge-part overall F1 0.9498; promoted 2026-08-06 by user decision,
+superseding floor21_gate, which remains in the pool. Confirmation on the
+balanced test draw (seed 201): `outputs/tables/gate_flat4_prox21_confirmation_201.md`.
+
+**Exp 50: pooled-frequency unseen-token values (in the pool, not
+composed).** An alternative to the floor-21 weight-matrix edit: each row's
+minimum-block entries are set to a shared constant `c` plus the token's log
+probability in the pooled training-data distribution (`p_base`, already
+stored in the model file as the base tokenizer distribution), with `c`
+fixed so the mean assigned value over the non-special vocabulary equals
+-21.0 (measured: c = -8.4740, assigned plateau range -27.61 to -12.31). The
+flat -21 value is the special case of a flat `p_base`. Judge-part overall
+F1 +0.000412 [+0.000043, +0.000837] over floor-21 solo (paired bootstrap,
+B=10,000, seed 0), a gate-less comparison. The pre-registered composed step
+(rebuilding the Exp 49 gate on this matrix) was declined by
+the user (2026-08-06); this candidate stays in the pool at its gate-less
+result, not incorporated into gate_flat4_prox21.
+
+**User decisions in this family.** The order of trying directions 1 through
+4 (2026-08-05); the floor21_gate promotion (2026-07-30); the amendment-8
+conditional widening of the clause-(A) cap that made floor21_gate eligible
+(2026-07-30, "Precision-primary adoption rule" amendment 8 above); the
+gate_flat4_prox21 promotion (2026-08-06); declining the Exp 50 composed
+step (2026-08-06). Of the constants, SHARED_TAU and D3_PROX were chosen on
+the derivation part of the seed-301 split before the judging run. RES_CAP =
+100,000 was established earlier, in Exp 33/34, from the measured resource
+profile of the false positives this family repairs, and the per-language
+threshold quantile (MARGIN_Q = 5) is the margin gate family's
+pre-registered constant; neither was refit here. All four follow the
+"principled over ad hoc" standing constraint above.
+
+**The seed-301 split (Exp 44).** For any candidate whose rule or constants
+are chosen using held-out remainder data (Exp 47 through 50, and the mixed
+matrix before them), the 45,004,014-line held-out remainder is partitioned
+by a seeded 40/60 split: RULE_SPLIT_SEED = 301, RULE_SPLIT_FRACTION = 0.40.
+The resulting derivation part (18,001,573 lines, about 18.0M) is where
+rules and constants may be chosen; the judge part (27,002,441 lines, about
+27.0M) is used for the one confirming measurement per candidate, with
+comparators recomputed there. This split replaced an earlier plan to
+derive the combined-method rule from the balanced validation draw (seed
+101): on that draw the per-group leader disagreed with the
+held-out-remainder leader in all six groups tested, so the draw cannot
+rank methods for the primary quantity (`EXPERIMENTS_RESULTS.md`, "Patterns
+established by Experiments 44 to 50", pattern (a)).
+
 ### Post-hoc infrastructure conventions shared by all of the above
 
 - Each candidate produces a full prediction memmap over the whole test pool, and
@@ -629,6 +747,15 @@ single-provenance weights.
 
 - Only one git commit exists (`b7508fd`, 2026-04-08); per-experiment code versions are not
   separately tracked. Source-file mtimes are the only finer-grained timing signal.
+  **Superseded as of 2026-08-06**: this described the state of the reconstructed
+  repository as of the 2026-05-27 rebuild. Commits resumed on 2026-07-16, and
+  since then the project has committed after most experiment launches and
+  decisions; `git log --oneline` shows 56 commits as of 2026-08-06, one dated
+  2026-04-08 and the other 55 dated 2026-07-16 or later. The one-commit
+  limitation applies to code versions before 2026-07-16.
+  `EXPERIMENTS_CHRONOLOGICAL.md` still cites no per-entry commit hash for this
+  repository, so its entries must be matched to commits by date, not by a cited
+  hash.
 - SLURM submissions did not log seeds/commit/launch-command into the output beyond the
   submission scripts themselves; the scripts in `slurm_*.sh` are the reproducibility record
   for each job (kept in the repo).
