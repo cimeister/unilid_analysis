@@ -185,9 +185,9 @@ recorded small positive over floor-21 solo on the judge part, +0.000412
 The scoring pass completed clean (2:03:04; c = -8.4740, assigned plateau range
 -27.61 to -12.31, all build gates passed). Judge part
 (`outputs/tables/mixed_eval_bgfloor.md`): overall 0.9304 against floor-21
-solo's 0.9300; the pre-registered gate-less contrast is +0.0004 [+0.000030,
-+0.000801] (paired bootstrap, B=10,000, seed 0), an interval whose lower end
-sits essentially at zero. Two-sided ELIGIBLE, clause (C) clean. Tail 0.6196
+solo's 0.9300; the pre-registered gate-less contrast is +0.000412 [+0.000043,
++0.000837] (paired bootstrap, B=10,000, seed 0), an interval whose lower end
+sits essentially at zero (Correction 2026-08-06: this entry's first committed version stated the interval as [+0.000030, +0.000801], figures written before the computation had run; the values here are the ones that reproduce from the recorded CSV under the documented constants, independently recomputed during the promotion close-out.). Two-sided ELIGIBLE, clause (C) clean. Tail 0.6196
 against floor-21's 0.6161. Reading: shaping the unseen-token values by the
 pooled token frequency is a real but very small improvement over one flat
 value, an order of magnitude below the gate-side gains of Experiments 48 and
