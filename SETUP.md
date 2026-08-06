@@ -6,8 +6,9 @@ This runs on **CSCS Clariden** (GH200 GPUs, Slingshot interconnect). The analysi
 
 - **Durable storage**: `/capstor/store/cscs/swissai/a0229/cmeister/unilid_analysis` holds
   the artifacts of record (models, evaluation memmaps, split records) as of 2026-08-06;
-  the scratch paths in code are absolute symlinks to it. Scratch keeps only working files
-  and regenerable data (the calibration corpus, the test file) under the re-touch policy.
+  the scratch paths in code are absolute symlinks to it. Scratch keeps only regenerable
+  data (the test file) and logs; the calibration corpus and results_apertus200k moved
+  to store on 2026-08-06 with a scratch symlink in place.
 - **SLURM account**: `infra01` (the `a139` value recorded here until 2026-08-06 was wrong; every working script uses `infra01`), partition: `normal`, max walltime: 12 hours
 - **Python**: `/users/cmeister747/.pyenv/versions/3.11.5/bin/python3` (3.11.5 via pyenv)
 - **No venv** — packages installed directly into the pyenv Python

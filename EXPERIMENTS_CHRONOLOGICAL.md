@@ -1015,3 +1015,17 @@ results_apertus200k/ (the calibration corpus, regenerable from Drive) and
 glotlid_unilid/ (the test file, regenerable from its zip). The user designated
 the store path for anything that must not risk the 14-day purge.
 
+Corpus migration completed (2026-08-06): results_apertus200k (35.1 GB, 5,821
+files, including the 1,940 calibration corpus files) moved to
+/capstor/store/cscs/swissai/a0229/cmeister/unilid_analysis/results_apertus200k
+and replaced on scratch by a directory symlink; every file checksum-verified
+before the scratch original was removed (chunked login-node verification; per
+the user's instruction, no SLURM job is used for file management, since a
+SLURM job here always occupies a node's four GPUs regardless of the request;
+one earlier SLURM attempt, job 3019444, failed on a script quirk before
+touching anything and is superseded by this record). CORPUS_DIR resolves
+through the symlink unchanged; corpus reads verified. With this, everything
+load-bearing lives on durable storage; scratch retains only regenerable data
+(glotlid_unilid/) and logs.
+
+
