@@ -26,6 +26,29 @@ for the infrastructure record.
 `EXPERIMENTAL_SETUP.md` (hierarchical pooling). Full plan:
 `~/.claude/plans/yes-do-both-then-giggly-sprout.md`.
 
+### 2026-08-06: gate_flat4_prox21 promoted; draw-201 confirmation recorded (no job)
+
+- **No SLURM job.** User decision 2026-08-06: gate_flat4_prox21 promoted on
+  the natural track after Exp 47-50, superseding floor21_gate (remains in
+  the pool). Judge-part overall F1 0.9498, +0.0018 [+0.0010, +0.0026] over
+  floor21_gate, zero supported collapses (Exp 49). The pre-registered
+  composed step of Exp 50 (rebuilding the gate on the pooled-frequency floor
+  matrix) is skipped by the same decision. Confirmation script ran as a
+  memmap subset over the already-scored full-pool prediction memmaps
+  (`/capstor/scratch/cscs/cmeister747/unilid_analysis/full_test_eval`); no
+  scoring pass, no job submitted.
+- Artifact: `outputs/tables/gate_flat4_prox21_confirmation_201.md`.
+  Instrument: balanced test draw, seed 201, 185,204 lines. Within-stratum
+  macro-F1: gate_flat4_prox21 overall 0.9781, tail 0.8763, magnets 0.8811,
+  twins 0.9437, head 0.9814; baseline overall 0.9809, tail 0.9086, magnets
+  0.9121, twins 0.9435, head 0.9817. Sanity gate (baseline overall row vs
+  the recorded headline in `outputs/tables/two_sided_selection.md`): PASS,
+  max abs diff 0.00004. Per-language collapse check on the draw-201 subset:
+  3 supported collapses (support >= 10, F1 drop > 0.10), attributable to the
+  draw's own per-language support cap of at most 100 lines; the
+  promotion-gate clause (C), computed on the far larger judge part in Exp
+  49, remains clean at zero supported collapses.
+
 ### 2026-08-06: Exp 47-50, the four candidate directions in order (jobs 3014614, 3015805, 3016337, 3016380)
 
 - **3014614** gate_variants topk plus apply shared9_bar18k (Exp 47, 07:06):

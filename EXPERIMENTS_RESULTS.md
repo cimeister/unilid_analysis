@@ -168,6 +168,18 @@ both remain in the pool. Confirmation numbers on the balanced test draw (seed
 201, 185,204 lines) are in `outputs/tables/floor21_gate_confirmation_201.md`:
 floor21_gate overall 0.9741, tail 0.8685, magnets 0.8758.
 
+**Promotion (2026-08-06, user decision).** gate_flat4_prox21 is PROMOTED on
+the natural track after Exp 47-50. It supersedes floor21_gate, which remains
+in the pool. Judge-part overall F1 is 0.9498, +0.0018 [+0.0010, +0.0026]
+over floor21_gate (Exp 49), zero supported collapses. Confirmation numbers
+on the balanced test draw (seed 201, 185,204 lines) are in
+`outputs/tables/gate_flat4_prox21_confirmation_201.md`: gate_flat4_prox21
+overall 0.9781, tail 0.8763, magnets 0.8811. The user declined the Exp 50
+composed step (rebuilding the Exp 49 gate on the pooled-frequency floor
+matrix); the frequency-shaped floor (bgfloor) stays in the pool as a
+recorded small positive over floor-21 solo on the judge part, +0.000412
+[+0.000043, +0.000837] (paired bootstrap, B=10,000, seed 0).
+
 ## Experiment 50: pooled-frequency unseen-token values; eligible, gain at the edge of resolution (2026-08-06, job 3016380)
 
 The scoring pass completed clean (2:03:04; c = -8.4740, assigned plateau range
@@ -182,7 +194,8 @@ value, an order of magnitude below the gate-side gains of Experiments 48 and
 49. The pre-registered conditional (rebuild the Experiment 49 gate on this
 matrix if the interval is above zero) is technically triggered at the
 boundary; whether to spend the composed step is put to the user together with
-the promotion decision.
+the promotion decision. User decision (2026-08-06): the composed step is
+skipped; bgfloor stays in the pool at this gate-less result.
 
 ## Experiment 50 pre-registration: unseen-token values from the pooled token frequency (direction 4; 2026-08-06, before any run)
 
