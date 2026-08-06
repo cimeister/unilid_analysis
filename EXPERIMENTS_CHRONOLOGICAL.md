@@ -1002,3 +1002,16 @@ Kept, with reasons:
   `full_test_eval_131k/` and `full_test_eval_131k_fp64/` (the branch measurements of
   record, 88 MB each).
 - All kept scratch artifacts re-touched 2026-08-06 against the 14-day purge.
+
+Durable-storage migration (2026-08-06, user-directed): the artifacts of record
+were moved from scratch to /capstor/store/cscs/swissai/a0229/cmeister/unilid_analysis
+(5,975,047,573 bytes, 50 files, each byte-verified with cmp before the scratch
+original was removed) and replaced on scratch by absolute symlinks, so every
+path recorded in code and in these documents keeps working unchanged. Moved:
+the three models of record (glotlidc.unilid and both _fp64 retrains),
+sample_500k_all.pkl, and every file in full_test_eval/, full_test_eval_131k/,
+and full_test_eval_131k_fp64/. Still on scratch under the re-touch policy:
+results_apertus200k/ (the calibration corpus, regenerable from Drive) and
+glotlid_unilid/ (the test file, regenerable from its zip). The user designated
+the store path for anything that must not risk the 14-day purge.
+
