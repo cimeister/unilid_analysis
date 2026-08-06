@@ -4,7 +4,7 @@
 
 This runs on **CSCS Clariden** (GH200 GPUs, Slingshot interconnect). The analysis is CPU-only but uses SLURM for memory-intensive jobs.
 
-- **SLURM account**: `a139`, partition: `normal`, max walltime: 12 hours
+- **SLURM account**: `infra01` (the `a139` value recorded here until 2026-08-06 was wrong; every working script uses `infra01`), partition: `normal`, max walltime: 12 hours
 - **Python**: `/users/cmeister747/.pyenv/versions/3.11.5/bin/python3` (3.11.5 via pyenv)
 - **No venv** — packages installed directly into the pyenv Python
 

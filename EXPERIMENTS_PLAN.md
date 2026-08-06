@@ -636,8 +636,8 @@ of corpus size.** Four languages with corpora above 18,000 lines (Scots,
 Banjar Latin-script, Aragonese, West Flemish) are each written almost
 identically to a much larger language (English, Indonesian, Spanish, Dutch)
 and have token distributions that are unusually flat for their script, per
-the zH column of `outputs/diagnostic/lang_diagnostic.csv` (median
-flatness score 1.46 for the risky group against 0.00 overall). Because the
+the zH column of `outputs/diagnostic/lang_diagnostic.csv` (flatness scores 1.567 to 3.228, median 2.51,
+against an overall median of 0.00). Because the
 re-examination step only applies to languages under 18,000 training lines,
 these four are exempt, and they receive 63,842 of the 118,006 remaining wrong
 predictions into small-language or flat-distribution labels (54.1%). The
