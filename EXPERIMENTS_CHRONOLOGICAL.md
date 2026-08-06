@@ -970,10 +970,35 @@ failures before succeeding; failures are recorded with the same rigor as the suc
 - **2026-04-03:** permission-denied on a shared dataset path
   (`/capstor/store/.../stackv2-edu`) (recovered prompt 46); not central to UniLID analysis.
 
-## Checkpoint / artifact-deletion assessment
+## Checkpoint / artifact-deletion assessment (updated 2026-08-06; deletions user-approved)
 
-No model checkpoints are produced by this project (all experiments are post-hoc analyses
-over the fixed `glotlidc.unilid` weights). Large artifacts that exist:
-`glotlidc.unilid` (~59 MB in repo; the 744 MB model is on scratch per `SETUP.md`), and the
-410 MB prediction files in `full_prob/` and `glotlid_e100_sanity/`. No deletion is proposed
-here; per project policy, deletion requires explicit per-artifact approval.
+The 2026-05-27 version of this section stated that no model checkpoints are produced;
+that stopped being true with the Apertus retrains (2026-07). Current assessment, with
+the deletions the user approved on 2026-08-06 executed:
+
+Deleted from scratch (about 62 GB freed):
+- `glotlid_apertus131k.unilid` and `glotlid_apertus200k.unilid` (the two models trained
+  through the float32 EM bug; superseded by the `_fp64` retrains for every recorded
+  purpose; the bug itself remains reproducible from the documented azj_Latn recipe, the
+  retained pre-fix binary `~/.local/bin/spm_train.pre_fp64`, and the trigger-line
+  artifact `outputs/diagnostic/em_trigger_azj_81251_81640.txt`).
+- `results_apertus131k/`, `results_apertus131k_fp64/`, `results_apertus200k_fp64/`
+  (per-language training outputs behind those models; the retained packed `.unilid`
+  files carry the results of record, and the training dirs are regenerable from the
+  corpus plus the patched trainer and the recorded recipes). Consequence accepted with
+  the approval: re-running the superseded corrupted-branch evaluation (Exp 29/30) is no
+  longer possible; its prediction memmap and recorded entries remain.
+
+Kept, with reasons:
+- `glotlidc.unilid` (the production model behind every main-line result),
+  `glotlid_apertus131k_fp64.unilid`, `glotlid_apertus200k_fp64.unilid` (the clean
+  records of the closed vocabulary branch, Exp 42/43).
+- `results_apertus200k/` in full: its `corpus/` subdirectory is load-bearing (the
+  per-language calibration corpora read by the gate machinery and `gt_counts.py`), and
+  its per-language tokenizer outputs back `gt_counts.csv` regeneration.
+- Everything in `full_test_eval/` (y_true, all prediction memmaps including the
+  superseded margin-family ones that the recorded two_sided_report wiring gates read,
+  the seed-301 split record, the banked candidate arrays), plus
+  `full_test_eval_131k/` and `full_test_eval_131k_fp64/` (the branch measurements of
+  record, 88 MB each).
+- All kept scratch artifacts re-touched 2026-08-06 against the 14-day purge.
