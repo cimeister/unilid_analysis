@@ -168,6 +168,22 @@ both remain in the pool. Confirmation numbers on the balanced test draw (seed
 201, 185,204 lines) are in `outputs/tables/floor21_gate_confirmation_201.md`:
 floor21_gate overall 0.9741, tail 0.8685, magnets 0.8758.
 
+## Experiment 50: pooled-frequency unseen-token values; eligible, gain at the edge of resolution (2026-08-06, job 3016380)
+
+The scoring pass completed clean (2:03:04; c = -8.4740, assigned plateau range
+-27.61 to -12.31, all build gates passed). Judge part
+(`outputs/tables/mixed_eval_bgfloor.md`): overall 0.9304 against floor-21
+solo's 0.9300; the pre-registered gate-less contrast is +0.0004 [+0.000030,
++0.000801] (paired bootstrap, B=10,000, seed 0), an interval whose lower end
+sits essentially at zero. Two-sided ELIGIBLE, clause (C) clean. Tail 0.6196
+against floor-21's 0.6161. Reading: shaping the unseen-token values by the
+pooled token frequency is a real but very small improvement over one flat
+value, an order of magnitude below the gate-side gains of Experiments 48 and
+49. The pre-registered conditional (rebuild the Experiment 49 gate on this
+matrix if the interval is above zero) is technically triggered at the
+boundary; whether to spend the composed step is put to the user together with
+the promotion decision.
+
 ## Experiment 50 pre-registration: unseen-token values from the pooled token frequency (direction 4; 2026-08-06, before any run)
 
 The rule under test, in full: in every language's row, each entry at the row
