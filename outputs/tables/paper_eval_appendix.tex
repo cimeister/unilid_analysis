@@ -1,0 +1,30 @@
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{lrr}
+\toprule
+\textbf{Method} & \textbf{Macro F1} & \textbf{Ma-FPR (x1e5)} \\
+\midrule
+baseline & 0.912 & 2.0373 \\
+gate-flat4-prox21 & 0.950 & 1.7743 \\
+fastText & 0.933 & 2.7165 \\
+\bottomrule
+\end{tabular}
+\caption{Appendix held-out comparison, judge part, 27,002,441 lines. FPR values are multiplied by 1e5.}
+\label{tab:paper_eval_appendix}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{lrrr}
+\toprule
+\textbf{Comparator} & \textbf{Mean diff} & \textbf{CI low} & \textbf{CI high} \\
+\midrule
+baseline & 0.038 & 0.033 & 0.043 \\
+fastText & 0.017 & 0.011 & 0.022 \\
+\bottomrule
+\end{tabular}
+\caption{Paired bootstrap, gate-flat4-prox21 minus comparator, judge part, 27,002,441 lines.}
+\label{tab:paper_eval_bootstrap}
+\end{table}

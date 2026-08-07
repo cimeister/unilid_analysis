@@ -52,6 +52,27 @@ for the infrastructure record.
 - **Checkpoint hygiene:** no deletions proposed; new artifacts are int16
   memmaps (~87 MB each) and small banked arrays for external benchmarks.
 
+### 2026-08-07: E1 run and finished (login node, no SLURM job)
+
+- **Runs:** `python -m analysis.import_external_pred --source fasttext` (passed
+  all gates), `--source glotlidc_file` (blocking gate correctly refused: the
+  Drive file is bit-identical in content to `pred_baseline.npy`, 1.000000
+  kept-pool agreement, while the pickle holds the paper-era scoring run at
+  0.99514 agreement; `pred_glotlidc_file.npy` quarantined from use), then
+  `python -m analysis.paper_eval` (all five gates passed). Code at commit
+  02a346e after the Opus pre-run review (11 findings, all applied).
+- **Results of record:** `EXPERIMENTS_RESULTS.md` "Camera-ready E1". Full pool:
+  baseline 0.9292 / FPR(x1e5) 2.0263, gate_flat4_prox21 0.9569 / 1.7665,
+  fasttext 0.9443 / 2.7063. Judge part: 0.9117 / 0.9498 / 0.9332. Bootstrap
+  (judge): promoted minus baseline +0.0380 [+0.0328, +0.0434], promoted minus
+  fasttext +0.0166 [+0.0112, +0.0223].
+- **E2 data (2026-08-07, no scoring):** UDHR rebuilt from `cis-lmu/udhr-lid`
+  (366-label exact intersection, matches the paper's count) and FLORES from
+  the original FLORES-200 devtest tarball (190-label exact intersection,
+  matches; flores_plus gave 205 and is diagnostic-only); details and revisions
+  in `outputs/tables/external_bench_mapping.md`. Scoring awaits the user's
+  mapping approval.
+
 ### 2026-08-06: gate_flat4_prox21 promoted; draw-201 confirmation recorded (no job)
 
 - **No SLURM job.** User decision 2026-08-06: gate_flat4_prox21 promoted on

@@ -69,7 +69,9 @@ adversarial-review corrections: `~/.claude/plans/steady-finding-abelson.md`
 act as though the paper team's files are not available); the ask list is with
 the user to send.
 
-- **E1: common reporting set** | status: ongoing | Recover
+- **E1: common reporting set** | status: finished (2026-08-07; results in
+  `EXPERIMENTS_RESULTS.md` "Camera-ready E1"; full pool 0.9292/0.9569/0.9443,
+  judge 0.9117/0.9498/0.9332, both bootstrap intervals above zero) | Recover
   `fasttext_y_pred.txt` and `glotlidc_y_pred.txt` from the recorded Drive
   folders (verified live 2026-08-06, byte sizes 410,645,511 = 45,627,279 x 9);
   import to int16 memmaps (blocking gates: exact line count, 100% agreement

@@ -25,6 +25,56 @@ uniform sample (`seed=42`, without replacement).
 
 ---
 
+## Camera-ready E1: common reporting set (2026-08-07, login node, no SLURM job)
+
+**Question:** on one reporting instrument per role (amendment 9), what are the
+camera-ready numbers for baseline UniLID, the promoted configuration
+gate_flat4_prox21, and fastText, with held-out uncertainty for the contrasts?
+Pre-registered in `EXPERIMENTS_PLAN.md` "Camera-ready evaluation program"; all
+wiring gates passed (carried CSV at 1e-9; judge-part per-language F1 vs
+`mixed_eval_judge_f1_gate_flat4_prox21.csv` at 1e-9 with pre-registered anchors
+0.9117/0.9498; full-pool baseline reproduced 0.929190 / 2.0263162e-5).
+
+| config | full pool F1 | full pool FPR (x1e5) | judge F1 | judge FPR (x1e5) |
+|---|---|---|---|---|
+| baseline | 0.9292 | 2.0263 | 0.9117 | 2.0373 |
+| gate_flat4_prox21 | 0.9569 | 1.7665 | 0.9498 | 1.7743 |
+| fasttext | 0.9443 | 2.7063 | 0.9332 | 2.7165 |
+
+Full pool = the 45,377,279 kept lines (the Table 1 instrument; the submission's
+UniLID cell .929 / 2.03e-5 and fastText cell .944 / 2.71e-5 both reproduce).
+Judge part = the 27,002,441 held-out lines. Paired bootstrap on the judge part
+(B=10,000, seed 0, percentile 95%, over the 1,940 languages):
+gate_flat4_prox21 minus baseline +0.0380 [+0.0328, +0.0434]; gate_flat4_prox21
+minus fasttext +0.0166 [+0.0112, +0.0223]. Both intervals are entirely above
+zero, so on both reporting instruments the promoted configuration's macro F1 and
+macro FPR are ahead of both comparators.
+
+**fastText import verification:** the recovered Drive file passed the blocking
+gate (100% agreement with `sample_500k_all.pkl` on the 500,000 re-derived
+seed-42 lines) and the comparability measurement (kept-pool macro F1 0.944339
+vs the paper's .944, difference 3.4e-4; the paper's value was computed on all
+45,627,279 lines per the paper team's metrics JSON, ours on the kept pool).
+
+**Finding on the recovered UniLID prediction file:** the Drive folder-1
+`glotlidc_y_pred.txt` FAILED its blocking gate against the pickle (2,430 of
+500,000 sampled lines disagree, 99.514% agreement, disagreements concentrated
+on near-tie pairs), and the follow-up measurement classified it: the file
+agrees with our `pred_baseline.npy` at exactly 1.000000 on the kept pool
+(macro F1 0.929190, identical). So the Drive file matches our current scoring
+run, and the pickle's `pred_UniLID` is the paper-era scoring run (the recorded
+0.9951 self-agreement lineage, Exp 16). Consequence: `pred_glotlidc_file.npy`
+adds no information beyond `pred_baseline.npy` and is not used anywhere; Table
+1 UniLID numbers come from `pred_baseline.npy` as planned.
+
+**Artifacts:** `outputs/tables/paper_eval.md` (+ `paper_eval_table1_row.tex`,
+`paper_eval_appendix.tex`), `outputs/diagnostic/paper_eval_per_lang_f1_{fullpool,judge}.csv`,
+`outputs/tables/import_fasttext.md`. Scripts `analysis/import_external_pred.py`,
+`analysis/paper_eval.py` (Sonnet implementation, Opus pre-run review with 11
+findings applied, run at commit 02a346e).
+
+---
+
 ## Current state (2026-08-06)
 
 Read this block first; it supersedes the 2026-07-29 block below, which is
