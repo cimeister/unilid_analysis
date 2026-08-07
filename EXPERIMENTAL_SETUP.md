@@ -430,6 +430,20 @@ exactly one candidate per track is confirmed there per round.
    configuration may be explicitly re-evaluated under this amendment with
    both verdicts recorded. Implemented in `passes_two_sided`
    (`analysis/hierarchical_pool.py`).
+9. Camera-ready reporting role for the judge part (user decision 2026-08-06,
+   taken with the adversarial plan review's findings in hand). For the ICML
+   camera-ready, Table 1 cells are computed on the full kept pool (45,377,279
+   lines), the only instrument comparable with the submission's existing rows
+   (the submission's UniLID cell .929 and FPR 2.03e-5 reproduce from our
+   full-pool baseline as 0.9292 and 2.0263e-5). The judge part of the seed-301
+   split (27,002,441 lines) gains one additional role: the paper appendix's
+   held-out comparison instrument, carrying the paired-bootstrap intervals,
+   because it is the only kept-pool subset outside every selection listed in
+   the camera-ready disclosure table (floor level, flat-four membership,
+   D3_PROX, clause-A selection, draw-201 confirmation). Draw 201 remains the
+   balanced final-reporting instrument of the internal protocol; its role is
+   unchanged. This amendment adds a reporting use; it does not relax the
+   one-confirming-measurement-per-candidate discipline for adoption decisions.
 
 ## Standing design constraints (why the methods look the way they do)
 
@@ -689,6 +703,43 @@ established by Experiments 44 to 50", pattern (a)).
 - Reports are regenerated from artifacts by scripts that gate on previously
   recorded values before emitting anything, so a wiring error aborts instead of
   producing plausible numbers.
+
+## Camera-ready reporting conventions (2026-08-06, program E1-E4)
+
+Conventions fixed before any camera-ready number is computed; the experiments
+are pre-registered in `EXPERIMENTS_PLAN.md` ("Camera-ready evaluation program").
+
+- **Instruments.** Table 1 cells: full kept pool (45,377,279 lines). Appendix
+  held-out comparison: the judge part (amendment 9 above). No delta pairs terms
+  from different line sets (Exp 16 conclusion 3). Every reported number's
+  sentence or caption names its instrument (line set + metric view).
+- **Macro F1.** Per-language F1 with the full confusion (all false positives
+  counted), averaged unweighted over the 1,940 languages
+  (`_per_lang_stats`, `analysis/metric_decomposition.py`). On both reporting
+  instruments every language has support, so this coincides with
+  `compute_metrics`' average over labels present in the gold labels.
+- **Macro FPR.** Per language, FP / (FP + TN) with TN = kept_lines - support -
+  FP, averaged unweighted; reproduces the paper's printed baseline cell
+  (2.0263e-5 -> 2.03e-5).
+- **Empty-after-preprocess lines** score as wrong for the scored system
+  (`EMPTY=-1` sentinel), the recorded repo convention. Measured effect on the
+  kept pool: zero such lines; on external benchmarks the count is reported.
+- **External benchmark label mapping** (E2 fallback): labels mapped to
+  `lang_Script`, intersected with the 1,940-label set, mapping table
+  user-approved before scoring; label counts reported against the paper's
+  366 (UDHR) and 190 (FLORES-200); ambiguous mappings abort. Acceptance gate
+  before any new-configuration number: the rebuilt sets must reproduce the
+  paper's UniLID baseline cells (UDHR .859, FLORES .932) within 0.005. The
+  macro denominator for external benchmarks follows whatever convention that
+  reproduction requires, and the choice is recorded here once measured.
+- **Transfer statement of record** (corrects an earlier draft claim): in the
+  promoted configuration, the per-language thresholds and q_L are own-train
+  quantities; the 18,000 boundary and RES_CAP=100,000 are training-count
+  quantities; D3_PROX=21.0 was selected on the GlotLID-C derivation part;
+  flat-four membership uses one validation-derived input (magnet_ratio from
+  the retired 250k validation half). Applying all of them unchanged to
+  UDHR/FLORES is a no-refitting transfer test and is described as exactly
+  that, not as "training-data-only".
 
 ## Per-language training pipeline and the trainer fix (2026-07-26)
 

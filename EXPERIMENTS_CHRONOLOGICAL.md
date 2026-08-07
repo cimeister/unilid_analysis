@@ -12,7 +12,8 @@
 > `EXPERIMENTS_RESULTS.md`.
 
 Reverse-chronological, grouped by experiment family. Within each family, jobs are listed
-most-recent-first. All jobs ran on CSCS Clariden (account `a139`, partition `normal`),
+most-recent-first. All jobs ran on CSCS Clariden (account `infra01`, partition `normal`;
+this header said `a139` until 2026-08-06, which SETUP.md records as wrong),
 Python `/users/cmeister747/.pyenv/versions/3.11.5/bin/python3`, working dir
 `/users/cmeister747/unilid_analysis`, data on scratch (`config.DATA_DIR`). See `SETUP.md`
 for the infrastructure record.
@@ -25,6 +26,31 @@ for the infrastructure record.
 "Next set of methods" items. Setup:
 `EXPERIMENTAL_SETUP.md` (hierarchical pooling). Full plan:
 `~/.claude/plans/yes-do-both-then-giggly-sprout.md`.
+
+### 2026-08-06: camera-ready evaluation program opened (E1-E4 pre-registered; no job yet)
+
+- **Purpose:** incorporate the promoted configuration gate_flat4_prox21 into the
+  ICML camera-ready (user decision 2026-08-06: paper items 1-5 plus experiments
+  E1-E4). Plan item: `EXPERIMENTS_PLAN.md` "Camera-ready evaluation program".
+  Setup: `EXPERIMENTAL_SETUP.md` "Camera-ready reporting conventions" and
+  adoption-rule amendment 9 (judge part gains the appendix reporting role;
+  Table 1 stays full-pool). Working plan with the adversarial-review
+  corrections: `~/.claude/plans/steady-finding-abelson.md` (Opus review
+  2026-08-06, 11 findings, all folded in).
+- **Fallback mode active** (user instruction 2026-08-06): proceed as though the
+  paper team's files are unavailable. E2 rebuilds UDHR/FLORES from public
+  sources with a 0.005 baseline-reproduction gate; E3 retrains the
+  Mistral-Nemo variant (pre-authorized).
+- **Data recovery:** `fasttext_y_pred.txt` and `glotlidc_y_pred.txt` on scratch
+  were found to be broken symlinks (targets deleted with the old home-dir
+  cleanup); the three recorded Google Drive folders were verified live
+  2026-08-06 (both prediction files present at 410,645,511 bytes =
+  45,627,279 lines x 9 bytes, plus the paper team's metrics/per-language
+  JSONs). Recovery and import gates are pre-registered in the plan entry.
+- **paper/submission.tex tracked** in its submitted state (commit 5cfbda4,
+  user decision superseding the earlier keep-untracked instruction).
+- **Checkpoint hygiene:** no deletions proposed; new artifacts are int16
+  memmaps (~87 MB each) and small banked arrays for external benchmarks.
 
 ### 2026-08-06: gate_flat4_prox21 promoted; draw-201 confirmation recorded (no job)
 

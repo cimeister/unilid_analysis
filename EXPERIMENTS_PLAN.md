@@ -58,6 +58,63 @@ Status values: `not started` | `waiting on dependency` | `ongoing` | `finished` 
 
 ---
 
+## Camera-ready evaluation program (2026-08-06; pre-registered before any run)
+
+User decision 2026-08-06: incorporate the promoted configuration into the ICML
+camera-ready (new Table 1 row, mechanisms subsection, appendix) and run E1-E4.
+Governing conventions: `EXPERIMENTAL_SETUP.md` "Camera-ready reporting
+conventions" and adoption-rule amendment 9. Full working plan with the
+adversarial-review corrections: `~/.claude/plans/steady-finding-abelson.md`
+(11 findings, all folded in). Proceeding on fallback paths (user instruction:
+act as though the paper team's files are not available); the ask list is with
+the user to send.
+
+- **E1: common reporting set** | status: ongoing | Recover
+  `fasttext_y_pred.txt` and `glotlidc_y_pred.txt` from the recorded Drive
+  folders (verified live 2026-08-06, byte sizes 410,645,511 = 45,627,279 x 9);
+  import to int16 memmaps (blocking gates: exact line count, 100% agreement
+  with `sample_500k_all.pkl` on the re-derived seed-42 indices); comparability
+  measurements (non-blocking, pre-registered branches): fastText full-pool
+  macro F1 vs the paper's .944 within 0.005, imported UniLID file vs
+  `pred_baseline.npy` agreement (recorded context 0.9951). Then macro F1 +
+  macro FPR for {baseline, gate_flat4_prox21, fastText} on {full pool, judge
+  part}, after wiring gates (carried CSV 1e-9; judge 0.9117/0.9498; full pool
+  0.9292/2.0263e-5); paired bootstrap (B=10,000, seed 0, percentile 95%, over
+  the 1,940 languages) for (promoted - baseline) and (promoted - fastText) on
+  the judge part. Scripts `analysis/import_external_pred.py`,
+  `analysis/paper_eval.py`; outputs `outputs/tables/paper_eval.md` + `.tex`.
+- **E2: UDHR and FLORES-200 transfer test** | status: not started (fallback
+  path) | Rebuild from `cis-lmu/udhr-lid` and `openlanguagedata/flores_plus`
+  devtest; label mapping table user-approved before scoring; acceptance gate:
+  reproduce the paper's UniLID cells (UDHR .859, FLORES .932) within 0.005
+  before any new-configuration number. Scoring on SLURM unconditionally (full
+  model load). Script `analysis/external_bench_eval.py`: baseline pass under
+  W; floor-21 pass under sha-verified W_f21 persisting top-5 ids/scores; gate
+  with `tau_floor21_gate.csv` + `tau_flat4.csv` unchanged, disjoint groups
+  each from a fresh floor-21 prediction copy, replacement via
+  `_walk_replacement(21.0, 100000, ...)`. All constants transferred without
+  refitting (provenance stated per the conventions entry).
+- **E3: Mistral-Nemo variant** | status: not started (pre-authorized retrain
+  path) | Pin the local HF tokenizer snapshot revision; per-language
+  fixed-vocabulary EM (fp64 spm_train) over the 1,940 corpus files;
+  `analysis.degeneracy_scan` before evaluation; full-pool baseline pass; the
+  variant's floor-21 matrix; tau recalibration (CALIB_MAX=2000, CALIB_SEED=0,
+  MIN_CALIB_LINES=200, q_L = 5*(1 - min(N,18000)/18000)); flat set by the
+  recorded rule (one scoring pass over the retired 250k validation half for
+  magnet_ratio; user decision 2026-08-06); full-pool floor-21 pass banking
+  top-5; gate; eval vs the variant's own baseline. Both paper rows for the
+  variant come from this retrain; the submission's row is left untouched with
+  a footnote. Sequenced last.
+- **E4: breakdowns and residual re-measurement** | status: waiting on
+  dependency (E1) | Script/resource-bin aggregation of {baseline, promoted,
+  fastText} on the full pool; reproduction gate against the paper's published
+  script table (the Hebr row 0.740 vs our 0.6966 and the 1,938-vs-1,940 basis
+  are expected mismatches; on mismatch the affected table goes to the user, no
+  silently inconsistent second table). Residual close-pair analysis recomputed
+  on `pred_gate_flat4_prox21.npy`'s judge-part residual (feeds paper item 5).
+
+---
+
 ## Active program: hierarchical pooling (started 2026-06-26)
 
 Direction chosen after the 2026-06-24 error analysis (see `EXPERIMENTS_RESULTS.md`
@@ -827,7 +884,7 @@ to get wrong.
   precision problem (0.459) invisible to the within-stratum view (0.913). Always
   state which is used. Details in `EXPERIMENTAL_SETUP.md` "Stratified-metric
   views" and `outputs/tables/metric_decomposition.md`.
-- **The adoption rule has six amendments** (`EXPERIMENTAL_SETUP.md`
+- **The adoption rule has nine amendments** (`EXPERIMENTAL_SETUP.md`
   "Precision-primary adoption rule"), all user decisions. The ones most likely to
   surprise: the collapse clause tolerates up to two per-language collapses as
   flagged investigations rather than rejecting, and near-tied candidates are all
