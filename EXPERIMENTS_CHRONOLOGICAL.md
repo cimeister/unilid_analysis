@@ -52,6 +52,29 @@ for the infrastructure record.
 - **Checkpoint hygiene:** no deletions proposed; new artifacts are int16
   memmaps (~87 MB each) and small banked arrays for external benchmarks.
 
+### 2026-08-07: provenance of the paper's appendix breakdown tables resolved (login-node diagnostics, no job)
+
+- **Question:** the paper's script table (tab:script-breakdown) and resource-tier
+  table (tab:resource-tier) did not reproduce under the global per-language view
+  (Hebr 0.740 vs 0.6966; resource bins off in 5 of 6 rows). Which view produced
+  them?
+- **Answer, measured:** both tables are the WITHIN-STRATUM view (examples
+  restricted to true labels inside the group, cross-group false positives
+  excluded; the Exp 24 distinction). Under that view every cell reproduces from
+  `pred_baseline.npy` to the printed precision: resource bins 0.8709 / 0.9748 /
+  0.9897 / 0.9972 / 0.9919 / 0.9583 vs printed 0.871/0.975/0.990/0.997/0.992/
+  0.958; script rows including the previously unexplained Cyrl 0.8774 -> 0.877
+  and Hebr 0.7401 -> 0.740. The script table's "Other 82" basis excludes
+  jpn_Jpan and kor_Hang (dropping them gives 82 languages, mean 0.9374 ->
+  printed 0.937); total basis 1,938 = 1,940 minus those two.
+- **Consequences:** (i) E4's reproduction gates are re-pointed at the
+  within-stratum references, which now match exactly; (ii) the camera-ready
+  appendix tables must state their view, and the promoted configuration's rows
+  must be shown in both views, because its tail gain is a global-view fact and
+  the within-stratum tail row moves the other way (the Exp 24 reversal, and
+  the draw-201 confirmation pattern); (iii) the corresponding Ahmetcan ask
+  (script-table basis) is resolved and can be dropped from the ask list.
+
 ### 2026-08-07: E1 run and finished (login node, no SLURM job)
 
 - **Runs:** `python -m analysis.import_external_pred --source fasttext` (passed
