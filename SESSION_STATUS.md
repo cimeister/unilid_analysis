@@ -1,9 +1,7 @@
 # Session Status
 
 ## Ongoing experiments
-- Camera-ready program: E1 FINISHED (full pool: baseline 0.9292, promoted 0.9569, fastText 0.9443; judge bootstrap vs fastText +0.0166 [+0.0112, +0.0223]). E4 FINISHED (both-views breakdown tables; reproduction gates pass under the within-stratum view; residual of record 926,299 / 99.15% / 88.64%, eng->sco pair eliminated). E2 machinery verified by self-check (bit-exact replay of the promoted configuration); scoring awaits mapping approval, SLURM script ready, not submitted. E3 not started (sequenced last).
+- Camera-ready program: E1 and E4 FINISHED (records in EXPERIMENTS_RESULTS.md). E2 scoring RUNNING as job 3028291 (submitted after user approval; eval stages + acceptance gates follow on the login node when it completes). Paper items 2, 3, 5 and the appendix are integrated into submission.tex (user-approved sample; artifact-to-cell mapping in the chronological log); Table 1 row and abstract/intro claims wait on E2 cells. E3 not started (sequenced last; pre-authorized retrain path).
 
 ## Open decisions
-- E2 mapping approval: outputs/tables/external_bench_mapping.md (+ addendum). Recommendation: score udhr_eval.tsv (366 labels) and flores200_eval.tsv (190 labels), both exact-match, no remapping decisions needed.
-- Paper prose sample (paper/draft_new_sections.tex): awaiting user OK before any edit to submission.tex; working name "calibrated UniLID" proposed there.
-- Ahmetcan ask list: item 3's script-table-basis question is now resolved internally (within-stratum view; Other excludes jpn_Jpan/kor_Hang) and can be dropped from the message if not yet sent.
+- None pending right now; next user-visible checkpoint is the E2 acceptance-gate outcome (UDHR .859 / FLORES .932 reproduction within 0.005) and then the Table 1 row.

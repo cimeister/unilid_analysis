@@ -75,6 +75,34 @@ for the infrastructure record.
   the draw-201 confirmation pattern); (iii) the corresponding Ahmetcan ask
   (script-table basis) is resolved and can be dropped from the ask list.
 
+### 2026-08-07: E2 scoring submitted (job 3028291); paper items 2, 3, 5 and the appendix integrated into submission.tex
+
+- **Job 3028291** (`slurm_external_bench.sh`, infra01, normal, 100G, 02:00:00):
+  scores UDHR and FLORES-200 under the unmodified and floor-21 matrices with
+  top-5 banking. Submitted after the user approved the mapping
+  (2026-08-07) and after the bit-exact self-check. Eval stages run on the
+  login node after it completes, acceptance gates first.
+- **Paper integration (user approved the prose sample 2026-08-07):** the
+  corrected training-floor sentence; the calibrated-configuration subsection
+  (sec:calibration) at the end of the method section; the appendix
+  (app:protocol: development protocol, provenance table, held-out comparison
+  and bootstrap tables, both-views resource table, other-instrument
+  measurements, development alternatives, remaining errors); the Discussion
+  future-work paragraph; view statements added to the two pre-existing
+  appendix table captions. Table 1 row and abstract/intro claims remain
+  pending E2 cells.
+- **Artifact -> cell mapping (number-tracing rule):** subsection floor-only
+  0.912 -> 0.930 from `outputs/diagnostic/mixed_eval_judge_f1_bgfloor.csv`
+  (means 0.9117 / 0.9300); full-pool 0.929 -> 0.957, FPR 2.03e-5 -> 1.77e-5
+  and the held-out table + bootstrap CIs from `outputs/tables/paper_eval.md`
+  and `paper_eval_appendix.tex`; tail 0.332 -> 0.732 from
+  `outputs/tables/paper_eval_tail_note.md`; both-views table from
+  `outputs/tables/paper_breakdowns_resource.tex`; draw-201 0.981 -> 0.978
+  from `outputs/tables/gate_flat4_prox21_confirmation_201.md`; CommonLID
+  -0.005 from Exp 39; development alternatives from the Exp 28/46/47 records;
+  remaining-errors numbers from `outputs/tables/promoted_residual.md`.
+  Internal configuration names do not appear in the tex (audited).
+
 ### 2026-08-07: E4 run and finished; E2 gate machinery self-checked (login node, no job)
 
 - **Runs:** `python -m analysis.external_bench_eval --stage selfcheck` (the E2
