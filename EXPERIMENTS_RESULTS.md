@@ -75,6 +75,47 @@ findings applied, run at commit 02a346e).
 
 ---
 
+## Camera-ready E4: breakdowns in both metric views; residual re-measured on the promoted configuration (2026-08-07, login node, no job)
+
+**Provenance result first (chronological log, same date):** both of the paper's
+appendix breakdown tables are the within-stratum view; under it every printed
+cell reproduces from `pred_baseline.npy`, including the previously unexplained
+Cyrl 0.8774 -> .877 and Hebr 0.7401 -> .740, and the script table's "Other 82"
+basis is our 84 minus jpn_Jpan and kor_Hang (0.9374 -> .937). Both E4
+reproduction gates, re-pointed at the within-stratum references, PASSED.
+
+**Both-views resource table (full kept pool; global = all false positives
+counted; within-stratum = cross-group false positives excluded):** the two
+views rank the methods oppositely in the small bins. Under-500 bin: global
+baseline 0.5145 -> promoted 0.7796 (fastText 0.7497); within-stratum baseline
+0.8709 -> promoted 0.8272 (fastText 0.9150). The promoted configuration's
+gains are a global-view fact (false positives into small languages fall); its
+within-stratum values in the small bins decrease. Full tables:
+`outputs/tables/paper_breakdowns.md` (+ `_script.tex`, `_resource.tex`, both
+views, view stated in every caption).
+
+**Residual re-measurement (judge part, 27,002,441 lines), replacing the
+floor21_gate-era numbers for paper item 5:** gate_flat4_prox21 has 926,299
+wrong predictions (floor21_gate: 962,633, recomputed exactly); 99.15% have a
+true language with at least 18,000 training lines; 88.64% of those are
+confused with another such language. Top pair ind_Latn -> zsm_Latn (31,113
+lines); the floor21_gate-era eng_Latn -> sco_Latn pair (29,779 lines) is
+absent from the promoted configuration's top-20, the visible effect of the
+flat-language re-examination. Note: the recomputed floor21_gate head-head
+share is 0.8929 against the recorded 88.2% from the 2026-07-30 mining session
+(+0.0109); the recomputation with full provenance is the number of record.
+Artifacts: `outputs/tables/promoted_residual.md`,
+`outputs/diagnostic/promoted_residual_pairs.csv`.
+
+**E2 gate machinery verified before any external scoring:** the new
+`external_bench_eval.py` self-check replayed the 2,236,864 banked re-examination
+rows through its own masking/walk/merge code and reproduced
+`pred_gate_flat4_prox21.npy` on all 45,627,279 lines exactly (0 differ).
+Scripts Sonnet-implemented, Opus-reviewed (16 findings, all applied), run at
+commit 9b1ed20.
+
+---
+
 ## Current state (2026-08-06)
 
 Read this block first; it supersedes the 2026-07-29 block below, which is

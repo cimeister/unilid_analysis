@@ -75,6 +75,27 @@ for the infrastructure record.
   the draw-201 confirmation pattern); (iii) the corresponding Ahmetcan ask
   (script-table basis) is resolved and can be dropped from the ask list.
 
+### 2026-08-07: E4 run and finished; E2 gate machinery self-checked (login node, no job)
+
+- **Runs:** `python -m analysis.external_bench_eval --stage selfcheck` (the E2
+  gate reimplementation replayed the 2,236,864 banked rows and reproduced
+  `pred_gate_flat4_prox21.npy` on all 45,627,279 lines, 0 differ; group A
+  267,681 examined / 229,769 moved, group B 85,463 / 84,545), then
+  `python -m analysis.paper_breakdowns --part all` (both reproduction gates
+  PASSED under the within-stratum view). Scripts at commit 9b1ed20 after the
+  combined Opus review (16 findings, all applied by a fix agent and
+  spot-checked).
+- **Results of record:** `EXPERIMENTS_RESULTS.md` "Camera-ready E4". Both-views
+  breakdown tables written; residual of record for the promoted configuration:
+  926,299 wrong on the judge part, head-true 99.15%, head-head 88.64%, top
+  pair ind->zsm 31,113, the eng->sco pair absent (flat-four re-examination).
+- **E4 incident note:** an earlier accidental end-to-end test run of
+  `paper_breakdowns.py` by the implementing agent (outputs deleted, nothing
+  recorded) surfaced the view question that led to the provenance resolution
+  above; recorded here for completeness.
+- **E2 status:** scoring awaits the user's mapping approval; the SLURM script
+  `slurm_external_bench.sh` is ready and not submitted.
+
 ### 2026-08-07: E1 run and finished (login node, no SLURM job)
 
 - **Runs:** `python -m analysis.import_external_pred --source fasttext` (passed

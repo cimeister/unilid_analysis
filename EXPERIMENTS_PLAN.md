@@ -112,8 +112,10 @@ the user to send.
   top-5; gate; eval vs the variant's own baseline. Both paper rows for the
   variant come from this retrain; the submission's row is left untouched with
   a footnote. Sequenced last.
-- **E4: breakdowns and residual re-measurement** | status: waiting on
-  dependency (E1) | Script/resource-bin aggregation of {baseline, promoted,
+- **E4: breakdowns and residual re-measurement** | status: finished
+  (2026-08-07; results in `EXPERIMENTS_RESULTS.md` "Camera-ready E4"; both
+  reproduction gates passed under the within-stratum view; residual of record
+  926,299 / 99.15% / 88.64%) | Script/resource-bin aggregation of {baseline, promoted,
   fastText} on the full pool; reproduction gate against the paper's published
   script table (the Hebr row 0.740 vs our 0.6966 and the 1,938-vs-1,940 basis
   are expected mismatches; on mismatch the affected table goes to the user, no
