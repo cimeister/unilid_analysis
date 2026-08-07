@@ -1,0 +1,28 @@
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{lrr}
+\toprule
+\textbf{Method} & \textbf{Macro F1} & \textbf{Ma-FPR (x1e5)} \\
+\midrule
+\unilid & 0.912 & 2.04 \\
+calibrated \unilid & 0.950 & 1.77 \\
+\fasttext & 0.933 & 2.72 \\
+\bottomrule
+\end{tabular}
+\quad
+\begin{tabular}{lrr}
+\toprule
+\textbf{Comparator} & \textbf{Mean diff} & \textbf{95\% CI} \\
+\midrule
+\unilid & $+0.038$ & $[+0.033, +0.043]$ \\
+\fasttext & $+0.017$ & $[+0.011, +0.022]$ \\
+\bottomrule
+\end{tabular}
+\caption{Left: macro F1 and macro FPR on the held-out part (27{,}002{,}441
+lines), which no constant of calibrated \unilid was selected on. Right: paired
+bootstrap of calibrated \unilid minus each comparator on the held-out part
+(10{,}000 resamples over the 1{,}940 languages, percentile interval). FPR
+values are multiplied by $10^5$.}
+\label{tab:calibrated_heldout}
+\end{table}

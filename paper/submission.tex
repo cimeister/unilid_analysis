@@ -744,118 +744,7 @@ $\leq 10\%$ of UDHR sentences appear in training; see \S3 of
 \citet{kargaran-etal-2023-glotlid}.} so we restrict GlotLID-M evaluations
 to these two benchmarks.
 
-\begin{table*}[ht]
-\centering
-\small
-\caption{Classification results on benchmark evaluation sets.  
-\unilid variants and \fasttext are trained using the GlotLID-C corpus. 
-The left columns show results on the full test sets of each benchmark for models that have full coverage of those benchmark's language label set. The right columns show results on the subsets of the benchmarks that \cld has label coverage for. The calibrated row (\cref{sec:calibration}) is evaluated on the same test sets; its \cld-subset cells are pending a convention alignment described in \cref{app:protocol}, and its gains are specific to natural-distribution data, which is why the parallel-text UDHR cell decreases.}
-\label{tab:lid_main}
-\setlength{\tabcolsep}{5pt}
-\renewcommand{\arraystretch}{1.15}
-\adjustbox{max width=0.85\textwidth}{
-\begin{tabular}{l cc cc cc | cc cc cc}
-& \multicolumn{6}{c}{\normalsize \textbf{Full GlotLID-C label set}} &
- \multicolumn{6}{c}{\normalsize \textbf{\cld label set}}\\
-\toprule
-\textbf{Method} &
-\multicolumn{2}{c}{\begin{tabular}[c]{@{}c@{}}\textbf{GlotLID-C test}\\ \small(1940 labels)\end{tabular}} &
-\multicolumn{2}{c}{\begin{tabular}[c]{@{}c@{}}\textbf{UDHR}\\ \small(366 labels)\end{tabular}} &
-\multicolumn{2}{c}{\begin{tabular}[c]{@{}c@{}}\textbf{FLORES-200}\\ \small(190 labels)\end{tabular}} &
-\multicolumn{2}{c}{\begin{tabular}[c]{@{}c@{}}\textbf{GlotLID-C test}\\ \small(83 languages)\end{tabular}} &
-\multicolumn{2}{c}{\begin{tabular}[c]{@{}c@{}}\textbf{UDHR}\\ \small(80 languages)\end{tabular}} &
-\multicolumn{2}{c}{\begin{tabular}[c]{@{}c@{}}\textbf{FLORES-200}\\ \small(77 languages)\end{tabular}} \\
-
-& F1$\uparrow$ & FPR$\downarrow$
-& F1$\uparrow$ & FPR$\downarrow$
-& F1$\uparrow$ & FPR$\downarrow$
-& F1$\uparrow$ & FPR$\downarrow$
-& F1$\uparrow$ & FPR$\downarrow$
-& F1$\uparrow$ & FPR$\downarrow$ \\
-\midrule
-
-% placeholder1
-% & -- & --
-% & -- & --
-% & -- & --
-% & -- & --
-% & -- & --
-% & -- & -- \\
-
-
-
-\cld 
-& -- & -- 
-& -- & -- 
-& -- & -- 
-& .906 & 5.48e-4
-& .965 & 2.52e-4
-& .978 & 2.22e-4 \\
-
-\glotlid
-& -- & --
-& \textbf{.871} & \textbf{1.37e-4}
-& \textbf{.968} & \textbf{1.35e-4}
-& -- & --
-& .994 & 2.09e-5
-& \textbf{.999} & \textbf{6.25e-6} \\
-
-\fasttext
-& \textbf{.944} & 2.71e-5
-& .855 & 1.87e-4
-& .938 & 2.38e-4
-& \textbf{.990} & \textbf{7.92e-5}
-& \textbf{.998} & 2.98e-5
-& .998 & 2.96e-5 \\
-
-\midrule
-\unilid
-& .929 & 2.03e-5
-& .859 & 1.43e-4
-& .932 & 2.78e-4
-& .971 & 1.63e-4
-& .992 & 1.06e-5
-& .997 & 3.29e-5 \\
-
-\unilid (calibrated, \cref{sec:calibration})
-& .957 & 1.77e-5
-& .838 & 2.08e-4
-& .933 & 2.91e-4
-& -- & --
-& -- & --
-& -- & -- \\
-
-\unilid-Mistral-Nemo
-& .912 & \textbf{1.84e-5}
-& .836 & 1.79e-4
-& .923 & 3.22e-4
-& .972 & 1.53e-4
-& .992 & \textbf{1.03e-4}
-& .994 & 8.05e-5 \\
-
-\unilid-DeepSeek3.2
-& .909 & 2.08e-5
-& .836 & 1.78e-4
-& .914 & 3.42e-4
-& .971 & 1.66e-4
-& .990 & 1.33e-4
-& .994 & 7.92e-5 \\
-
-\unilid-Qwen3
-& .904 & 2.55e-5
-& .829 & 1.91e-4
-& .904 & 3.80e-4
-& .964 & 2.27e-4
-& .984 & 2.11e-4
-& .989 & 1.46e-4 \\
-
-
-
-
-
-\bottomrule
-\end{tabular}}
-\end{table*}
+\input{tables/lid_main}
 
 
 \subsection{Evaluation Metrics}
@@ -1011,74 +900,11 @@ We report results using the \myemph{Mistral-Nemo-Base-2407}\footnote{\href{https
 \end{figure}
 
 
-\begin{table*}[t]
-\centering
-\small
-\caption{Per-dialect and macro-averaged F1 scores on the DSL-ML 2024 task for French (FR), Spanish (ES), Portuguese (PT), English (EN), and the Bosnian/Croatian/Montenegrin/Serbian family.}
-\label{tab:per_language_f1}
-\setlength{\tabcolsep}{4pt}
-\renewcommand{\arraystretch}{1.15}
-\adjustbox{max width=0.7\textwidth}{
-\begin{tabular}{l *{4}{c} | *{2}{c} | *{2}{c} | *{2}{c} | *{4}{c} | c}
-\toprule
-& \multicolumn{4}{c}{\textbf{French}} & \multicolumn{2}{c}{\textbf{Spanish}} & \multicolumn{2}{c}{\textbf{Portuguese}} & \multicolumn{2}{c}{\textbf{English}} & \multicolumn{4}{c}{\textbf{BCMS}} & \\
-\cmidrule(lr){2-5} \cmidrule(lr){6-7} \cmidrule(lr){8-9} \cmidrule(lr){10-11} \cmidrule(lr){12-15}
-\textbf{Model} & BE & FR & CA & CH & ES & AR & BR & PT & US & GB & SR & HR & BS & ME & \textbf{Macro} \\
-\midrule
-\unilid & .595 & .288 & .798 & \textbf{.456} & \textbf{.867} & \textbf{.832} & \textbf{.816} & \textbf{.724} & \textbf{.855} & \textbf{.815} & \textbf{.929} & \textbf{.788} & \textbf{.609} & \textbf{.750} & \textbf{.723} \\
-\fasttext & \textbf{.697} & \textbf{.434} & \textbf{.811} & .444 & .833 & .686 & .729 & .609 & .815 & .561 & .833 & .000 & .000 & .000 & .532 \\
-\bottomrule
-\end{tabular}%
-}
-\end{table*}
+\input{tables/per_language_f1}
 
-\begin{table}[t]
-\centering
-\small
-\caption{Macro-averaged F1 and false positive rate (FPR) of \fasttext and \unilid trained on WiLI and evaluated on the Tatoeba and UDHR benchmarks.}
-\label{tab:tatoeba_udhr_comparison}
-\setlength{\tabcolsep}{7pt}
-% \renewcommand{\arraystretch}{1.}
-\adjustbox{max width=\linewidth}{
-    \begin{tabular}{lcccc}
-    \toprule
-    \textbf{Method} &
-    \multicolumn{2}{c}{\textbf{Tatoeba} (201 langs)} &
-    \multicolumn{2}{c}{\textbf{UDHR} (142 langs)} \\
-    & \textbf{Macro F1}$\uparrow$ & \textbf{Macro FPR}$\downarrow$
-    & \textbf{Macro F1}$\uparrow$ & \textbf{Macro FPR}$\downarrow$ \\
-    \midrule
-    \fasttext & 0.160 & 3.58e-3 & 0.849 & 6.07e-4 \\
-    \unilid & \textbf{0.414} & \textbf{9.61e-4} & \textbf{0.868} & \textbf{5.88e-4} \\
-    \bottomrule
-    \end{tabular}%
-}
-\end{table}
+\input{tables/tatoeba_udhr_comparison}
 
-\begin{table}[t]
-\centering
-\small
-\caption{Accuracy as a function of input sequence length for \unilid and \fasttext on WiLI. All samples in WiLI are $>$ 100 chars long.}
-\label{tab:length_accuracy}
-\setlength{\tabcolsep}{6pt}
-\renewcommand{\arraystretch}{1.15}
-\adjustbox{max width=0.8\linewidth}{
-\begin{tabular}{l r c c}
-\toprule
-\textbf{Length (chars)} & \textbf{Samples} & 
-\begin{tabular}[c]{@{}c@{}}\textbf{\unilid}\\ Acc. (\%)$\uparrow$\end{tabular}
-  & \begin{tabular}[c]{@{}c@{}}\textbf{\fasttext}\\ Acc. (\%)$\uparrow$\end{tabular}\\
-\midrule101--150   & 7,845   & \textbf{93.10} & 90.73 \\
-151--200   & 26,652  & \textbf{94.17} & 92.56 \\
-201--300   & 31,449  & \textbf{95.86} & 94.58 \\
-301--500   & 29,494  & \textbf{96.78} & 96.03 \\
-501--1000  & 18,142  & \textbf{96.53} & 96.25 \\
-1000+      & 3,918   & \textbf{96.53} & 96.30 \\
-\midrule
-\textbf{Overall} & 117,500 & \textbf{95.65} & 94.54 \\
-\bottomrule
-\end{tabular}}
-\end{table}
+\input{tables/length_accuracy}
 
 \section{Results}\label{sec:results}
 
@@ -1263,31 +1089,7 @@ It explicitly evaluates a domain in which lexical overlap is high and differenti
 We use the train and dev splits released by the shared task, training on the train set and evaluating on the dev set. 
 % Add \usepackage{booktabs} to your preamble
 
-\begin{table}[h]
-    \centering
-    \begin{tabular}{lrr}
-        \toprule
-        \textbf{Dialect} & \textbf{Train Samples} & \textbf{Test Size} \\
-        \midrule
-        FR-BE & 122,369 & 7,543 \\
-        FR-CH & 116,490 & 1,027 \\
-        FR-FR & 84,402  & 6,351 \\
-        FR-CA & 19,041  & 2,169 \\
-        ES-ES & 2,616   & 631   \\
-        ES-AR & 1,982   & 358   \\
-        PT-PT & 1,331   & 356   \\
-        PT-BR & 2,556   & 635   \\
-        EN-US & 1,342   & 372   \\
-        EN-GB & 1,028   & 227   \\
-        SR    & 236     & 86    \\
-        HR    & 53      & 16    \\
-        BS    & 45      & 16    \\
-        ME    & 34      & 4     \\
-        \bottomrule
-    \end{tabular}
-    \caption{Train and test set sizes by dialect on DSL-ML 2024. We provide these details to help explain the results observed in \cref{tab:per_language_f1}.}
-    \label{tab:dialect_stats}
-\end{table}
+\input{tables/dialect_stats}
 
 \paragraph{WiLI-2018 \citep{Thoma2018TheWB}.} The Wikipedia Language Identification benchmark  contains 235,000 paragraphs balanced equally across 235 languages, all derived from Wikipedia.
 We use WiLI-2018 to study data efficiency, base tokenizer choice, and the impact of input sequence length on classification accuracy, as it provides sufficient depth (1,000 samples per language, 500 train/500 test) to support statistically significant ablation studies. 
@@ -1326,145 +1128,16 @@ We use the official train/test splits.
 \clearpage
 \section{Additional Ablation Results}
 \label{app:additional_results}
-\begin{table}[!h]
-\centering
-\small
-\setlength{\tabcolsep}{6pt}
-\renewcommand{\arraystretch}{1.15}
-\caption{Accuracy (mean $\pm$ std) as a function of the number of training samples per language on WiLI.}
-\adjustbox{max width=\linewidth}{
-\begin{tabular}{c c c}
-\hline
-\textbf{Samples / Language} 
-& \textbf{\unilid Acc. (\%) $\uparrow$} 
-& \textbf{\fasttext Acc. (\%) $\uparrow$} \\
-\hline
-5   & \textbf{69.46 $\pm$ 0.90} & 10.53 $\pm$ 0.43 \\
-10  & \textbf{80.01 $\pm$ 0.68} & 0.85 $\pm$ 0.00 \\
-25  & \textbf{88.99 $\pm$ 0.34} & 13.25 $\pm$ 0.53 \\
-50  & \textbf{92.62 $\pm$ 0.14} & 67.79 $\pm$ 0.52 \\
-100 & \textbf{94.17 $\pm$ 0.06} & 85.70 $\pm$ 0.40 \\
-200 & \textbf{94.99 $\pm$ 0.02} & 91.70 $\pm$ 0.04 \\
-300 & \textbf{95.31 $\pm$ 0.03} & 93.20 $\pm$ 0.04 \\
-400 & \textbf{95.50 $\pm$ 0.02} & 94.03 $\pm$ 0.03 \\
-500 & \textbf{95.65 $\pm$ 0.00} & 94.55 $\pm$ 0.06 \\
-\hline
-\end{tabular}}
-
-\label{tab:samples-accuracy}
-\end{table}
+\input{tables/samples-accuracy}
 \label{sec:ablations}
-\begin{table}[!h]
-\centering
-\small
-\setlength{\tabcolsep}{6pt}
-\renewcommand{\arraystretch}{1.15}
-\caption{Effect of base tokenizer vocabulary size on \unilid performance and inference efficiency evaluated on WiLI.}
-\adjustbox{max width=\linewidth}{
-\begin{tabular}{c c c c c}
-\hline
-\textbf{Vocab Size} &
-\textbf{Macro F1}$\uparrow$ &
-\textbf{Macro FPR}$\downarrow$ &
-\textbf{Latency (ms)}$\downarrow$ &
-\textbf{Samples/s}$\uparrow$ \\
-\hline
-10k   & 0.945 & 2.514e-4 & 0.113 & 8891.99 \\
-20k   & 0.951 & 2.278e-4 & 0.119 & 8421.68 \\
-50k   & 0.957 & 2.019e-4 & 0.147 & 6818.08 \\
-100k  & 0.960 & 1.859e-4 & 0.175 & 5717.68 \\
-200k  & \textbf{0.9606} & \textbf{1.8382e-4} & 0.2328 & 4296.45 \\
-\hline
-\end{tabular}}
-\label{tab:vocab_size_efficiency}
-\end{table}
+\input{tables/vocab_size_efficiency}
 
-\begin{table}[h]
-\centering
-\small
-\setlength{\tabcolsep}{8pt}
-\renewcommand{\arraystretch}{1.15}
-\adjustbox{max width=\linewidth}{
-\begin{tabular}{l c c}
-\toprule
-\textbf{Method} & \textbf{Macro F1}$\uparrow$ & \textbf{Macro FPR}$\downarrow$ \\
-\midrule
-\unilid (base)              & \textbf{0.960} & \textbf{1.859e-4} \\
-\fasttext    & 0.946 & 2.331e-4 \\
-\hdashline
-\unilid-Mistral-Nemo      & 0.958 & 1.925e-4 \\
-\unilid-Mistral      & 0.921 & 3.365e-4 \\
-\unilid-LLaMA3.2     & 0.954 & 2.084e-4\\
-\unilid-LLaMA2       & 0.911& 3.698e-4 \\
-\unilid-DeepSeek3.2       & 0.955 & 2.042e-4 \\
-\unilid-Qwen3       & 0.949 & 2.310e-4 \\
-\bottomrule
-\end{tabular}}
-\caption{Macro-averaged F1 and FPR of different LID systems on WiLI; the latter 4 systems are variants of \unilid trained using the base tokenizers from open-source LLMs.}
-\label{tab:unilid_llm_comparison}
-\end{table}
+\input{tables/unilid_llm_comparison}
 
-\begin{table}[!htbp]
-\centering
-\small
-\setlength{\tabcolsep}{8pt}
-\renewcommand{\arraystretch}{1.15}
-\caption{Comparison of Viterbi decoding versus exact marginalization (forward algorithm) at inference time on GlotLID-C. Marginalization is approximately $2\times$ more expensive but yields no statistically significant gain.}
-\adjustbox{max width=\linewidth}{
-\begin{tabular}{l c c}
-\toprule
-\textbf{Decoding} & \textbf{Accuracy}$\uparrow$ & \textbf{Macro F1}$\uparrow$ \\
-\midrule
-\unilid (Viterbi)         & 0.961 & 0.929 \\
-\unilid (Marginalization) & \textbf{0.962} & \textbf{0.931} \\
-\bottomrule
-\end{tabular}}
-\label{tab:viterbi_vs_marginal}
-\end{table}
+\input{tables/viterbi_vs_marginal}
 
-\begin{table*}[!htbp]
-\centering
-\small
-\setlength{\tabcolsep}{6pt}
-\renewcommand{\arraystretch}{1.15}
-\caption{Performance under stochastic character-level perturbation on WiLI (117,500 samples, 235 languages). Each non-whitespace character is replaced with probability $p$. \unilid maintains a small edge at low noise; \fasttext degrades more gracefully at higher noise rates.}
-\adjustbox{max width=\linewidth}{
-\begin{tabular}{c c c c c c c}
-\toprule
-& \multicolumn{3}{c}{\unilid} & \multicolumn{3}{c}{\fasttext} \\
-\cmidrule(lr){2-4} \cmidrule(lr){5-7}
-\textbf{Noise} $p$ & \textbf{Accuracy}$\uparrow$ & \textbf{Macro F1}$\uparrow$ & \textbf{Macro FPR}$\downarrow$ & \textbf{Accuracy}$\uparrow$ & \textbf{Macro F1}$\uparrow$ & \textbf{Macro FPR}$\downarrow$ \\
-\midrule
-0\%  & \textbf{0.957} & \textbf{0.960} & \textbf{1.86e-4} & 0.954 & 0.954 & 1.98e-4 \\
-5\%  & \textbf{0.951} & \textbf{0.954} & \textbf{2.10e-4} & 0.949 & 0.950 & 2.17e-4 \\
-10\% & 0.940 & \textbf{0.944} & 2.55e-4 & \textbf{0.943} & 0.943 & \textbf{2.44e-4} \\
-25\% & 0.824 & 0.832 & 7.51e-4 & \textbf{0.906} & \textbf{0.906} & \textbf{4.01e-4} \\
-50\% & 0.395 & 0.396 & 2.58e-3 & \textbf{0.675} & \textbf{0.678} & \textbf{1.39e-3} \\
-\bottomrule
-\end{tabular}}
-\label{tab:noise_robustness}
-\end{table*}
-\begin{table*}[!htbp]
-\centering
-\small
-\setlength{\tabcolsep}{4pt}
-\renewcommand{\arraystretch}{1.15}
-\caption{\fasttext per-dialect F1 on DSL-ML 2024 across different training configurations. Macro is the unweighted mean F1 across all 14 dialects. All three BCMS dialects (HR, BS, ME) remain at 0.000 F1 regardless of training budget.}
-\adjustbox{max width=\linewidth}{
-\begin{tabular}{l r r r r r r r r r r r r r r r}
-\toprule
-\textbf{Setting} & \textbf{FR-BE} & \textbf{FR-FR} & \textbf{FR-CA} & \textbf{FR-CH} & \textbf{ES-ES} & \textbf{ES-AR} & \textbf{PT-BR} & \textbf{PT-PT} & \textbf{EN-US} & \textbf{EN-GB} & \textbf{SR} & \textbf{HR} & \textbf{BS} & \textbf{ME} & \textbf{Macro} \\
-\midrule
-1 Epoch              & 0.6906 & 0.2325 & 0.0000 & 0.2989 & 0.0000 & 0.0000 & 0.0000 & 0.3936 & 0.0000 & 0.0000 & 0.0000 & 0.0000 & 0.0000 & 0.0000 & 0.1154 \\
-5 Epochs             & 0.6894 & 0.3766 & 0.2786 & 0.3997 & 0.8133 & 0.0240 & 0.3812 & 0.5323 & 0.7410 & 0.0000 & 0.0000 & 0.0000 & 0.0000 & 0.0000 & 0.3026 \\
-10 Epochs            & 0.6832 & 0.4180 & 0.7779 & 0.4676 & 0.8580 & 0.0000 & 0.4995 & 0.5793 & 0.7657 & 0.0000 & 0.0000 & 0.0000 & 0.0000 & 0.0000 & 0.3607 \\
-10 Epochs, $MC$=10     & 0.6819 & 0.4163 & 0.8055 & 0.4956 & 0.8292 & 0.0000 & 0.0243 & 0.5620 & 0.7725 & 0.0000 & 0.0000 & 0.0000 & 0.0000 & 0.0000 & 0.3277 \\
-100 Epochs, $MC$=10    & \textbf{0.6908} & \textbf{0.4434} & \textbf{0.8139} & 0.4457 & \textbf{0.8674} & \textbf{0.5426} & \textbf{0.6088} & \textbf{0.6208} & \textbf{0.8065} & \textbf{0.5949} & \textbf{0.8293} & 0.0000 & 0.0000 & 0.0000 & \textbf{0.5189} \\
-100 Epochs, $MC$=1000 & \textbf{.697} & \textbf{.434} & \textbf{.811} & .444 & .833 & .686 & .729 & .609 & .815 & .561 & .833 & .000 & .000 & .000 & .532 \\
-\bottomrule
-\end{tabular}}
-\label{tab:fasttext_epoch_sweep}
-\end{table*}
+\input{tables/noise_robustness}
+\input{tables/fasttext_epoch_sweep}
 
 
 
@@ -1511,61 +1184,11 @@ To validate the \fasttext configuration used in our dialect experiments (\cref{s
 
 \Cref{tab:latency_glotlid,tab:latency_wili} reports end-to-end inference latency and throughput for \unilid, \fasttext, and \cld measured on the same hardware. On GlotLID-C ($|\languages|=1940$), \unilid is approximately $1.65\times$ slower than \fasttext per sample; on WiLI ($|\Lambda|=235$), the gap closes to $1.4\times$ and \unilid is over $2.7\times$ faster than \cld. \Cref{tab:training_time} compares wall-clock training time for the GlotLID-C training set.
 
-\begin{table}[!htbp]
-\centering
-\small
-\setlength{\tabcolsep}{8pt}
-\renewcommand{\arraystretch}{1.15}
-\caption{Inference latency on GlotLID-C ($|\Lambda|=1940$), evaluated over 45,627,279 samples.}
-\adjustbox{max width=\linewidth}{
-\begin{tabular}{l r r}
-\toprule
-\textbf{Method} & \textbf{Latency (ms/sample)}$\downarrow$ & \textbf{Throughput (samples/s)}$\uparrow$ \\
-\midrule
-\fasttext    & \textbf{0.166} & \textbf{6019} \\
-\cld         & 0.187 & 5356 \\
-\unilid      & 0.307 & 3253 \\
-\bottomrule
-\end{tabular}}
-\label{tab:latency_glotlid}
-\end{table}
+\input{tables/latency_glotlid}
 
-\begin{table}[!htbp]
-\centering
-\small
-\setlength{\tabcolsep}{8pt}
-\renewcommand{\arraystretch}{1.15}
-\caption{Inference latency on WiLI ($|\Lambda|=235$), evaluated over 117,500 samples.}
-\adjustbox{max width=\linewidth}{
-\begin{tabular}{l r r}
-\toprule
-\textbf{Method} & \textbf{Latency (ms/sample)}$\downarrow$ & \textbf{Throughput (samples/s)}$\uparrow$ \\
-\midrule
-\fasttext    & \textbf{0.113} & \textbf{8889} \\
-\unilid      & 0.155 & 6435 \\
-\cld         & 0.427 & 2340 \\
-\bottomrule
-\end{tabular}}
-\label{tab:latency_wili}
-\end{table}
+\input{tables/latency_wili}
 
-\begin{table}[!htbp]
-\centering
-\small
-\setlength{\tabcolsep}{8pt}
-\renewcommand{\arraystretch}{1.15}
-\caption{Wall-clock training time on the GlotLID-C training set. \unilid splits the training cost across base tokenizer learning (1k samples per language) and per-language EM re-estimation; \fasttext is trained on the full training set for 100 epochs.}
-\adjustbox{max width=\linewidth}{
-\begin{tabular}{l r}
-\toprule
-\textbf{Method} & \textbf{Total Time (s)}$\downarrow$ \\
-\midrule
-\unilid              & \textbf{17{,}776} \\
-\fasttext (100 ep.)  & $\sim$163{,}000 \\
-\bottomrule
-\end{tabular}}
-\label{tab:training_time}
-\end{table}
+\input{tables/training_time}
 
 
 
@@ -1573,27 +1196,7 @@ To validate the \fasttext configuration used in our dialect experiments (\cref{s
 \subsection{Script}
 \cref{tab:script-breakdown} partitions GlotLID-C test performance by Unicode script. UniLID performs almost identically to \fasttext on Latin-script languages (1,700 of the 1,940 labels; F1 0.940 vs. 0.946), but underperforms on every non-Latin script. The gaps are largest on Greek ($\Delta$ F1 = -0.248), Hebrew (-0.227), Devanagari (-0.121), and Bengali (-0.100). We attribute this to the base vocabulary ($\vocab$) of the tokenizer: $\vocab$ is itself learned by \unilm on the GlotLID-C training corpus, in which Latin-script data dominates. A Latin-biased $\vocab$ leaves languages in other scripts with fewer informative subword units, which in turn limits how much signal per-language unigram estimation can recover. 
 Larger vocabularies help modestly (\cref{app:additional_results}) but do not close the gap. The most direct solution would be  to train $\vocab$ on a script-balanced or script-upsampled corpus so that non-Latin substrings receive proportional coverage in $\vocab$. We leave this exploration to future work. 
-\begin{table}[t]
-\centering
-\small
-\begin{tabular}{@{}lrrrr@{}}
-\toprule
-Script & \# Langs & UniLID & fastText & $\Delta$ \\
-\midrule
-Latn  & 1{,}700 & 0.940 & 0.946 & $-0.006$ \\
-Cyrl  &      70 & 0.877 & 0.970 & $-0.093$ \\
-Arab  &      38 & 0.691 & 0.747 & $-0.056$ \\
-Deva  &      32 & 0.811 & 0.932 & $-0.121$ \\
-Beng  &       6 & 0.885 & 0.985 & $-0.100$ \\
-Grek  &       4 & 0.677 & 0.925 & $-0.248$ \\
-Hebr  &       4 & 0.740 & 0.967 & $-0.227$ \\
-Armn  &       2 & 0.974 & 0.986 & $-0.012$ \\
-Other &      82 & 0.937 & 0.973 & $-0.036$ \\
-\bottomrule
-\end{tabular}
-\caption{Macro-F1 on the GlotLID-C test set stratified by Unicode script (ISO 15924), in the within-stratum view: test examples are restricted to true labels inside each script group, so false positives arriving from other scripts are excluded. The two single-language scripts (Korean, Japanese) are excluded from the Other row. $\Delta = \text{F1}(\text{UniLID}) - \text{F1}(\text{fastText})$. UniLID matches fastText on Latin-script languages but underperforms on every non-Latin script, with the largest gaps on Greek, Hebrew, and Devanagari. We attribute this to the training distribution of the base vocabulary $V$, which is dominated by Latin-script text in GlotLID-C.}
-\label{tab:script-breakdown}
-\end{table}
+\input{tables/script-breakdown}
 
 
 \subsection{Resource Tier}
@@ -1601,93 +1204,16 @@ Other &      82 & 0.937 & 0.973 & $-0.036$ \\
 
 %; in the high-resource setting,  \fasttext has enough data to learn robust and informative $n$-gram embeddings. 
 
-\begin{table*}[t]
-\centering
-\small
-\begin{tabular}{@{}lrrcccc@{}}
-\toprule
- & & & \multicolumn{2}{c}{UniLID} & \multicolumn{2}{c}{fastText} \\
-\cmidrule(lr){4-5} \cmidrule(lr){6-7}
-Train samples / lang & \# Langs & $N_{\text{test}}$ & F1 & FPR & F1 & FPR \\
-\midrule
-$<\!500$         &  56 & \num{2523}     & 0.871 & \num{7.2e-5} & 0.915 & \num{1.15e-4} \\
-$500$\,--\,$1$k    &  40 & \num{5246}     & 0.975 & \num{1.5e-5} & 0.964 & \num{1.9e-5}  \\
-$1$k\,--\,$12$k    & 458 & \num{555416}   & 0.990 & \num{8.0e-6} & 0.979 & \num{8.0e-6}  \\
-$12$k\,--\,$18$k   & 526 & \num{1157747}  & 0.997 & \num{2.0e-6} & 0.986 & \num{1.0e-5}  \\
-$18$k\,--\,$35$k   & 398 & \num{1131306}  & 0.992 & \num{7.0e-6} & 0.981 & \num{1.6e-5}  \\
-$35$k$+$           & 462 & \num{42775041} & 0.958 & \num{5.3e-5} & 0.942 & \num{9.1e-5}  \\
-\bottomrule
-\end{tabular}
-\caption{Performance on the GlotLID-C test set stratified by per-language training-sample count, in the within-stratum view: test examples are restricted to true labels inside each tier, so false positives arriving from other tiers are excluded. \Cref{tab:calibrated_views} repeats this stratification under both metric views. \# Langs is the number of languages in the bucket; $N_{\text{test}}$ is the total number of test instances. UniLID matches or exceeds fastText on every bucket except $<\!500$, where the base-vocabulary script bias documented in Table~\ref{tab:script-breakdown} compounds with limited per-language data.}
-\label{tab:resource-tier}
-\end{table*}
+\input{tables/resource-tier}
 
 \subsection{Length Bias}
 We lastly look potential length biases. The unigram likelihood lacks an explicit length prior, so a language whose $\unigramdistlang$ puts more mass on longer tokens accumulates fewer multiplicative factors than one favoring shorter tokens. 
 We checked whether this manifests as a systematic bias in errors and find that on misclassifications, the Viterbi segmentation under the predicted language is on average 0.17 tokens shorter than under the true language, with the gap growing for longer inputs. Length-normalizing the per-language log-likelihood by segmentation length led to worse performace in preliminary experiments; we report results in \cref{tab:lenbias-delta,tab:lenbias-norm}.
 
 
-\begin{table*}[htbp]
-\centering
-\small
-\begin{tabular}{lrrrrrr}
-\toprule
-\textbf{Length (chars)} & \textbf{N} & \textbf{Mean $\Delta$} & \textbf{Median $\Delta$} & \textbf{\% fewer} & \textbf{\% same} & \textbf{\% more} \\
-\midrule
-All misclassified & 1,789,423 & $-0.17$ & $0.00$ & 24.94 & 61.08 & 13.99 \\
-\midrule
-$<$30    &   515,094 & $-0.11$ & $0.00$ & 17.69 & 74.62 &  7.69 \\
-30--75   &   771,812 & $-0.15$ & $0.00$ & 24.28 & 62.76 & 12.96 \\
-75--150  &   392,549 & $-0.21$ & $0.00$ & 32.10 & 47.71 & 20.19 \\
-150--300 &   102,497 & $-0.24$ & $0.00$ & 36.80 & 34.85 & 28.34 \\
-300+     &     7,471 & $-2.71$ & $-1.00$ & 53.09 & 15.11 & 31.80 \\
-\bottomrule
-\end{tabular}
-\caption{%
-  Token-count length bias on \unilid misclassifications, by input length.
-  For each misclassified sample, $\Delta = n_{\mathrm{pred}} - n_{\mathrm{true}}$ is the
-  difference in Viterbi segmentation length (in tokens) between the predicted and the true
-  language; negative values mean the predicted language uses fewer tokens. Computed over all
-  $1{,}789{,}423$ misclassifications in the full GlotLID test set ($45.6$M samples). The mean
-  $\Delta$ is negative and grows in magnitude with input length, while the median is zero and
-  $61\%$ of errors leave the token count unchanged: a small but systematic bias toward
-  fewer-token languages, driven by a minority of samples. \emph{\% fewer/same/more} give the
-  share of misclassifications where the predicted language uses fewer, equal, or more tokens
-  than the true language. 
-}
-\label{tab:lenbias-delta}
-\end{table*}
+\input{tables/lenbias-delta}
 
-\begin{table}[htbp]
-\centering
-\small
-\adjustbox{max width=\columnwidth}{
-\begin{tabular}{lrrrr}
-\toprule
-\textbf{Length (chars)} & \textbf{N} & \textbf{Original} & \textbf{Raw rescore} & \textbf{Normalized} \\
-\midrule
-$<$30    &  27,328 & 0.792 & 0.792 & 0.566 \\
-30--75   & 177,256 & 0.951 & 0.951 & 0.842 \\
-75--150  & 195,267 & 0.978 & 0.978 & 0.925 \\
-150--300 &  87,096 & 0.987 & 0.987 & 0.966 \\
-300+     &  13,053 & 0.995 & 0.995 & 0.991 \\
-\midrule
-Overall  & 500,000 & 0.960 & 0.960 & 0.885 \\
-\bottomrule
-\end{tabular}}
-\caption{%
-  Effect of length-normalizing the per-language log-likelihood on \unilid accuracy, by input
-  length. Scores are normalized by dividing the summed token log-probabilities by the
-  segmentation length ($\mathrm{score}/n_{\mathrm{tokens}}^{\alpha}$ with $\alpha=1$).
-  \emph{Raw rescore} re-runs the unnormalized scorer ($\alpha=0$) through the same code path
-  and reproduces the original predictions exactly ($100\%$ agreement), validating the
-  implementation. Evaluated on a $500k$-sample subset. Full normalization lowers overall accuracy from $0.960$ to $0.885$, with the
-  largest degradation on short inputs ($<$30 chars: $0.792 \to 0.566$) and almost none on long
-  inputs: the opposite of where the token-count bias in Table~\ref{tab:lenbias-delta} is
-  largest. 
-}
-\label{tab:lenbias-norm}
-\end{table}
+\input{tables/lenbias-norm}
 \section{Development protocol and additional measurements for calibrated \unilid}\label{app:protocol}
 
 The constants of \cref{sec:calibration} were selected on data disjoint from
@@ -1706,83 +1232,11 @@ lists each selected component with its selection data. Table 1 reports the
 full scored pool for comparability with the other systems;
 \cref{tab:calibrated_heldout} repeats the comparison on the held-out part.
 
-\begin{table}[htbp]
-\centering
-\small
-\begin{tabular}{lll}
-\toprule
-\textbf{Component} & \textbf{Selection data} & \textbf{In scored pool?} \\
-\midrule
-floor $-21$ & retired 250k validation sample & no \\
-flat-four membership & same retired 250k sample & no \\
-thresholds, $q_\lang$ & each language's own training data & no \\
-$100{,}000$-sample bar & false-positive profile, full pool & yes \\
-proximity bound $21$ & development part (18.0M lines) & yes \\
-\bottomrule
-\end{tabular}
-\caption{Selected components of calibrated \unilid and the data each was
-selected on. The held-out part is outside every row of this table.}
-\label{tab:calibration_provenance}
-\end{table}
+\input{tables/calibration_provenance}
 
-\begin{table}[htbp]
-\centering
-\small
-\begin{tabular}{lrr}
-\toprule
-\textbf{Method} & \textbf{Macro F1} & \textbf{Ma-FPR (x1e5)} \\
-\midrule
-\unilid & 0.912 & 2.04 \\
-calibrated \unilid & 0.950 & 1.77 \\
-\fasttext & 0.933 & 2.72 \\
-\bottomrule
-\end{tabular}
-\quad
-\begin{tabular}{lrr}
-\toprule
-\textbf{Comparator} & \textbf{Mean diff} & \textbf{95\% CI} \\
-\midrule
-\unilid & $+0.038$ & $[+0.033, +0.043]$ \\
-\fasttext & $+0.017$ & $[+0.011, +0.022]$ \\
-\bottomrule
-\end{tabular}
-\caption{Left: macro F1 and macro FPR on the held-out part (27{,}002{,}441
-lines), which no constant of calibrated \unilid was selected on. Right: paired
-bootstrap of calibrated \unilid minus each comparator on the held-out part
-(10{,}000 resamples over the 1{,}940 languages, percentile interval). FPR
-values are multiplied by $10^5$.}
-\label{tab:calibrated_heldout}
-\end{table}
+\input{tables/calibrated_heldout}
 
-\begin{table*}[htbp]
-\centering
-\small
-\begin{tabular}{lrrrrrrr}
-\toprule
-& & \multicolumn{3}{c}{\textbf{Global view}} & \multicolumn{3}{c}{\textbf{Within-stratum view}} \\
-\cmidrule(lr){3-5} \cmidrule(lr){6-8}
-\textbf{Train samples} & \textbf{\# Langs} & \unilid & calib.\ \unilid & \fasttext & \unilid & calib.\ \unilid & \fasttext \\
-\midrule
-$<$500 & 56 & 0.515 & 0.780 & 0.750 & 0.871 & 0.827 & 0.915 \\
-500--1k & 40 & 0.628 & 0.892 & 0.861 & 0.975 & 0.955 & 0.964 \\
-1k--12k & 458 & 0.891 & 0.945 & 0.941 & 0.990 & 0.987 & 0.979 \\
-12k--18k & 526 & 0.979 & 0.985 & 0.971 & 0.997 & 0.997 & 0.986 \\
-18k--35k & 398 & 0.963 & 0.965 & 0.953 & 0.992 & 0.992 & 0.981 \\
-35k+ & 462 & 0.958 & 0.957 & 0.941 & 0.958 & 0.958 & 0.942 \\
-\bottomrule
-\end{tabular}
-\caption{Mean per-language F1 by training-resource tier under both metric
-views, on the 45{,}377{,}279 scored test lines. Global view: every false
-positive counts against the predicted language. Within-stratum view: test
-examples are restricted to true labels inside the tier, so false positives
-arriving from other tiers are excluded (the view used by
-\cref{tab:resource-tier}). The two views rank the methods oppositely in the
-smallest tiers: calibrated \unilid removes false positives INTO small
-languages, which only the global view counts, and re-examination moves some
-of the smallest languages' own low-margin lines away, which only the
-within-stratum view penalizes.}
-\label{tab:calibrated_views}
-\end{table*}
+\input{tables/calibrated_views}
 
 \paragraph{Measurements on other instruments.} On a balanced draw of the test
 pool (draw seed 201, 185{,}204 lines, at most 100 lines per language), the

@@ -1,0 +1,18 @@
+\begin{table}[!htbp]
+\centering
+\small
+\setlength{\tabcolsep}{8pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Inference latency on GlotLID-C ($|\Lambda|=1940$), evaluated over 45,627,279 samples.}
+\adjustbox{max width=\linewidth}{
+\begin{tabular}{l r r}
+\toprule
+\textbf{Method} & \textbf{Latency (ms/sample)}$\downarrow$ & \textbf{Throughput (samples/s)}$\uparrow$ \\
+\midrule
+\fasttext    & \textbf{0.166} & \textbf{6019} \\
+\cld         & 0.187 & 5356 \\
+\unilid      & 0.307 & 3253 \\
+\bottomrule
+\end{tabular}}
+\label{tab:latency_glotlid}
+\end{table}

@@ -1,0 +1,29 @@
+\begin{table*}[htbp]
+\centering
+\small
+\begin{tabular}{lrrrrrrr}
+\toprule
+& & \multicolumn{3}{c}{\textbf{Global view}} & \multicolumn{3}{c}{\textbf{Within-stratum view}} \\
+\cmidrule(lr){3-5} \cmidrule(lr){6-8}
+\textbf{Train samples} & \textbf{\# Langs} & \unilid & calib.\ \unilid & \fasttext & \unilid & calib.\ \unilid & \fasttext \\
+\midrule
+$<$500 & 56 & 0.515 & 0.780 & 0.750 & 0.871 & 0.827 & 0.915 \\
+500--1k & 40 & 0.628 & 0.892 & 0.861 & 0.975 & 0.955 & 0.964 \\
+1k--12k & 458 & 0.891 & 0.945 & 0.941 & 0.990 & 0.987 & 0.979 \\
+12k--18k & 526 & 0.979 & 0.985 & 0.971 & 0.997 & 0.997 & 0.986 \\
+18k--35k & 398 & 0.963 & 0.965 & 0.953 & 0.992 & 0.992 & 0.981 \\
+35k+ & 462 & 0.958 & 0.957 & 0.941 & 0.958 & 0.958 & 0.942 \\
+\bottomrule
+\end{tabular}
+\caption{Mean per-language F1 by training-resource tier under both metric
+views, on the 45{,}377{,}279 scored test lines. Global view: every false
+positive counts against the predicted language. Within-stratum view: test
+examples are restricted to true labels inside the tier, so false positives
+arriving from other tiers are excluded (the view used by
+\cref{tab:resource-tier}). The two views rank the methods oppositely in the
+smallest tiers: calibrated \unilid removes false positives INTO small
+languages, which only the global view counts, and re-examination moves some
+of the smallest languages' own low-margin lines away, which only the
+within-stratum view penalizes.}
+\label{tab:calibrated_views}
+\end{table*}

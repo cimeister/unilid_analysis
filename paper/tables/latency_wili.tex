@@ -1,0 +1,18 @@
+\begin{table}[!htbp]
+\centering
+\small
+\setlength{\tabcolsep}{8pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Inference latency on WiLI ($|\Lambda|=235$), evaluated over 117,500 samples.}
+\adjustbox{max width=\linewidth}{
+\begin{tabular}{l r r}
+\toprule
+\textbf{Method} & \textbf{Latency (ms/sample)}$\downarrow$ & \textbf{Throughput (samples/s)}$\uparrow$ \\
+\midrule
+\fasttext    & \textbf{0.113} & \textbf{8889} \\
+\unilid      & 0.155 & 6435 \\
+\cld         & 0.427 & 2340 \\
+\bottomrule
+\end{tabular}}
+\label{tab:latency_wili}
+\end{table}

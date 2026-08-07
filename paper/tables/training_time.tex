@@ -1,0 +1,17 @@
+\begin{table}[!htbp]
+\centering
+\small
+\setlength{\tabcolsep}{8pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Wall-clock training time on the GlotLID-C training set. \unilid splits the training cost across base tokenizer learning (1k samples per language) and per-language EM re-estimation; \fasttext is trained on the full training set for 100 epochs.}
+\adjustbox{max width=\linewidth}{
+\begin{tabular}{l r}
+\toprule
+\textbf{Method} & \textbf{Total Time (s)}$\downarrow$ \\
+\midrule
+\unilid              & \textbf{17{,}776} \\
+\fasttext (100 ep.)  & $\sim$163{,}000 \\
+\bottomrule
+\end{tabular}}
+\label{tab:training_time}
+\end{table}

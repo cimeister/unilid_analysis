@@ -1,0 +1,21 @@
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{@{}lrrrr@{}}
+\toprule
+Script & \# Langs & UniLID & fastText & $\Delta$ \\
+\midrule
+Latn  & 1{,}700 & 0.940 & 0.946 & $-0.006$ \\
+Cyrl  &      70 & 0.877 & 0.970 & $-0.093$ \\
+Arab  &      38 & 0.691 & 0.747 & $-0.056$ \\
+Deva  &      32 & 0.811 & 0.932 & $-0.121$ \\
+Beng  &       6 & 0.885 & 0.985 & $-0.100$ \\
+Grek  &       4 & 0.677 & 0.925 & $-0.248$ \\
+Hebr  &       4 & 0.740 & 0.967 & $-0.227$ \\
+Armn  &       2 & 0.974 & 0.986 & $-0.012$ \\
+Other &      82 & 0.937 & 0.973 & $-0.036$ \\
+\bottomrule
+\end{tabular}
+\caption{Macro-F1 on the GlotLID-C test set stratified by Unicode script (ISO 15924), in the within-stratum view: test examples are restricted to true labels inside each script group, so false positives arriving from other scripts are excluded. The two single-language scripts (Korean, Japanese) are excluded from the Other row. $\Delta = \text{F1}(\text{UniLID}) - \text{F1}(\text{fastText})$. UniLID matches fastText on Latin-script languages but underperforms on every non-Latin script, with the largest gaps on Greek, Hebrew, and Devanagari. We attribute this to the training distribution of the base vocabulary $V$, which is dominated by Latin-script text in GlotLID-C.}
+\label{tab:script-breakdown}
+\end{table}

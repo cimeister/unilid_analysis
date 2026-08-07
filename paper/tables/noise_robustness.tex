@@ -1,0 +1,22 @@
+\begin{table*}[!htbp]
+\centering
+\small
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Performance under stochastic character-level perturbation on WiLI (117,500 samples, 235 languages). Each non-whitespace character is replaced with probability $p$. \unilid maintains a small edge at low noise; \fasttext degrades more gracefully at higher noise rates.}
+\adjustbox{max width=\linewidth}{
+\begin{tabular}{c c c c c c c}
+\toprule
+& \multicolumn{3}{c}{\unilid} & \multicolumn{3}{c}{\fasttext} \\
+\cmidrule(lr){2-4} \cmidrule(lr){5-7}
+\textbf{Noise} $p$ & \textbf{Accuracy}$\uparrow$ & \textbf{Macro F1}$\uparrow$ & \textbf{Macro FPR}$\downarrow$ & \textbf{Accuracy}$\uparrow$ & \textbf{Macro F1}$\uparrow$ & \textbf{Macro FPR}$\downarrow$ \\
+\midrule
+0\%  & \textbf{0.957} & \textbf{0.960} & \textbf{1.86e-4} & 0.954 & 0.954 & 1.98e-4 \\
+5\%  & \textbf{0.951} & \textbf{0.954} & \textbf{2.10e-4} & 0.949 & 0.950 & 2.17e-4 \\
+10\% & 0.940 & \textbf{0.944} & 2.55e-4 & \textbf{0.943} & 0.943 & \textbf{2.44e-4} \\
+25\% & 0.824 & 0.832 & 7.51e-4 & \textbf{0.906} & \textbf{0.906} & \textbf{4.01e-4} \\
+50\% & 0.395 & 0.396 & 2.58e-3 & \textbf{0.675} & \textbf{0.678} & \textbf{1.39e-3} \\
+\bottomrule
+\end{tabular}}
+\label{tab:noise_robustness}
+\end{table*}

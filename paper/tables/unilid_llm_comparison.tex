@@ -1,0 +1,24 @@
+\begin{table}[h]
+\centering
+\small
+\setlength{\tabcolsep}{8pt}
+\renewcommand{\arraystretch}{1.15}
+\adjustbox{max width=\linewidth}{
+\begin{tabular}{l c c}
+\toprule
+\textbf{Method} & \textbf{Macro F1}$\uparrow$ & \textbf{Macro FPR}$\downarrow$ \\
+\midrule
+\unilid (base)              & \textbf{0.960} & \textbf{1.859e-4} \\
+\fasttext    & 0.946 & 2.331e-4 \\
+\hdashline
+\unilid-Mistral-Nemo      & 0.958 & 1.925e-4 \\
+\unilid-Mistral      & 0.921 & 3.365e-4 \\
+\unilid-LLaMA3.2     & 0.954 & 2.084e-4\\
+\unilid-LLaMA2       & 0.911& 3.698e-4 \\
+\unilid-DeepSeek3.2       & 0.955 & 2.042e-4 \\
+\unilid-Qwen3       & 0.949 & 2.310e-4 \\
+\bottomrule
+\end{tabular}}
+\caption{Macro-averaged F1 and FPR of different LID systems on WiLI; the latter 4 systems are variants of \unilid trained using the base tokenizers from open-source LLMs.}
+\label{tab:unilid_llm_comparison}
+\end{table}

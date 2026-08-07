@@ -1,0 +1,18 @@
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{lll}
+\toprule
+\textbf{Component} & \textbf{Selection data} & \textbf{In scored pool?} \\
+\midrule
+floor $-21$ & retired 250k validation sample & no \\
+flat-four membership & same retired 250k sample & no \\
+thresholds, $q_\lang$ & each language's own training data & no \\
+$100{,}000$-sample bar & false-positive profile, full pool & yes \\
+proximity bound $21$ & development part (18.0M lines) & yes \\
+\bottomrule
+\end{tabular}
+\caption{Selected components of calibrated \unilid and the data each was
+selected on. The held-out part is outside every row of this table.}
+\label{tab:calibration_provenance}
+\end{table}

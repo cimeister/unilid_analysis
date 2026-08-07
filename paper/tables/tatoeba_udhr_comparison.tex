@@ -1,0 +1,22 @@
+\begin{table}[t]
+\centering
+\small
+\caption{Macro-averaged F1 and false positive rate (FPR) of \fasttext and \unilid trained on WiLI and evaluated on the Tatoeba and UDHR benchmarks.}
+\label{tab:tatoeba_udhr_comparison}
+\setlength{\tabcolsep}{7pt}
+% \renewcommand{\arraystretch}{1.}
+\adjustbox{max width=\linewidth}{
+    \begin{tabular}{lcccc}
+    \toprule
+    \textbf{Method} &
+    \multicolumn{2}{c}{\textbf{Tatoeba} (201 langs)} &
+    \multicolumn{2}{c}{\textbf{UDHR} (142 langs)} \\
+    & \textbf{Macro F1}$\uparrow$ & \textbf{Macro FPR}$\downarrow$
+    & \textbf{Macro F1}$\uparrow$ & \textbf{Macro FPR}$\downarrow$ \\
+    \midrule
+    \fasttext & 0.160 & 3.58e-3 & 0.849 & 6.07e-4 \\
+    \unilid & \textbf{0.414} & \textbf{9.61e-4} & \textbf{0.868} & \textbf{5.88e-4} \\
+    \bottomrule
+    \end{tabular}%
+}
+\end{table}

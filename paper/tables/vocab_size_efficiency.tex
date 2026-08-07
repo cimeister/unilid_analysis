@@ -1,0 +1,24 @@
+\begin{table}[!h]
+\centering
+\small
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{Effect of base tokenizer vocabulary size on \unilid performance and inference efficiency evaluated on WiLI.}
+\adjustbox{max width=\linewidth}{
+\begin{tabular}{c c c c c}
+\hline
+\textbf{Vocab Size} &
+\textbf{Macro F1}$\uparrow$ &
+\textbf{Macro FPR}$\downarrow$ &
+\textbf{Latency (ms)}$\downarrow$ &
+\textbf{Samples/s}$\uparrow$ \\
+\hline
+10k   & 0.945 & 2.514e-4 & 0.113 & 8891.99 \\
+20k   & 0.951 & 2.278e-4 & 0.119 & 8421.68 \\
+50k   & 0.957 & 2.019e-4 & 0.147 & 6818.08 \\
+100k  & 0.960 & 1.859e-4 & 0.175 & 5717.68 \\
+200k  & \textbf{0.9606} & \textbf{1.8382e-4} & 0.2328 & 4296.45 \\
+\hline
+\end{tabular}}
+\label{tab:vocab_size_efficiency}
+\end{table}

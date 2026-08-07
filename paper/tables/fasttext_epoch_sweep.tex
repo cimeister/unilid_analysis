@@ -1,0 +1,21 @@
+\begin{table*}[!htbp]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.15}
+\caption{\fasttext per-dialect F1 on DSL-ML 2024 across different training configurations. Macro is the unweighted mean F1 across all 14 dialects. All three BCMS dialects (HR, BS, ME) remain at 0.000 F1 regardless of training budget.}
+\adjustbox{max width=\linewidth}{
+\begin{tabular}{l r r r r r r r r r r r r r r r}
+\toprule
+\textbf{Setting} & \textbf{FR-BE} & \textbf{FR-FR} & \textbf{FR-CA} & \textbf{FR-CH} & \textbf{ES-ES} & \textbf{ES-AR} & \textbf{PT-BR} & \textbf{PT-PT} & \textbf{EN-US} & \textbf{EN-GB} & \textbf{SR} & \textbf{HR} & \textbf{BS} & \textbf{ME} & \textbf{Macro} \\
+\midrule
+1 Epoch              & 0.6906 & 0.2325 & 0.0000 & 0.2989 & 0.0000 & 0.0000 & 0.0000 & 0.3936 & 0.0000 & 0.0000 & 0.0000 & 0.0000 & 0.0000 & 0.0000 & 0.1154 \\
+5 Epochs             & 0.6894 & 0.3766 & 0.2786 & 0.3997 & 0.8133 & 0.0240 & 0.3812 & 0.5323 & 0.7410 & 0.0000 & 0.0000 & 0.0000 & 0.0000 & 0.0000 & 0.3026 \\
+10 Epochs            & 0.6832 & 0.4180 & 0.7779 & 0.4676 & 0.8580 & 0.0000 & 0.4995 & 0.5793 & 0.7657 & 0.0000 & 0.0000 & 0.0000 & 0.0000 & 0.0000 & 0.3607 \\
+10 Epochs, $MC$=10     & 0.6819 & 0.4163 & 0.8055 & 0.4956 & 0.8292 & 0.0000 & 0.0243 & 0.5620 & 0.7725 & 0.0000 & 0.0000 & 0.0000 & 0.0000 & 0.0000 & 0.3277 \\
+100 Epochs, $MC$=10    & \textbf{0.6908} & \textbf{0.4434} & \textbf{0.8139} & 0.4457 & \textbf{0.8674} & \textbf{0.5426} & \textbf{0.6088} & \textbf{0.6208} & \textbf{0.8065} & \textbf{0.5949} & \textbf{0.8293} & 0.0000 & 0.0000 & 0.0000 & \textbf{0.5189} \\
+100 Epochs, $MC$=1000 & \textbf{.697} & \textbf{.434} & \textbf{.811} & .444 & .833 & .686 & .729 & .609 & .815 & .561 & .833 & .000 & .000 & .000 & .532 \\
+\bottomrule
+\end{tabular}}
+\label{tab:fasttext_epoch_sweep}
+\end{table*}
