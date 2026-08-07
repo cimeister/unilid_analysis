@@ -121,6 +121,24 @@ the user to send.
   top-5; gate; eval vs the variant's own baseline. Both paper rows for the
   variant come from this retrain; the submission's row is left untouched with
   a footnote. Sequenced last.
+- **E5: CommonLID for the camera-ready** | status: not started (pre-registered
+  2026-08-07; user request: CommonLID performance goes into the submission) |
+  Evaluate the promoted configuration on CommonLID (373,230 lines, 109 bare
+  ISO-639-3 tags, web domain) under the recorded conventions
+  (`analysis/commonlid_eval.py`: script stripped from predictions, correct if
+  equal to the gold tag or a member of the gold macrolanguage per the SIL
+  table, plus the documented tgl-fil bridge; metrics = accuracy and tag-level
+  macro F1 via `compute_metrics` after mapping). One SLURM scoring pass under
+  the sha-verified floor-21 matrix banking top-5 ids/scores (the recorded
+  Exp 39 pass discarded them), then the gate via the shared
+  `_gate_walk_and_merge` (the self-checked E2 code path), thresholds
+  unchanged. Wiring gates before any new number: reproduce the recorded
+  baseline accuracy 0.8452 and tag-level macro F1 0.7228 (Exp 12/39) and
+  floor-21 0.7181, and match the persisted per-line predictions in
+  `outputs/diagnostic/commonlid_carried_preds.npz` for baseline and floor-21.
+  Output feeds a table + paragraph in submission.tex (replacing the appendix's
+  one-sentence CommonLID mention); no fastText row (no fastText model binary
+  is available for CommonLID scoring, only its GlotLID-C predictions).
 - **E4: breakdowns and residual re-measurement** | status: finished
   (2026-08-07; results in `EXPERIMENTS_RESULTS.md` "Camera-ready E4"; both
   reproduction gates passed under the within-stratum view; residual of record
