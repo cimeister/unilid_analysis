@@ -75,6 +75,51 @@ findings applied, run at commit 02a346e).
 
 ---
 
+## Camera-ready E2: UDHR and FLORES-200 transfer test (2026-08-07, job 3028291 + login-node eval)
+
+**Question:** do the promoted configuration's mechanisms, transferred with
+every constant unchanged, help or hurt on the paper's two external
+benchmarks? Acceptance gates first: our rebuilt eval sets reproduce the
+paper's baseline cells (UDHR macro F1 0.858977 vs printed .859, diff 2.3e-5;
+FLORES 0.931741 vs .932, diff 2.6e-4; baseline macro FPR reproduces both
+printed cells exactly: 1.43e-4 and 2.78e-4), and the paper team's label lists
+match our reconstructions exactly, so the instrument is the paper's own.
+
+| config | UDHR F1 | UDHR FPR (x1e5) | FLORES F1 | FLORES FPR (x1e5) |
+|---|---|---|---|---|
+| baseline | 0.8590 | 14.29 | 0.9317 | 27.75 |
+| floor-21 only | 0.8474 | 17.52 | 0.9323 | 28.52 |
+| gated (promoted mechanisms) | 0.8383 | 20.76 | 0.9326 | 29.07 |
+
+**Verdict: the pre-registered balanced-set reversal, measured.** FLORES-200
+(natural-ish sentence sets, 190 mostly mid-to-high-resource labels) improves
+slightly (+0.0009 gated vs baseline); UDHR (parallel, 366 labels with small
+equal supports) regresses (-0.0207). On balanced parallel data the
+false-positive volume the mechanisms remove is largely absent, so the
+own-recall cost dominates; this is the same mechanism as the draw-201
+confirmation pattern and is stated in the paper's subsection and Table 1
+caption. Re-examination accounting: UDHR group A 1,117 examined / 425 moved,
+group B 10/10; FLORES group A 1,313 / 636, group B 171/163.
+
+**CLD3-subset cells (restricted-lines convention, the one that reproduces the
+paper's UniLID cells):** GlotLID-C baseline 0.9719 (printed .971), calibrated
+0.9751; UDHR baseline 0.9873 (printed .992, inside 0.005), calibrated 0.9856;
+FLORES baseline 0.9907 (printed .997, OUTSIDE 0.005), calibrated 0.9920. The
+printed fastText GlotLID-C subset cell (.990) is reproduced by no tested
+convention while the paper team's own per-language JSON matches our fastText
+values exactly; the right-side columns of the submission appear to mix
+conventions per system. The calibrated row's subset cells are left out of
+Table 1 pending the paper team's eval script (flagged in the caption).
+
+**Artifacts:** `outputs/tables/external_bench_{udhr,flores}.md`,
+`outputs/diagnostic/external_bench/{udhr,flores}_per_label.csv`,
+`outputs/tables/paper_eval_cld3_subset.md`,
+`outputs/tables/paper_eval_cld3_subset_external.md`, banked npz + meta in
+`external_bench/` (scratch). Gate machinery verified by the bit-exact
+self-check before use.
+
+---
+
 ## Camera-ready E4: breakdowns in both metric views; residual re-measured on the promoted configuration (2026-08-07, login node, no job)
 
 **Provenance result first (chronological log, same date):** both of the paper's

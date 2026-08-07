@@ -85,8 +85,13 @@ the user to send.
   the 1,940 languages) for (promoted - baseline) and (promoted - fastText) on
   the judge part. Scripts `analysis/import_external_pred.py`,
   `analysis/paper_eval.py`; outputs `outputs/tables/paper_eval.md` + `.tex`.
-- **E2: UDHR and FLORES-200 transfer test** | status: data built, mapping
-  awaiting user approval | Rebuilt from `cis-lmu/udhr-lid` (366-label
+- **E2: UDHR and FLORES-200 transfer test** | status: finished (2026-08-07,
+  job 3028291 + login-node eval; both acceptance gates passed: baseline UDHR
+  0.858977 vs printed .859, FLORES 0.931741 vs .932, and both baseline FPR
+  cells reproduce exactly; transfer outcome: FLORES 0.9317 -> 0.9326 gated,
+  UDHR 0.8590 -> 0.8383 gated, the pre-registered balanced-set reversal;
+  label sets independently confirmed by the paper team's lists) | Rebuilt
+  from `cis-lmu/udhr-lid` (366-label
   intersection, matching the paper's count exactly) and, amended 2026-08-07
   from the pre-registered `flores_plus` source, the original FLORES-200
   devtest tarball: the official 204-code list intersects the 1,940 labels at

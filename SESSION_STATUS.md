@@ -1,8 +1,8 @@
 # Session Status
 
 ## Ongoing experiments
-- Camera-ready program: E1 and E4 FINISHED. E2 scoring RUNNING as job 3028291 (watcher active; eval + acceptance gates follow; label sets independently confirmed by Ahmetcan's lists). E3 preparation running (agent: pin tokenizer snapshot, map retrain pipeline, write drivers; no launch before review). Paper items 2, 3, 5 + appendix integrated into submission.tex; Table 1 row waits on E2 cells; CLD3-subset F1 cells computed under the reproduced convention (baseline 0.9719 = printed .971; calibrated 0.9751; fastText 0.9767).
+- Camera-ready program: E1, E2, E4 FINISHED (records in EXPERIMENTS_RESULTS.md). Table 1 now carries the calibrated row (left columns: GlotLID-C .957/1.77e-5, UDHR .838/2.08e-4, FLORES .933/2.91e-4; right-side cells dashed pending convention alignment); abstract updated. E3 preparation running (agent; retrain path, pre-authorized); training not yet launched.
 
 ## Open decisions
-- CLD3-subset column inconsistency in the submission: the printed fastText cell (.990) and the FPR cells are reproduced by no tested convention, while the UniLID cells are (restricted-lines open-set). Needs the paper team's eval script or an author decision on which convention the camera-ready right-side columns use.
-- Remaining Ahmetcan asks: the eval script (conventions) and the Mistral-Nemo model (E3 retrain proceeds meanwhile, pre-authorized).
+- Right-side Table 1 columns: the submission's fastText subset cell (.990) and the subset FPR cells reproduce under no tested convention (UniLID cells do). Needs Ahmetcan's eval script or an author decision; the calibrated row's subset cells are dashed with a caption pointer meanwhile.
+- UDHR regression framing: the calibrated row lowers UDHR (0.859 -> 0.838); the subsection, appendix, and Table 1 caption state the mechanism. Worth a co-author read before submission.
