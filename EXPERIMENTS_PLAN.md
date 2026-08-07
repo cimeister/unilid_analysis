@@ -106,8 +106,12 @@ the user to send.
   each from a fresh floor-21 prediction copy, replacement via
   `_walk_replacement(21.0, 100000, ...)`. All constants transferred without
   refitting (provenance stated per the conventions entry).
-- **E3: Mistral-Nemo variant** | status: not started (pre-authorized retrain
-  path) | Pin the local HF tokenizer snapshot revision; per-language
+- **E3: Mistral-Nemo variant** | status: ongoing (training job 3028465
+  launched 2026-08-07; recorded Apertus pipeline reused exactly; tokenizer
+  snapshot a4477a2 pinned; next steps after completion: degeneracy scan in-job,
+  then full-pool baseline scoring, floor-21 matrix, tau recalibration, flat
+  set via the recorded rule, floor-21 pass with top-5 banking, gate, eval) |
+  Pin the local HF tokenizer snapshot revision; per-language
   fixed-vocabulary EM (fp64 spm_train) over the 1,940 corpus files;
   `analysis.degeneracy_scan` before evaluation; full-pool baseline pass; the
   variant's floor-21 matrix; tau recalibration (CALIB_MAX=2000, CALIB_SEED=0,

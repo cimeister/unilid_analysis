@@ -75,6 +75,39 @@ for the infrastructure record.
   the draw-201 confirmation pattern); (iii) the corresponding Ahmetcan ask
   (script-table basis) is resolved and can be dropped from the ask list.
 
+### 2026-08-07: E3 retrain launched (job 3028465)
+
+- **Job 3028465** (`slurm_mistralnemo_train_fp64.sh`, infra01, normal, 64 CPU,
+  400G, 12:00:00): per-language fixed-vocabulary EM retrain of all 1,940
+  languages against the Mistral-Nemo-Base-2407 tokenizer, the E3
+  pre-registration's pre-authorized path (no model arrived from the paper
+  team). Pipeline: the recorded Apertus fp64 invocation reused EXACTLY
+  (`UNILID/train.py --initial-vocab <tokenizer> --vocab-size 131072
+  --byte-level --per-lang-counts-method sp --max-base-samples-per-lang 10000
+  --lang-batch-size 20 --reuse-corpus --skip-existing-langs`, then
+  `convert.py`, then the degeneracy scan), differing from job 2903767 only in
+  the tokenizer, results dir (`results_mistralnemo/`), packed name
+  (`glotlid_mistralnemo_fp64.unilid`, flat under scratch per the Apertus
+  convention), and `--fasttext` omitted (train.txt no longer exists;
+  `--corpus-dir` + `--reuse-corpus` is a sufficient input per train.py's own
+  argument logic, verified). Tokenizer pinned: snapshot
+  a4477a2f977929a969745b69bbd62e03043551a5, tokenizer.json sha256
+  e11c71726323d33da7b8d6f6f269f1988931c0a52b7122bcdd8c05042974e0db, vocab
+  131,072, byte-level BPE, all four special tokens present. Preflight passed
+  (corpus 1,940 files, 60,683,151 lines).
+- **Decisions on the preparation agent's flagged items:** the agent's
+  in-process sweep driver (`mistralnemo_train_sweep.py`) is NOT used; the
+  recorded train.py orchestration is (fidelity to the recorded pipeline over
+  new code on the critical path). Packed model placed flat under scratch,
+  matching the Apertus convention (`mistralnemo_constants.py` updated). The
+  stale `degeneracy_scan.py` MODELS dict is left for a separate fix; the
+  standalone `degeneracy_scan_mistralnemo.py` runs in-job. Expected duration
+  ~4.6 h (the 131k Apertus job, same vocab size); 12 h cap.
+- **Checkpoint hygiene:** new artifacts are `results_mistralnemo/` (per-language
+  tokenizers, expected tens of GB, scratch, regenerable) and the packed model
+  (~1 GB); no deletions proposed. Store migration decided after the variant's
+  evaluation round closes.
+
 ### 2026-08-07: Ahmetcan's label lists received and verified; CLD3-subset conventions measured
 
 - **Received** (`unilid_resources/`): full label sets for GlotLID-C (1,940),
