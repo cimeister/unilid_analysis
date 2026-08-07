@@ -1,0 +1,23 @@
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{lrr}
+\toprule
+\textbf{Method} & \textbf{Accuracy} & \textbf{Tag-level macro F1} \\
+\midrule
+\unilid & 0.845 & 0.723 \\
+\unilid, shared floor only & 0.849 & 0.718 \\
+calibrated \unilid & 0.860 & 0.715 \\
+\bottomrule
+\end{tabular}
+\caption{Out-of-domain evaluation on CommonLID (373{,}230 web-domain lines,
+109 bare ISO 639-3 tags). A prediction is correct if its language code equals
+the gold tag or is a member of the gold macrolanguage; accuracy is
+macrolanguage-aware, and tag-level macro F1 averages over the 109 tags.
+Calibration raises accuracy because predictions into languages outside the
+109-tag set fall from 32{,}901 to 25{,}884 rows; tag-level macro F1 decreases
+slightly because the re-examination also moves some correct low-margin lines,
+and the under-resourced languages the calibration repairs are largely absent
+from this tag set.}
+\label{tab:commonlid}
+\end{table}

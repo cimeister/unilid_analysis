@@ -1,11 +1,9 @@
 # Session Status
 
 ## Ongoing experiments
-- E3 training RUNNING as job 3028465 (pending in queue; watcher active). After completion: degeneracy scan (in-job), variant baseline scoring, floor-21 matrix, tau recalibration, flat set via the recorded rule, gate, eval.
-- E5 (CommonLID for the camera-ready, user request 2026-08-07): pre-registered; implementation agent writing analysis/commonlid_calibrated.py + SLURM script (score under W_f21 banking top-5, gate via the self-checked E2 helpers, macrolanguage-aware metrics; wiring gates on the recorded 0.8452/0.7228/0.7181). Then Opus review, SLURM run, record, paper integration. CommonLID data re-touched against the purge.
-- Paper: Table 1 calibrated row + items 2-5 integrated; right-side subset cells dashed pending convention alignment.
+- E5 FINISHED (job 3031609; gated accuracy 0.8604 vs baseline 0.8452, tag F1 0.7149 vs 0.7228; all gates exact; integrated into the paper as tab:commonlid). E3 training FINISHED (job 3028465, 4h33m; degeneracy scan: 32 minority-script rows, adjudicated as base-vocab script coverage, same pattern as the Apertus models; not a trainer failure). E3 next stages pending implementation: variant baseline full-pool scoring, floor-21 matrix + fingerprint, tau recalibration, flat set via the recorded rule (250k-val pass), floor-21 pass with top-5 banking, gate, eval.
+- Paper-trimming agent resumed after the session restart; ranked report (no implementation) pending.
 
 ## Open decisions
 - Right-side Table 1 columns: submission's fastText subset cell (.990) and subset FPR cells reproduce under no tested convention. Needs Ahmetcan's eval script or an author decision.
 - UDHR regression framing: worth a co-author read.
-- E5 paper placement: a small table in the appendix protocol section plus one main-text sentence is the default; no fastText row is possible (no fastText model binary for CommonLID).

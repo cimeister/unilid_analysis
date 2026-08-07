@@ -75,6 +75,36 @@ for the infrastructure record.
   the draw-201 confirmation pattern); (iii) the corresponding Ahmetcan ask
   (script-table basis) is resolved and can be dropped from the ask list.
 
+### 2026-08-07: E5 run and finished (job 3031609 + login-node eval); E3 training completed (job 3028465) with the degeneracy scan adjudicated
+
+- **E5 (job 3031609, COMPLETED in 3m50s):** score stage passed both wiring
+  gates at EXACT equality (1.000000 agreement with Exp 39's persisted
+  baseline and floor-21 predictions); eval stage reproduced 0.8452/0.7228/
+  0.8491/0.7181 through the new tag-mapping path, then measured the gated
+  configuration: accuracy 0.8604, tag-level macro F1 0.7149; out-of-set rows
+  32,901 -> 25,884. Results entry "Camera-ready E5"; integrated into the
+  paper as tables/commonlid.tex + one Results sentence. Artifact -> cell
+  mapping: all cells from `outputs/tables/commonlid_calibrated.md`.
+- **E3 training (job 3028465, COMPLETED in 4h33m10s,** matching the 131k
+  Apertus precedent 4h36m): per-language training, packing to
+  `glotlid_mistralnemo_fp64.unilid`, and the in-job degeneracy scan all
+  completed. Scan verdict: 32 of 1,940 rows flagged, ALL in minority scripts
+  (Ethiopic, Canadian syllabics, Syriac, Tibetan, Cherokee, Coptic, Gothic,
+  Lisu, and similar). Adjudication against the record
+  (`outputs/tables/degenerate_rows.md`): the Apertus 131k and 200k models
+  flag nearly the same rows (18 and 17) with near-identical estimated-token
+  counts (e.g. arc_Syrc 29 in both 131k and Mistral-Nemo), and the recorded
+  per-language F1 for such rows is 0.977 to 1.000 except within-script
+  confusion pairs (arc_Syrc 0.000 in the 131k record). Mechanism: base-vocab
+  script coverage caps the estimable entries for these scripts; NOT the
+  azj_Latn-class trainer failure (which shows 7 entries on ordinary Latin
+  prose and appears in no fp64 model). Mistral-Nemo adds ~14 rows over the
+  Apertus set, mostly Ethiopic and Tibetan: its vocabulary covers those
+  scripts worse. Recorded as a model property; evaluation proceeds.
+- Session restart note: the two job watchers and the paper-trimming agent
+  were orphaned by a Claude Code process restart; jobs were unaffected, the
+  trimming agent was resumed from its transcript.
+
 ### 2026-08-07: E3 retrain launched (job 3028465)
 
 - **Job 3028465** (`slurm_mistralnemo_train_fp64.sh`, infra01, normal, 64 CPU,

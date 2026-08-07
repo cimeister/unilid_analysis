@@ -75,6 +75,45 @@ findings applied, run at commit 02a346e).
 
 ---
 
+## Camera-ready E5: CommonLID out-of-domain evaluation of the calibrated configuration (2026-08-07, job 3031609 + login-node eval)
+
+**Question (user request):** CommonLID performance for the submission. All
+wiring gates passed: the score stage's baseline predictions are EXACTLY equal
+to Exp 39's persisted arrays (agreement 1.000000, both arms), and the eval
+stage reproduced the recorded baseline 0.8452 accuracy / 0.7228 tag-level
+macro F1 and floor-21 0.8491 / 0.7181 through the new code path before any
+new number.
+
+| config | macro-aware accuracy | tag-level macro F1 |
+|---|---|---|
+| baseline | 0.8452 | 0.7228 |
+| floor-21 only | 0.8491 | 0.7181 |
+| gated (promoted mechanisms) | 0.8604 | 0.7149 |
+
+**Verdict:** on web-domain out-of-domain data the promoted configuration
+raises macrolanguage-aware accuracy by +0.0152 (four times floor-21's
++0.0040) while tag-level macro F1 falls 0.0079. Mechanism, measured:
+predictions carrying a tag-space label outside the 109-tag set fall from
+32,901 rows (1,089 distinct labels) to 25,884 (782); the re-examination
+returns lines from under-resourced languages (mostly absent from the tag
+set) to tag-set languages, which the accuracy counts and the tag-level view
+partly does not. Re-examination accounting: group A 9,086 examined / 7,844
+moved; group B 3,971 / 3,844. This extends the Exp 39 scoping: floor-21
+solo was slightly negative on the tag-level view, and the full promoted
+configuration is more positive on accuracy and comparably slightly negative
+on the tag-level view.
+
+**Paper integration:** `paper/tables/commonlid.tex` (tab:commonlid) in the
+appendix protocol section, with one sentence in the Results calibration
+paragraph; the caption states both conventions and the mechanism.
+
+**Artifacts:** `outputs/tables/commonlid_calibrated.md`,
+`outputs/diagnostic/commonlid_calibrated_per_tag.csv`, banked npz + meta in
+scratch `commonlid/`. Script `analysis/commonlid_calibrated.py` (Sonnet
+implementation, Opus review with 10 findings applied, run at commit f5c271a).
+
+---
+
 ## Camera-ready E2: UDHR and FLORES-200 transfer test (2026-08-07, job 3028291 + login-node eval)
 
 **Question:** do the promoted configuration's mechanisms, transferred with

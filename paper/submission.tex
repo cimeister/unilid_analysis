@@ -879,8 +879,10 @@ false positives counted). The gains are specific to natural-distribution test
 data, where false-positive volume into under-resourced languages matters: on
 the parallel, equal-support UDHR set calibration lowers macro F1 (0.859 to
 0.838) while FLORES-200 changes little (0.932 to 0.933), and
-\cref{app:protocol} reports both views of this trade. On benchmarks
-restricted to larger languages the added mechanisms rarely fire.
+\cref{app:protocol} reports both views of this trade. On out-of-domain
+web-domain data (CommonLID, \cref{tab:commonlid}), calibration raises
+macrolanguage-aware accuracy from 0.845 to 0.860. On benchmarks restricted
+to larger languages the added mechanisms rarely fire.
 
 %\Ahmetcan{On dslml we didn't use sentencepiece because it gives an error on dslml we use your custom EM method, Also updated numbers}
 \paragraph{Dialect Differentiation.}
@@ -1233,13 +1235,15 @@ full scored pool for comparability with the other systems;
 pool (draw seed 201, 185{,}204 lines, at most 100 lines per language), the
 within-stratum overall macro F1 of calibrated \unilid is 0.978 against 0.981
 for \unilid: a balanced draw removes most of the false-positive volume that
-the improvement acts on, so the gain does not appear there. On an
-out-of-domain web-domain evaluation (CommonLID, 373{,}230 lines, 109 mostly
-high-resource labels), the shared floor alone changes tag-level macro F1 by
-$-0.005$: the labels the improvement repairs are largely absent from that tag
-set. Both measurements bound where the method's gains should be expected: on
-natural-distribution traffic over a label set that includes under-resourced
-languages.
+the improvement acts on, so the gain does not appear there.
+\Cref{tab:commonlid} reports an out-of-domain web-domain evaluation
+(CommonLID): calibration raises macrolanguage-aware accuracy from 0.845 to
+0.860 while tag-level macro F1 moves from 0.723 to 0.715, and the caption
+states the mechanism. Both measurements bound where the method's gains should
+be expected: on natural-distribution traffic over a label set that includes
+under-resourced languages.
+
+\input{tables/commonlid}
 
 \paragraph{Alternatives measured during development.} Three within-family
 alternatives are informative. (i) Recalibrating each language's unseen-token

@@ -121,8 +121,10 @@ the user to send.
   top-5; gate; eval vs the variant's own baseline. Both paper rows for the
   variant come from this retrain; the submission's row is left untouched with
   a footnote. Sequenced last.
-- **E5: CommonLID for the camera-ready** | status: not started (pre-registered
-  2026-08-07; user request: CommonLID performance goes into the submission) |
+- **E5: CommonLID for the camera-ready** | status: finished (2026-08-07, job
+  3031609 + login-node eval; results in `EXPERIMENTS_RESULTS.md` "Camera-ready
+  E5": gated accuracy 0.8604 vs baseline 0.8452, tag F1 0.7149 vs 0.7228, all
+  gates passed at exact equality; integrated as tab:commonlid) |
   Evaluate the promoted configuration on CommonLID (373,230 lines, 109 bare
   ISO-639-3 tags, web domain) under the recorded conventions
   (`analysis/commonlid_eval.py`: script stripped from predictions, correct if
