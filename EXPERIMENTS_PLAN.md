@@ -83,9 +83,14 @@ the user to send.
   the 1,940 languages) for (promoted - baseline) and (promoted - fastText) on
   the judge part. Scripts `analysis/import_external_pred.py`,
   `analysis/paper_eval.py`; outputs `outputs/tables/paper_eval.md` + `.tex`.
-- **E2: UDHR and FLORES-200 transfer test** | status: not started (fallback
-  path) | Rebuild from `cis-lmu/udhr-lid` and `openlanguagedata/flores_plus`
-  devtest; label mapping table user-approved before scoring; acceptance gate:
+- **E2: UDHR and FLORES-200 transfer test** | status: data built, mapping
+  awaiting user approval | Rebuilt from `cis-lmu/udhr-lid` (366-label
+  intersection, matching the paper's count exactly) and, amended 2026-08-07
+  from the pre-registered `flores_plus` source, the original FLORES-200
+  devtest tarball: the official 204-code list intersects the 1,940 labels at
+  exactly the paper's 190 while flores_plus gives 205, so the original release
+  is the paper's basis (`outputs/tables/external_bench_mapping.md`, addendum).
+  Label mapping table user-approved before scoring; acceptance gate:
   reproduce the paper's UniLID cells (UDHR .859, FLORES .932) within 0.005
   before any new-configuration number. Scoring on SLURM unconditionally (full
   model load). Script `analysis/external_bench_eval.py`: baseline pass under

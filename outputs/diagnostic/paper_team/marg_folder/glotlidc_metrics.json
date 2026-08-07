@@ -1,0 +1,13 @@
+{
+  "model": "glotlidc.unilid",
+  "accuracy": 0.9615000929597401,
+  "macro_f1": 0.9311137455322472,
+  "macro_fpr": 1.9892872636844697e-05,
+  "total_samples": 45627279,
+  "correct": 43870633,
+  "num_languages": 1940,
+  "lang_only": false,
+  "only_model_langs": true,
+  "inference_time_s": 42443.66801783303,
+  "samples_per_sec": 1075.0079135674455
+}

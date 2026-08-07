@@ -1,0 +1,13 @@
+{
+  "model": "glotlid_100e/glotlid_fasttext_e100_sanity.bin",
+  "accuracy": 0.9476231970790983,
+  "macro_f1": 0.9443269255825798,
+  "macro_fpr": 2.706307431053109e-05,
+  "total_samples": 45627279,
+  "correct": 43237468,
+  "num_languages": 1940,
+  "lang_only": false,
+  "only_model_langs": true,
+  "inference_time_s": 8427.302717250073,
+  "samples_per_sec": 5414.220959050669
+}
