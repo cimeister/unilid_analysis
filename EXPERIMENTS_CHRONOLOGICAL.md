@@ -75,6 +75,27 @@ for the infrastructure record.
   the draw-201 confirmation pattern); (iii) the corresponding Ahmetcan ask
   (script-table basis) is resolved and can be dropped from the ask list.
 
+### 2026-08-08: E3 evaluation pipeline committed and the baseline+calibval job submitted (job 3032625)
+
+- **Pipeline:** `analysis/mistralnemo_eval.py` (six stages: baseline / calibval /
+  flatrule / tau / topk / eval) + three SLURM scripts, Sonnet-implemented,
+  Opus pre-run review (16 findings), fixes applied by a verify-then-apply
+  agent with per-fix evidence after a session-limit interruption left the
+  first application partial. The review empirically confirmed the flat-rule
+  construction reproduces the recorded flat four on the base model's
+  artifacts.
+- **Job 3032625** (`slurm_mistralnemo_baseline.sh`, infra01, normal, 100G,
+  09:00:00): full-pool baseline scoring of `glotlid_mistralnemo_fp64.unilid`
+  into `full_test_eval_mistralnemo/`, then the 250,000-line retired-val pass
+  (calibval) for the flat-rule inputs. Subsequent stages: flatrule (login),
+  tau (SLURM), topk (SLURM), eval (login), each gated on the prior stage's
+  fingerprints.
+- **Agent-ops note (user feedback, recorded in memory):** two worker agents
+  resumed via SendMessage after stops ran on the session model instead of
+  their explicit Sonnet override; both were stopped and relaunched fresh with
+  explicit models. Standing rule: stopped workers get fresh Agent calls, not
+  SendMessage resumes.
+
 ### 2026-08-07: E5 run and finished (job 3031609 + login-node eval); E3 training completed (job 3028465) with the degeneracy scan adjudicated
 
 - **E5 (job 3031609, COMPLETED in 3m50s):** score stage passed both wiring

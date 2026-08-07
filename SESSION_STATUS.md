@@ -1,10 +1,10 @@
 # Session Status
 
 ## Ongoing experiments
-- E3: training done (job 3028465, degeneracy adjudicated); the six-stage evaluation pipeline (analysis/mistralnemo_eval.py + three SLURM scripts) is implemented. The 16-item Opus review-fix checklist is now fully applied to mistralnemo_eval.py (py_compile, import, and em-dash checks pass); not yet re-reviewed or run. Next: re-review, then submit slurm_mistralnemo_baseline.sh (baseline + calibval), then flatrule (login), tau, topk, eval. The flat set is derived by the recorded rule on the variant's own rows and calibval predictions.
-- E1, E2, E4, E5 finished and integrated into the paper (calibrated Table 1 row, sec:calibration paragraph, app:protocol, tab:commonlid).
+- E3: baseline+calibval RUNNING as job 3032625 (watcher active). Pipeline committed after the full 16-fix verification. Remaining chain on completion: flatrule (login), tau (SLURM), topk (SLURM), eval (login), each fingerprint-gated.
+- E1, E2, E4, E5 finished; paper carries the calibrated row, sec:calibration, app:protocol, tab:commonlid.
 
 ## Open decisions
-- Paper trimming: ranked report delivered in chat (recommended items 1-8, ~112 column-lines; reserves 9-12; caveats: verify the ICML impact-statement placement rule; estimates uncompiled). Awaiting the user's selection; nothing implemented.
-- Right-side Table 1 columns: submission's fastText subset cell (.990) and subset FPR cells reproduce under no tested convention. Needs Ahmetcan's eval script or an author decision.
+- Paper trimming items 2-5: IMPLEMENTED, UNCOMMITTED, awaiting the user's diff review (git diff paper/submission.tex; ~290 words + two float relocations; protected regions byte-identical to HEAD). Items 9-12 in reserve if the compiled page count still runs over.
+- Right-side Table 1 columns: fastText subset cell (.990) and subset FPR cells reproduce under no tested convention. Needs Ahmetcan's eval script or an author decision.
 - UDHR regression framing: worth a co-author read.
