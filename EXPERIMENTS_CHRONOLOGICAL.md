@@ -75,6 +75,28 @@ for the infrastructure record.
   the draw-201 confirmation pattern); (iii) the corresponding Ahmetcan ask
   (script-table basis) is resolved and can be dropped from the ask list.
 
+### 2026-08-07: Ahmetcan's label lists received and verified; CLD3-subset conventions measured
+
+- **Received** (`unilid_resources/`): full label sets for GlotLID-C (1,940),
+  UDHR (366), FLORES-200 (190) and the CLD3-coverage subsets (83/80/77, bare
+  ISO codes). All three full sets are EXACTLY equal to our reconstructions,
+  independently confirming the E2 eval files as the paper's basis before the
+  scoring job returns. Not received: the Mistral-Nemo model (E3 retrain path
+  stands), the preprocessed eval files (ours now confirmed equivalent), the
+  eval script (still needed, see below).
+- **CLD3-subset convention, measured:** mapping each of the 83 bare codes to
+  its largest-training-corpus lang_Script variant and computing per-language
+  F1 on the kept lines whose true label is one of the 83 (23,293,775 lines)
+  reproduces the paper's printed UniLID cell (0.9719 -> .971). Under that
+  convention: baseline 0.9719, gate_flat4_prox21 0.9751, fasttext 0.9767
+  (`outputs/tables/paper_eval_cld3_subset.md`). NOT resolved: the printed
+  fastText subset cell (.990) is reproduced by none of the tested conventions
+  (restricted-lines 0.9767; global-view 0.9719, exactly matching the paper
+  team's own per-language JSON), and the printed subset FPR (1.63e-4) is
+  reproduced by neither the restricted-pool (9.71e-5) nor the global-pool
+  (7.77e-5) definition. The submission's right-side columns appear to mix
+  conventions per system; flagged for the authors, eval script requested.
+
 ### 2026-08-07: E2 scoring submitted (job 3028291); paper items 2, 3, 5 and the appendix integrated into submission.tex
 
 - **Job 3028291** (`slurm_external_bench.sh`, infra01, normal, 100G, 02:00:00):

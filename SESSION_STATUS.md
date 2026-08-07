@@ -1,7 +1,8 @@
 # Session Status
 
 ## Ongoing experiments
-- Camera-ready program: E1 and E4 FINISHED (records in EXPERIMENTS_RESULTS.md). E2 scoring RUNNING as job 3028291 (submitted after user approval; eval stages + acceptance gates follow on the login node when it completes). Paper items 2, 3, 5 and the appendix are integrated into submission.tex (user-approved sample; artifact-to-cell mapping in the chronological log); Table 1 row and abstract/intro claims wait on E2 cells. E3 not started (sequenced last; pre-authorized retrain path).
+- Camera-ready program: E1 and E4 FINISHED. E2 scoring RUNNING as job 3028291 (watcher active; eval + acceptance gates follow; label sets independently confirmed by Ahmetcan's lists). E3 preparation running (agent: pin tokenizer snapshot, map retrain pipeline, write drivers; no launch before review). Paper items 2, 3, 5 + appendix integrated into submission.tex; Table 1 row waits on E2 cells; CLD3-subset F1 cells computed under the reproduced convention (baseline 0.9719 = printed .971; calibrated 0.9751; fastText 0.9767).
 
 ## Open decisions
-- None pending right now; next user-visible checkpoint is the E2 acceptance-gate outcome (UDHR .859 / FLORES .932 reproduction within 0.005) and then the Table 1 row.
+- CLD3-subset column inconsistency in the submission: the printed fastText cell (.990) and the FPR cells are reproduced by no tested convention, while the UniLID cells are (restricted-lines open-set). Needs the paper team's eval script or an author decision on which convention the camera-ready right-side columns use.
+- Remaining Ahmetcan asks: the eval script (conventions) and the Mistral-Nemo model (E3 retrain proceeds meanwhile, pre-authorized).
