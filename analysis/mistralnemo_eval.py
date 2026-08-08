@@ -232,6 +232,11 @@ from analysis.transfer_sweep import (_load_model_data, _load_train_counts,
 # All writable scoring state for this variant. Distinct from BASE_SCRATCH
 # (full_test_eval/, the base model's own scratch dir, read-only from this
 # module's point of view except for y_true.npy reuse).
+# The Mistral-Nemo vocabulary's special-token ids (preflight_mistralnemo's
+# verified mapping: <unk> 0, <s> 1, </s> 2, <pad> 10). NOT the contiguous 0:4
+# of the base model's packing; column 3 here is an ordinary token.
+SPECIAL_COLS_NEMO = (0, 1, 2, 10)
+
 SCRATCH_DIR_NEMO = ("/capstor/scratch/cscs/cmeister747/unilid_analysis/"
                     "full_test_eval_mistralnemo")
 
@@ -901,9 +906,20 @@ def _build_and_fingerprint_floor21_nemo(langs: list[str]) -> tuple[np.ndarray, s
               + ", ".join(f"{l} ({m:.4f})" for l, m in skipped), flush=True)
     else:
         skipped = []
-    if not np.array_equal(matrix[:, :4], W[:, :4]):
-        raise RuntimeError("special-token columns (0:4) were modified by "
-                           "the floor clamp")
+    # Special-token columns for THIS vocabulary are 0 (<unk>), 1 (<s>),
+    # 2 (</s>), 10 (<pad>) (the preflight's recorded id mapping), NOT the
+    # contiguous 0:4 of the base model's packing. Column 3 here is an
+    # ordinary token that can legitimately sit at a row minimum and be
+    # clamped (measured 2026-08-09: exactly one row). The gate asserts the
+    # actual special columns are untouched AND hold the packing convention's
+    # p=0.2 value.
+    for c in SPECIAL_COLS_NEMO:
+        if not np.array_equal(matrix[:, c], W[:, c]):
+            raise RuntimeError(f"special-token column {c} was modified by "
+                               "the floor clamp")
+        if not np.allclose(W[:, c], np.log(0.2), atol=1e-4):
+            raise RuntimeError(f"special-token column {c} does not hold the "
+                               "packing convention's log(0.2) value")
     sha_w = _sha256_bytes(W.tobytes())
     sha_w21 = _sha256_bytes(matrix.tobytes())
     del W
