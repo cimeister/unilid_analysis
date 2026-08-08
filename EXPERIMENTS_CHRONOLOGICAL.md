@@ -75,6 +75,31 @@ for the infrastructure record.
   the draw-201 confirmation pattern); (iii) the corresponding Ahmetcan ask
   (script-table basis) is resolved and can be dropped from the ask list.
 
+### 2026-08-08: E3 chain progressing (jobs 3032625 done, 3036767 failed-and-fixed, 3036829 submitted); flat set derived; paper trimming committed
+
+- **Job 3032625 (baseline+calibval): COMPLETED** in 2h14m; all 45.6M lines
+  baseline-scored into `full_test_eval_mistralnemo/`, 250,000 calibration-half
+  lines scored, 0 empty.
+- **flatrule (login node):** the variant's flat set by the recorded rule is
+  THREE languages: bjn_Latn (zH 2.50, magnet_ratio 2.29), sco_Latn (2.56,
+  2.49), srp_Latn (1.97, 3.08); 90 languages flag is_magnet overall.
+  Differs from the base model's four (shares sco/bjn; drops arg/vls; adds
+  srp_Latn). Recorded before use: `outputs/diagnostic/mistralnemo_flat_set.csv`.
+- **Job 3036767 (tau): FAILED at 29 s by a gate misfire, fixed, resubmitted
+  as 3036829.** `build_equalized_weights` modified 1,938 of 1,940 rows and
+  the inherited `n_mod == n_lang` assertion fired. Diagnosis: two healthy
+  rows have natural floors already below the target (khm_Khmr -21.232, 435
+  above-minimum entries; ory_Orya -21.016, 6,433), which the recorded
+  downward-clamp mechanism (Exp 20: min(floor_L, F), nothing raised)
+  correctly leaves unchanged; the base model had no such row so the
+  precedent gate never distinguished "set" from "clamp". Fix: the gate now
+  asserts the precise invariant (every unmodified row's natural floor is at
+  or below the target; anything else aborts) and records the skipped rows in
+  `fingerprint_floor21_mistralnemo.json`.
+- **Paper:** trimming items 2-5 plus the user's own shortenings committed
+  (9839c26) after ref/label integrity checks (no undefined refs; active
+  labels unique; the moved table appears once).
+
 ### 2026-08-08: E3 evaluation pipeline committed and the baseline+calibval job submitted (job 3032625)
 
 - **Pipeline:** `analysis/mistralnemo_eval.py` (six stages: baseline / calibval /
