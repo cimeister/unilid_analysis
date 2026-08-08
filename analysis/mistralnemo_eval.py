@@ -874,9 +874,33 @@ def _build_and_fingerprint_floor21_nemo(langs: list[str]) -> tuple[np.ndarray, s
     del weights
 
     matrix, n_mod = build_equalized_weights(W, FLOOR_TARGET)
+    # The recorded mechanism (Exp 20) is a DOWNWARD clamp, min(floor_L, F),
+    # nothing raised, so a row whose natural floor already sits at or below
+    # FLOOR_TARGET is legitimately left unchanged. The base model had no such
+    # row (all floors above -21, median -17.66) and its precedent gate
+    # asserted n_mod == n_lang; this variant has rows with deeper natural
+    # floors (measured 2026-08-08: khm_Khmr -21.232, ory_Orya -21.016, both
+    # healthy rows), so the precise invariant is asserted instead: every
+    # UNmodified row's pre-existing floor must be <= FLOOR_TARGET. Any other
+    # skip reason is a wiring error and aborts.
     if n_mod != len(langs):
-        raise RuntimeError(f"floor {FLOOR_TARGET} modified {n_mod} of "
-                           f"{len(langs)} rows; expected all of them")
+        row_mins = W[:, 4:].min(axis=1)
+        unmodified = np.where((matrix == W).all(axis=1))[0]
+        illegitimate = [i for i in unmodified if row_mins[i] > FLOOR_TARGET]
+        if illegitimate:
+            names = ", ".join(f"{langs[i]} (floor {row_mins[i]:.4f})"
+                              for i in illegitimate[:10])
+            raise RuntimeError(
+                f"floor {FLOOR_TARGET} left {len(illegitimate)} row(s) "
+                f"unmodified whose natural floor is ABOVE the target, which "
+                f"the downward clamp can never do: {names}")
+        skipped = [(langs[i], float(row_mins[i])) for i in unmodified]
+        print(f"floor {FLOOR_TARGET}: {n_mod} of {len(langs)} rows clamped; "
+              f"{len(skipped)} row(s) already at or below the target and "
+              f"left unchanged per the downward-clamp mechanism: "
+              + ", ".join(f"{l} ({m:.4f})" for l, m in skipped), flush=True)
+    else:
+        skipped = []
     if not np.array_equal(matrix[:, :4], W[:, :4]):
         raise RuntimeError("special-token columns (0:4) were modified by "
                            "the floor clamp")
@@ -899,7 +923,8 @@ def _build_and_fingerprint_floor21_nemo(langs: list[str]) -> tuple[np.ndarray, s
 
     fp = {"sha256_base_W": sha_w, "sha256_w21": sha_w21,
          "floor_target": FLOOR_TARGET,
-         "langs_sha256": _sha256_bytes("|".join(langs).encode())}
+         "langs_sha256": _sha256_bytes("|".join(langs).encode()),
+         "rows_below_floor_target": skipped}
     if os.path.exists(FP_FLOOR21_NEMO_PATH):
         with open(FP_FLOOR21_NEMO_PATH) as f:
             prev = json.load(f)
