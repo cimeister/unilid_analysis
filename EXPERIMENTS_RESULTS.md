@@ -201,7 +201,23 @@ Interpretation of record: since the paper team's own per-language data
 agrees with ours, the printed subset cells came from a different computation
 than the full-set cells, most plausibly a closed-set evaluation (label space
 restricted to the subset) applied to some systems; resolving which requires
-their eval script. Consequences implemented (user decisions 2026-08-09): the
+their eval script.
+
+Addendum (2026-08-09, after the paper team's four eval scripts arrived in
+`unilid_resources/`): the scripts confirm the full-set conventions (their
+union-of-gold-and-predicted macro denominator coincides with the gold set on
+these benchmarks) but contain NO subset logic, so the right-side columns
+were produced by a procedure not in the drop. Their `--lang-only` mode
+(bare-code comparison) was tested as a hypothesis and refuted by
+measurement: with row restriction and union averaging it yields macro F1
+0.0468 (UniLID) / 0.0592 (fastText), nowhere near the printed cells. The
+closed-set-for-fastText interpretation is now the only one consistent with
+all measurements: open-set restricted-lines reproduces the UniLID cell
+exactly (0.9719 -> .971) and a closed-set run can only exceed it, so the
+UniLID cell is open-set, while fastText's .990 exceeds every open-set value
+we can construct (0.9767 restricted, 0.9719 global) and matches the
+closed-set effect of removing out-of-subset errors. Remaining ask: the
+specific script or command behind the CLD3-subset columns. Consequences implemented (user decisions 2026-08-09): the
 calibrated row's subset F1 cells are filled under the restricted-lines
 convention that reproduces the UniLID GlotLID-C cell, with the FLORES
 mismatch stated in the Table 1 caption; the subset FPR cells stay dashed;

@@ -11,7 +11,7 @@ Everything experimental is FINISHED (E1-E5, results entries "Camera-ready E1".."
 - Every number traces to an artifact; mappings in the chronological log entries dated 2026-08-07 through 2026-08-09.
 
 ## Open items for the camera-ready
-- Subset FPR cells + the printed fastText GlotLID-C subset cell (.990): the consolidated discrepancy table is in the "Camera-ready E2" results entry; needs Ahmetcan's eval script or an author decision (closed-set vs open-set convention for the right-side columns).
+- Subset FPR cells + the printed fastText GlotLID-C subset cell (.990): the four eval scripts Ahmetcan sent (unilid_resources/) confirm the full-set conventions but contain no subset logic; the lang-only hypothesis is measured and refuted; closed-set-for-fastText is the only consistent explanation (full addendum in the "Camera-ready E2" entry). Remaining ask: the specific subset-evaluation script/command, or an author decision on the convention.
 - Co-author reads: the UDHR regression framing (Results + Table 1 caption) and the name "calibrated UniLID".
 - The user compiles the PDF themselves (no icml2026.sty in this repo); page count fit exactly as of the trimming commit; reserves 9-12 of the trimming report (chat, 2026-08-08) remain available.
 
