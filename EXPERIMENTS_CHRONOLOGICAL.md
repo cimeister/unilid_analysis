@@ -75,6 +75,26 @@ for the infrastructure record.
   the draw-201 confirmation pattern); (iii) the corresponding Ahmetcan ask
   (script-table basis) is resolved and can be dropped from the ask list.
 
+### 2026-08-09: E3 finished (topk job 3038358 COMPLETED in 3h13m; eval on the login node)
+
+- **topk:** 2,098,722 affected lines banked under the variant's floor-21
+  matrix; identity check (banked rank-1 == pred_nemo_floor21 at every banked
+  line) passed; zero short candidate lists.
+- **eval:** all gates passed (sentinel, identity, split re-derivation, sha
+  bindings). Results of record: `EXPERIMENTS_RESULTS.md` "Camera-ready E3".
+  Full pool: nemo_baseline 0.9132 / FPR(x1e5) 1.7927, nemo_floor21 0.9396 /
+  1.7139, nemo_gated 0.9538 / 1.5588. Judge part: 0.8968 / 0.9278 / 0.9473;
+  bootstrap (gated minus baseline) +0.0504 [+0.0438, +0.0573]. Retrain
+  comparability: full-pool baseline +0.0012 from the paper's printed .912
+  cell (different line sets noted). Verdict: the calibration mechanisms
+  transfer across vocabularies with a larger gain than on the base model.
+- **Checkpoint hygiene / purge safety:** the variant's artifacts of record
+  (`glotlid_mistralnemo_fp64.unilid`, `full_test_eval_mistralnemo/` memmaps,
+  banked arrays, fingerprints, `results_mistralnemo/` per-language
+  tokenizers) live on scratch; store migration with scratch symlinks is
+  pending (14-day purge window from 2026-08-08/09; migrate before
+  2026-08-22, login-node chunked, no SLURM for transfers).
+
 ### 2026-08-09: calibration prose accuracy review after the user's hand edits; CLD3-subset F1 cells filled; user decisions recorded
 
 - **User decisions (2026-08-09):** (1) the calibrated row's CLD3-subset F1

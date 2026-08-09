@@ -75,6 +75,48 @@ findings applied, run at commit 02a346e).
 
 ---
 
+## Camera-ready E3: the calibration mechanisms transfer to the Mistral-Nemo variant (2026-08-09, jobs 3028465/3032625/3037165/3038358 + login-node stages)
+
+**Question:** do the promoted configuration's mechanisms generalize to a
+different base vocabulary? The variant was retrained from scratch with the
+recorded pipeline (pinned Mistral-Nemo-Base-2407 tokenizer, 131,072 vocab,
+fp64 trainer), and every calibration component was re-derived for it by the
+recorded rules: its own flat set (bjn_Latn, sco_Latn, srp_Latn), its own tau
+CSVs, its own floor-21 matrix (two rows with natural floors below -21
+correctly left unclamped).
+
+| config | full pool F1 | full pool FPR (x1e5) | judge F1 | judge FPR (x1e5) |
+|---|---|---|---|---|
+| nemo_baseline | 0.9132 | 1.7927 | 0.8968 | 1.7993 |
+| nemo_floor21 | 0.9396 | 1.7139 | 0.9278 | 1.7199 |
+| nemo_gated | 0.9538 | 1.5588 | 0.9473 | 1.5627 |
+
+Paired bootstrap (judge part, B=10,000, seed 0): nemo_gated minus
+nemo_baseline +0.0504 [+0.0438, +0.0573]. Comparability (recorded
+measurement, not a gate): our retrain's full-pool baseline 0.9132 sits
++0.0012 from the paper's printed UniLID-Mistral-Nemo cell (.912, computed on
+all 45,627,279 lines vs our 45,377,279 kept lines), so the retrain
+reproduces the published variant closely.
+
+**Verdict: the mechanisms transfer, with a larger gain than on the base
+model** (+0.0406 full pool vs +0.0277): the calibrated variant (0.9538)
+exceeds fastText (0.9443) and approaches the calibrated dedicated-tokenizer
+configuration (0.9569). All wiring/sentinel/identity gates passed; the 32
+degeneracy-flagged minority-script rows are carried as a listed caveat with
+per-language values in the CSVs. Three startup failures during the chain
+were each a base-model-invariant gate misfiring on a genuine variant
+property, diagnosed before any gate was relaxed (chronological log,
+2026-08-08/09).
+
+**Artifacts:** `outputs/tables/mistralnemo_eval.md` (+ `.tex`),
+`outputs/diagnostic/mistralnemo_per_lang_f1_{fullpool,judge}.csv`,
+`outputs/diagnostic/{mistralnemo_flat_set,tau_mistralnemo_floor21_gate,tau_mistralnemo_flat}.csv`,
+model + memmaps + fingerprints in scratch `full_test_eval_mistralnemo/` and
+`glotlid_mistralnemo_fp64.unilid` (store migration pending). Pipeline
+`analysis/mistralnemo_eval.py` at commit d034cce.
+
+---
+
 ## Camera-ready E5: CommonLID out-of-domain evaluation of the calibrated configuration (2026-08-07, job 3031609 + login-node eval)
 
 **Question (user request):** CommonLID performance for the submission. All

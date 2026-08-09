@@ -1,0 +1,45 @@
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{lrr}
+\toprule
+\textbf{Method} & \textbf{Macro F1} & \textbf{Ma-FPR (x1e5)} \\
+\midrule
+baseline & 0.913 & 1.7927 \\
+floor-21 & 0.940 & 1.7139 \\
+gated & 0.954 & 1.5588 \\
+\bottomrule
+\end{tabular}
+\caption{Mistral-Nemo variant, full kept pool, 45,377,279 lines. FPR values are multiplied by 1e5.}
+\label{tab:mistralnemo_eval_fullpool}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{lrr}
+\toprule
+\textbf{Method} & \textbf{Macro F1} & \textbf{Ma-FPR (x1e5)} \\
+\midrule
+baseline & 0.897 & 1.7993 \\
+floor-21 & 0.928 & 1.7199 \\
+gated & 0.947 & 1.5627 \\
+\bottomrule
+\end{tabular}
+\caption{Mistral-Nemo variant, judge part, 27,002,441 lines. FPR values are multiplied by 1e5.}
+\label{tab:mistralnemo_eval_judge}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{lrrr}
+\toprule
+\textbf{Comparator} & \textbf{Mean diff} & \textbf{CI low} & \textbf{CI high} \\
+\midrule
+gated & 0.050 & 0.044 & 0.057 \\
+\bottomrule
+\end{tabular}
+\caption{Paired bootstrap, gated minus baseline, judge part, 27,002,441 lines.}
+\label{tab:mistralnemo_eval_bootstrap}
+\end{table}

@@ -106,11 +106,11 @@ the user to send.
   each from a fresh floor-21 prediction copy, replacement via
   `_walk_replacement(21.0, 100000, ...)`. All constants transferred without
   refitting (provenance stated per the conventions entry).
-- **E3: Mistral-Nemo variant** | status: ongoing (training job 3028465
-  launched 2026-08-07; recorded Apertus pipeline reused exactly; tokenizer
-  snapshot a4477a2 pinned; next steps after completion: degeneracy scan in-job,
-  then full-pool baseline scoring, floor-21 matrix, tau recalibration, flat
-  set via the recorded rule, floor-21 pass with top-5 banking, gate, eval) |
+- **E3: Mistral-Nemo variant** | status: finished (2026-08-09; results in
+  `EXPERIMENTS_RESULTS.md` "Camera-ready E3": baseline 0.9132 -> gated 0.9538
+  full pool, judge bootstrap +0.0504 [+0.0438, +0.0573]; the mechanisms
+  transfer with a larger gain than on the base model; paper presentation
+  awaiting the user's confirmation of the appendix recommendation) |
   Pin the local HF tokenizer snapshot revision; per-language
   fixed-vocabulary EM (fp64 spm_train) over the 1,940 corpus files;
   `analysis.degeneracy_scan` before evaluation; full-pool baseline pass; the
