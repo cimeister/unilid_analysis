@@ -19,6 +19,7 @@ Everything experimental is FINISHED (E1-E5, results entries "Camera-ready E1".."
 - The user compiles the PDF themselves (no icml2026.sty in this repo); page count fit exactly as of the trimming commit; reserves 9-12 of the trimming report (chat, 2026-08-08) remain available.
 
 ## Pending actions (non-paper)
+- Open-source release of calibrated UniLID: fully specified in OPEN_SOURCE_HANDOFF.md (goal, four binding user decisions of 2026-08-09, mechanism spec + reference code paths, verification gates, checklist, and the verbatim prompt for the new session). Not started; intended for a dedicated session.
 - Store migration of the E3 artifacts of record (glotlid_mistralnemo_fp64.unilid, full_test_eval_mistralnemo/ memmaps + banked arrays + fingerprints, results_mistralnemo/ per-language tokenizers) to /capstor/store/cscs/swissai/a0229/cmeister with scratch symlinks; purge deadline about 2026-08-22; login-node chunked procedure, no SLURM for transfers (unilid-durable-storage memory).
 
 ## Open decisions
