@@ -1,12 +1,22 @@
 # Session Status
 
-## Ongoing experiments
-- None running. E1 through E5 all FINISHED and recorded (EXPERIMENTS_RESULTS.md: "Camera-ready E1" through "Camera-ready E5", including E3's transfer result: nemo_baseline 0.9132 -> nemo_gated 0.9538 full pool, judge bootstrap +0.0504 [+0.0438, +0.0573]).
+## Camera-ready handoff (read this first when resuming paper work)
 
-## Pending actions
-- Store migration of the E3 artifacts of record (model, memmaps, banked arrays, per-language tokenizers) from scratch to /capstor/store/cscs/swissai/a0229/cmeister with scratch symlinks; purge deadline about 2026-08-22; login-node chunked, no SLURM for transfers.
+Everything experimental is FINISHED (E1-E5, results entries "Camera-ready E1".."E5" in EXPERIMENTS_RESULTS.md). The paper (paper/submission.tex + paper/tables/*.tex, all committed) carries the complete calibrated-UniLID integration:
+
+- Abstract + intro sentence; sec:calibration paragraph in section 4 (principled framing: error analysis -> two identified groups -> two inference-time corrections; explicit no-test-overfitting statement; accuracy-reviewed twice, once after the user's hand edits).
+- Terminology of record: "the unseen-token constant c" (never bare "floor"; the only "floor" is "the training-time probability floor of 1e-12"); "the high-entropy group/languages" with the precise criterion in app:protocol (entropy z-scored within script via median/MAD > 1.5 AND misclassified-validation absorption > 2x own support, OR z > 5; restricted to >= 18,000 samples). "Flat" appears nowhere.
+- Table 1: calibrated row (left cells .957/1.77e-5, .838/2.08e-4, .933/2.91e-4; subset F1 cells .975/.986/.992 under the reproduced convention; subset FPR cells dashed); caption states the instrument and the FLORES-subset convention mismatch.
+- Results: Effect of Calibration paragraph. Appendix app:protocol: mechanism spec, provenance, protocol, held-out + bootstrap tables, both-views table, other instruments incl. tab:commonlid, alternatives, the variant transfer paragraph + tab:calibrated_nemo (added 2026-08-09, user-confirmed), remaining errors.
+- Every number traces to an artifact; mappings in the chronological log entries dated 2026-08-07 through 2026-08-09.
+
+## Open items for the camera-ready
+- Subset FPR cells + the printed fastText GlotLID-C subset cell (.990): the consolidated discrepancy table is in the "Camera-ready E2" results entry; needs Ahmetcan's eval script or an author decision (closed-set vs open-set convention for the right-side columns).
+- Co-author reads: the UDHR regression framing (Results + Table 1 caption) and the name "calibrated UniLID".
+- The user compiles the PDF themselves (no icml2026.sty in this repo); page count fit exactly as of the trimming commit; reserves 9-12 of the trimming report (chat, 2026-08-08) remain available.
+
+## Pending actions (non-paper)
+- Store migration of the E3 artifacts of record (glotlid_mistralnemo_fp64.unilid, full_test_eval_mistralnemo/ memmaps + banked arrays + fingerprints, results_mistralnemo/ per-language tokenizers) to /capstor/store/cscs/swissai/a0229/cmeister with scratch symlinks; purge deadline about 2026-08-22; login-node chunked procedure, no SLURM for transfers (unilid-durable-storage memory).
 
 ## Open decisions
-- Mistral-Nemo variant in the paper: recommendation = appendix comparison (our retrain, clearly marked; existing Table 1 row untouched); numbers now available; awaiting user confirmation before any tex edit.
-- Subset FPR cells + the printed fastText GlotLID-C subset cell (.990): needs Ahmetcan's eval script or an author decision.
-- UDHR regression framing and the "calibrated UniLID" name: co-author read.
+- None beyond the camera-ready items above.

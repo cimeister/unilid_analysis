@@ -75,6 +75,23 @@ for the infrastructure record.
   the draw-201 confirmation pattern); (iii) the corresponding Ahmetcan ask
   (script-table basis) is resolved and can be dropped from the ask list.
 
+### 2026-08-09: variant appendix comparison added to the paper (user-confirmed recommendation); discrepancy record consolidated
+
+- **Paper:** appendix paragraph "Transfer to a pretrained-vocabulary
+  variant" + `paper/tables/calibrated_nemo.tex` (tab:calibrated_nemo) added
+  before "Remaining errors"; the published Table 1 variant row is untouched.
+  Artifact -> cell mapping: all six table cells and the +0.050
+  [+0.044, +0.057] interval from `outputs/tables/mistralnemo_eval.md`; the
+  +0.041 vs +0.028 gain comparison derives from `paper_eval.md` (0.9292 ->
+  0.9569) and `mistralnemo_eval.md` (0.9132 -> 0.9538); the high-entropy
+  group bjn/sco/srp from `outputs/diagnostic/mistralnemo_flat_set.csv`; the
+  two below-constant languages (khm_Khmr, ory_Orya) from
+  `fingerprint_floor21_mistralnemo.json`.
+- **Records:** the consolidated CLD3-subset discrepancy table (which printed
+  right-side cells reproduce under which convention, and which do not) is
+  written into the "Camera-ready E2" results entry with the closed-set
+  interpretation and the implemented user decisions.
+
 ### 2026-08-09: E3 finished (topk job 3038358 COMPLETED in 3h13m; eval on the login node)
 
 - **topk:** 2,098,722 affected lines banked under the variant's floor-21

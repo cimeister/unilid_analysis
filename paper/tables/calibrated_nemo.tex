@@ -1,0 +1,21 @@
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{lrrr}
+\toprule
+& \multicolumn{2}{c}{\textbf{Full pool}} & \textbf{Held-out} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-4}
+\textbf{Configuration} & \textbf{Macro F1} & \textbf{Ma-FPR (x1e5)} & \textbf{Macro F1} \\
+\midrule
+\unilid-Mistral-Nemo (retrained) & 0.913 & 1.79 & 0.897 \\
+\quad + unseen-token constant & 0.940 & 1.71 & 0.928 \\
+\quad + re-examination (calibrated) & 0.954 & 1.56 & 0.947 \\
+\bottomrule
+\end{tabular}
+\caption{Calibration applied to an independently retrained
+\unilid-Mistral-Nemo variant, on the 45{,}377{,}279-line GlotLID-C pool
+(full pool) and the 27{,}002{,}441-line held-out subset. FPR values are
+multiplied by $10^5$. The retrained baseline is within $0.002$ macro F1 of
+the published variant row in \cref{tab:lid_main}, which is left unchanged.}
+\label{tab:calibrated_nemo}
+\end{table}

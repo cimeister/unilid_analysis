@@ -182,15 +182,31 @@ confirmation pattern and is stated in the paper's subsection and Table 1
 caption. Re-examination accounting: UDHR group A 1,117 examined / 425 moved,
 group B 10/10; FLORES group A 1,313 / 636, group B 171/163.
 
-**CLD3-subset cells (restricted-lines convention, the one that reproduces the
-paper's UniLID cells):** GlotLID-C baseline 0.9719 (printed .971), calibrated
-0.9751; UDHR baseline 0.9873 (printed .992, inside 0.005), calibrated 0.9856;
-FLORES baseline 0.9907 (printed .997, OUTSIDE 0.005), calibrated 0.9920. The
-printed fastText GlotLID-C subset cell (.990) is reproduced by no tested
-convention while the paper team's own per-language JSON matches our fastText
-values exactly; the right-side columns of the submission appear to mix
-conventions per system. The calibrated row's subset cells are left out of
-Table 1 pending the paper team's eval script (flagged in the caption).
+**CLD3-subset cells: the consolidated discrepancy record (updated
+2026-08-09, reported to the user).** Everything on the left side of Table 1
+and in the appendix breakdowns reproduces from our pipeline exactly or to
+printed precision, and the paper team's per-language fastText JSON agrees
+with our imported fastText predictions to fifteen decimal places. Every
+unresolved discrepancy sits in the right-side (CLD3-subset) columns:
+
+| cell | printed | our reproduction | status |
+|---|---|---|---|
+| UniLID GlotLID-C subset F1 | .971 | 0.9719 | reproduces |
+| UniLID UDHR subset F1 | .992 | 0.9873 | borderline (0.0047 inside the 0.005 gate) |
+| UniLID FLORES subset F1 | .997 | 0.9907 | does not reproduce |
+| fastText GlotLID-C subset F1 | .990 | 0.9767 (restricted) / 0.9719 (global = his own JSON) | does not reproduce |
+| UniLID GlotLID-C subset FPR | 1.63e-4 | 9.71e-5 (restricted) / 7.77e-5 (global) | no tested convention |
+
+Interpretation of record: since the paper team's own per-language data
+agrees with ours, the printed subset cells came from a different computation
+than the full-set cells, most plausibly a closed-set evaluation (label space
+restricted to the subset) applied to some systems; resolving which requires
+their eval script. Consequences implemented (user decisions 2026-08-09): the
+calibrated row's subset F1 cells are filled under the restricted-lines
+convention that reproduces the UniLID GlotLID-C cell, with the FLORES
+mismatch stated in the Table 1 caption; the subset FPR cells stay dashed;
+the printed fastText cells stay untouched. Calibrated subset values:
+GlotLID-C 0.9751, UDHR 0.9856, FLORES 0.9920.
 
 **Artifacts:** `outputs/tables/external_bench_{udhr,flores}.md`,
 `outputs/diagnostic/external_bench/{udhr,flores}_per_label.csv`,

@@ -1290,6 +1290,24 @@ lets 9 individual languages lose more than 0.10 F1 each: a per-language
 threshold set at a percentile of that language's own margins bounds its own
 recall loss by construction, and one shared value does not.
 
+\paragraph{Transfer to a pretrained-vocabulary variant.} To test whether the
+calibration depends on the dedicated tokenizer, we retrained the
+\unilid-Mistral-Nemo variant with the recipe of \cref{sec:exp_setup} (an
+independent training run; the published row in \cref{tab:lid_main} is
+unchanged) and re-derived every calibration component for the new
+vocabulary by the procedures of this appendix: its own thresholds
+$\tau_\lang$, its own unseen-token treatment (two languages whose trained
+unseen-token values already lie below $c = -21$ are left unchanged), and
+its own high-entropy group, for which the criteria above select Banjar,
+Scots, and Serbian in Latin script. \Cref{tab:calibrated_nemo} reports the
+effect: calibration raises the variant's macro F1 from 0.913 to 0.954 on
+the full pool, and the paired bootstrap interval of the improvement on the
+held-out subset is $+0.050$ with 95\% interval $[+0.044, +0.057]$. The gain
+is larger than for the dedicated-tokenizer model ($+0.041$ against $+0.028$
+in full-pool macro F1).
+
+\input{tables/calibrated_nemo}
+
 \paragraph{Remaining errors.} After calibration, 926{,}299 wrong predictions
 remain on the held-out part; 99.2\% of them are lines whose true language has
 at least 18{,}000 training samples, and 88.6\% of those are confusions with
@@ -1299,38 +1317,6 @@ Chinese). No unseen-token treatment changes such a pair's score comparison
 materially, so this is the boundary of the mechanism family; \cref{sec:disc}
 sketches what reaching past it would require.
 
-% \section{Experiment Plan}
-% \subsection{Comparisons}
-
-
-% \begin{itemize}
-%     \item fasttext
-%     \item pretrained \cld (subset limited to the languages that it supports)
-%     \item pretrained \glotlid  ``official data splits for \glotlid were not openly released'' so we would only evaluate on UDHR.
-%     \item Prompting an LLM? Probably Qwen would make the most sense
-
-% \end{itemize}
-% \subsection{Evaluation datasets}
-% Following setup of \citet{foroutan2025conlid}
-% \begin{itemize}
-%     \item WiLI (standard dataset)
-%     \item GlotLID for training (large breadth) \url{https://huggingface.co/datasets/cis-lmu/glotlid-corpus} +  UDHR  \url{https://huggingface.co/datasets/cis-lmu/udhr-lid}and Flores-plus \url{https://huggingface.co/datasets/openlanguagedata/flores_plus} for testing  
-%     \item Tatoeba (low-resource/short passages)
-%     \item Vardial \url{https://aclanthology.org/2024.vardial-1.1.pdf} (dialect differentiation)
-% \end{itemize}
-
-% \subsection{Analyses}
-
-% \begin{itemize}
-%     \item Accuracy as function of training set size
-%     \item Accuracy as function of text length
-%     \item Domain shift (train on WiLI; test on social, news, religious (OpenLID))
-%     \item code switching (LinCE)
-%     \item Input granularity (byte vs char vs subword)
-%     \item Early stopping? (stop processing the text once its clear what language it is to save compute)
-%     \item Open-set metrics (ability for system to determine if it's a new/unseen language)
-%     \item Robustness to diacritics/typos/emojis
-% \end{itemize}
 
 \end{document}
 
