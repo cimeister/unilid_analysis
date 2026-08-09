@@ -899,7 +899,9 @@ def _build_and_fingerprint_floor21_nemo(langs: list[str]) -> tuple[np.ndarray, s
                 f"floor {FLOOR_TARGET} left {len(illegitimate)} row(s) "
                 f"unmodified whose natural floor is ABOVE the target, which "
                 f"the downward clamp can never do: {names}")
-        skipped = [(langs[i], float(row_mins[i])) for i in unmodified]
+        # json round-trips tuples as lists, so build lists directly or the
+        # fingerprint equality check fails on type rather than content.
+        skipped = [[langs[i], float(row_mins[i])] for i in unmodified]
         print(f"floor {FLOOR_TARGET}: {n_mod} of {len(langs)} rows clamped; "
               f"{len(skipped)} row(s) already at or below the target and "
               f"left unchanged per the downward-clamp mechanism: "
