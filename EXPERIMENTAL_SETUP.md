@@ -142,6 +142,11 @@ validation half of the 500k sample only. Classes: `flat_magnet` (shrink hard),
 `tight_lowres` (shrink gently toward `target_lang`), `twin` (do not pool), `isolated_tail`
 (mild shrink to script mean), `head`/`mid` (protected). Thresholds are data-driven
 quantiles (constants documented in the module header), not hand-tuned.
+[Correction 2026-08-09: this sentence overstates. In analysis/diagnostic.py only
+KCLOSE_QUANTILE and DNN_LO_Q are quantiles; ZH_MAGNET=1.5, ZH_EXTREME=5.0, and
+MAGNET_RATIO_MIN=2.0 are fixed values with no recorded search. The camera-ready
+provenance paragraph states them as fixed during development (code over prose,
+consistency review finding 12).]
 
 **Group means (empirical Bayes):** script-level mean (family-level is a later refinement),
 resource-weighted (`w = min(N, cap)`), leave-one-out, with a language's own near-confusers

@@ -5,16 +5,17 @@
 \toprule
 \textbf{Component} & \textbf{Selection data} & \textbf{In scored pool?} \\
 \midrule
-unseen-token constant $c=-21$ & retired 250k validation sample & no \\
-high-entropy-group membership & same retired 250k sample & no \\
+unseen-token constant $c=-21$ & \camrev{excluded 250k validation sample} & no \\
+high-entropy-group membership & \camrev{same excluded 250k sample} & no \\
 thresholds, $q_\lang$ & each language's own training data & no \\
-$100{,}000$-sample bar & false-positive profile, full pool & yes \\
+$100{,}000$-sample \camrev{requirement} & false-positive profile, full pool & yes \\
 proximity bound $21$ & development part (18.0M lines) & yes \\
 \bottomrule
 \end{tabular}
 \caption{Selected components of calibrated \unilid and the data each was
 selected on. The held-out part is outside every row of this table except the
-$100{,}000$-sample bar, which was fixed from a false-positive profile measured
-on the whole post-draw pool before the development/held-out split existed.}
+$100{,}000$-sample \camrev{requirement}, which was fixed from a false-positive profile measured
+on the whole \camrev{45.0M-line pool remaining after the two draws were
+removed,} before the development/held-out split existed.}
 \label{tab:calibration_provenance}
 \end{table}

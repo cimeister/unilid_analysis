@@ -175,6 +175,24 @@ CommonLID).
     dominance is via language count (1,700/1,940 Latin); the proposed script-upsampling fix is
     still coherent, but the wording and the 1k detail's location (caption only) should be fixed.
 
+## Dispositions (edit pass applied 2026-08-09, all text edits red-wrapped in \camrev)
+
+- IMPLEMENTED: A1-A6 (per user's six feedback points; A2 = no edit, Ahmetcan ask),
+  1-9 of section A (caption rewrite, bolds, protocol disclosure, 250k sample, latency,
+  FPR formula), 10-16 of section B (constants provenance incl. the fixed-constants
+  sentence; margin/threshold spec with the 26-language exclusion; clamp semantics +
+  normalization; softened recall-bound claim; premise quantified via F2: 32.5% of
+  baseline FPs into 3.8%-support languages), 17-27 of section C (claim scoping; D9
+  reduced to the Ahmetcan ask since 1067 already states the split; D7 without the
+  unmeasured 1-2-epoch time), 28-36 of section D (symbols, jargon, typos, notes kept
+  per user decision).
+- DEFERRED to Ahmetcan: subset FPR convention + fastText .990 (standing); UDHR-subset
+  UniLID FPR 1.06e-5; fastText WiLI configs; DSL-ML competitor source/split; CommonLID
+  citation; latency run configs.
+- NO CHANGE by decision: calibrated FLORES subset F1 cell stays (.992); author notes
+  stay; abstract incremental-addition sentence (describes base UniLID); label rendering
+  = compile check.
+
 ## Suggested fix order (user to confirm)
 Mechanical, no decisions needed: 2 (bolding), 5, 6, 7 (number/table mismatches), 9 (FPR
 formula), 28-31, 33, 34. Author decisions: 1 (subset cells/caption), 3+4 (protocol/250k

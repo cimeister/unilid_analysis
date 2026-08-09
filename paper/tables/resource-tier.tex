@@ -7,14 +7,14 @@
 \cmidrule(lr){4-5} \cmidrule(lr){6-7}
 Train samples / lang & \# Langs & $N_{\text{test}}$ & F1 & FPR & F1 & FPR \\
 \midrule
-$<\!500$         &  56 & \num{2523}     & 0.871 & \num{7.2e-5} & 0.915 & \num{1.15e-4} \\
-$500$\,--\,$1$k    &  40 & \num{5246}     & 0.975 & \num{1.5e-5} & 0.964 & \num{1.9e-5}  \\
-$1$k\,--\,$12$k    & 458 & \num{555416}   & 0.990 & \num{8.0e-6} & 0.979 & \num{8.0e-6}  \\
-$12$k\,--\,$18$k   & 526 & \num{1157747}  & 0.997 & \num{2.0e-6} & 0.986 & \num{1.0e-5}  \\
-$18$k\,--\,$35$k   & 398 & \num{1131306}  & 0.992 & \num{7.0e-6} & 0.981 & \num{1.6e-5}  \\
-$35$k$+$           & 462 & \num{42775041} & 0.958 & \num{5.3e-5} & 0.942 & \num{9.1e-5}  \\
+$<\!500$         &  56 & \num{2513}     & 0.871 & \num{7.2e-5} & 0.915 & \num{1.15e-4} \\
+$500$\,--\,$1$k    &  40 & \num{5222}     & 0.975 & \num{1.5e-5} & 0.964 & \num{1.9e-5}  \\
+$1$k\,--\,$12$k    & 458 & \num{552346}   & 0.990 & \num{8.0e-6} & 0.979 & \num{8.0e-6}  \\
+$12$k\,--\,$18$k   & 526 & \num{1151363}  & 0.997 & \num{2.0e-6} & 0.986 & \num{1.0e-5}  \\
+$18$k\,--\,$35$k   & 398 & \num{1125105}  & 0.992 & \num{7.0e-6} & 0.981 & \num{1.6e-5}  \\
+$35$k$+$           & 462 & \num{42540730} & 0.958 & \num{5.3e-5} & 0.942 & \num{9.1e-5}  \\
 \bottomrule
 \end{tabular}
-\caption{Performance on the GlotLID-C test set stratified by per-language training-sample count, in the within-stratum view: test examples are restricted to true labels inside each tier, so false positives arriving from other tiers are excluded. \Cref{tab:calibrated_views} repeats this stratification under both metric views. \# Langs is the number of languages in the bucket; $N_{\text{test}}$ is the total number of test instances. UniLID matches or exceeds fastText on every bucket except $<\!500$, where the base-vocabulary script bias documented in Table~\ref{tab:script-breakdown} compounds with limited per-language data.}
+\caption{Performance on the GlotLID-C test set stratified by per-language training-sample count, in the within-stratum view: test examples are restricted to true labels inside each tier, so false positives arriving from other tiers are excluded. \Cref{tab:calibrated_views} repeats this stratification under both metric views. \# Langs is the number of languages in the bucket; $N_{\text{test}}$ is the total number of test instances \camrev{on the 45{,}377{,}279-line scored pool (\cref{app:protocol})}. UniLID matches or exceeds fastText on every bucket except $<\!500$, where the base-vocabulary script bias documented in \cref{tab:script-breakdown} compounds with limited per-language data.}
 \label{tab:resource-tier}
 \end{table*}

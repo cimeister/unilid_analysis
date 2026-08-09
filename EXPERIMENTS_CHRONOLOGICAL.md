@@ -27,6 +27,40 @@ for the infrastructure record.
 `EXPERIMENTAL_SETUP.md` (hierarchical pooling). Full plan:
 `~/.claude/plans/yes-do-both-then-giggly-sprout.md`.
 
+### 2026-08-09: camera-ready edit pass applied (review-driven; two login-node measurements, no SLURM)
+
+- **Purpose:** implement the 36-finding review (paper/review_notes_2026-08-09.md) with
+  every text edit wrapped in `\camrev{}` (red) for the user's check. Plan:
+  `~/.claude/plans/steady-finding-abelson.md`, user-approved 2026-08-09 after an Opus
+  adversarial consistency review (21 findings folded in, 3 blockers caught: the filled
+  FLORES subset F1 cell, the "all evaluations on the scored pool" overstatement, a false
+  order-of-magnitude claim).
+- **F1 (resource-tier N_test recomputation):** `analysis/regen_resource_tier_counts.py`,
+  single source `outputs/diagnostic/paper_eval_per_lang_f1_fullpool.csv`; gates: support
+  sum = 45,377,279, tier language counts = 56/40/458/526/398/462; artifact
+  `outputs/tables/resource_tier_ntest.md` -> the six N_test cells of
+  `paper/tables/resource-tier.tex` (2,513 / 5,222 / 552,346 / 1,151,363 / 1,125,105 /
+  42,540,730; previous column summed to 45,627,279, the full test file).
+- **F2 (baseline false-positive concentration):**
+  `analysis/baseline_error_concentration.py`, Opus pre-run review (12 findings; NO-GO ->
+  GO after: np.load loader for headered .npy, denominator = fp.sum() with equality gate,
+  support-share null printed, G6 set-equality with tau_floor21_gate.csv). Gates G1-G6
+  passed. Artifact `outputs/tables/baseline_error_concentration.md` -> the section 4
+  sentence: 578,270 of 1,779,499 baseline false positives (32.5%) are predictions into
+  the union of the under-18,000 group and the high-entropy four (1,084 languages, 3.8%
+  of the scored pool by gold label; ratio 8.48).
+- **Other artifact-backed cells/claims:** latency prose realigned to
+  tables/latency_glotlid (0.307 -> 1.85x/1.64x) and latency_wili (0.155); Viterbi
+  footnote/caption to tab:viterbi_vs_marginal (0.001 accuracy / 0.002 F1); D2 sentence
+  re-pointed to tab:calibrated_views (0.515->0.780, 0.628->0.892); the 282-capped-language
+  fact and the 26-of-1,080 threshold exclusions verified from
+  paper_eval_per_lang_f1_fullpool.csv and tau_floor21_gate.csv in-session; 3.4e-4
+  fastText pool-difference from the Camera-ready E1 entry.
+- **Setup-doc correction:** EXPERIMENTAL_SETUP.md "data-driven quantiles" sentence
+  corrected (ZH_MAGNET/ZH_EXTREME/MAGNET_RATIO_MIN are fixed constants in
+  analysis/diagnostic.py; code over prose).
+- Checkpoint hygiene: no deletions; new artifacts are the two outputs/tables mds.
+
 ### 2026-08-06: camera-ready evaluation program opened (E1-E4 pre-registered; no job yet)
 
 - **Purpose:** incorporate the promoted configuration gate_flat4_prox21 into the

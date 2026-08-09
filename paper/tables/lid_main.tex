@@ -1,9 +1,9 @@
 \begin{table*}[ht]
 \centering
 \small
-\caption{Classification results on benchmark evaluation sets.  
-\unilid variants and \fasttext are trained using the GlotLID-C corpus. 
-The left columns show results on the full test sets of each benchmark for models that have full coverage of those benchmark's language label set; GlotLID-C cells are macro-averaged over the 1{,}940 labels on the 45{,}377{,}279 scored test lines. The right columns show results on the subsets of the benchmarks that \cld has label coverage for. The calibrated row (\cref{sec:calibration}) is evaluated on the same test sets; its \cld-subset F1 cells use the restricted-lines convention that reproduces the \unilid GlotLID-C and UDHR subset cells (the printed \unilid FLORES subset cell reproduces under no convention we tested, so these cells and the FPR cells remain provisional pending a convention alignment), and its gains are specific to natural-distribution data, which is why the parallel-text UDHR cell decreases.}
+\caption{Classification results on benchmark evaluation sets.
+\unilid variants and \fasttext are trained using the GlotLID-C corpus.
+The left columns show results on the full test sets of each benchmark for models that have full coverage of those benchmark's language label set\camrev{; GlotLID-C cells for the \unilid and calibrated rows are macro-averaged over the 1{,}940 labels on the 45{,}377{,}279 scored test lines (the test data minus an excluded 250{,}000-line validation sample; \cref{app:protocol}), while the remaining rows carry over from the original submission, computed on all 45{,}627{,}279 lines; \fasttext macro F1 on the scored pool differs from the printed full-file cell by $3.4\times10^{-4}$}. The right columns show results on the subsets of the benchmarks that \cld has label coverage for. \camrev{A dash marks a system without coverage of a column's label set, or an omitted calibrated-row cell; bold marks the best value in a column. The calibrated row (\cref{sec:calibration}) is evaluated on the same test sets. Its \cld-subset F1 cells restrict each benchmark to the lines whose gold label is in the \cld subset; this convention reproduces the \unilid GlotLID-C subset cell and matches the \unilid UDHR subset cell within 0.005. The convention behind the original rows' subset FPR values could not be determined, so the calibrated row's subset FPR cells are omitted. The calibrated row's full-pool GlotLID-C cells include data on which two of the calibration constants were selected (\cref{app:protocol}); \cref{tab:calibrated_heldout} repeats the comparison on a held-out subset outside both selections. [Editorial note, to resolve before submission: the \unilid UDHR-subset FPR value, 1.06e-5, is the lowest in its column, a factor of two below \glotlid's 2.09e-5, and is awaiting confirmation against the original computation.]}}
 \label{tab:lid_main}
 \setlength{\tabcolsep}{5pt}
 \renewcommand{\arraystretch}{1.15}
@@ -55,7 +55,7 @@ The left columns show results on the full test sets of each benchmark for models
 & \textbf{.999} & \textbf{6.25e-6} \\
 
 \fasttext
-& \textbf{.944} & 2.71e-5
+& \camrev{.944} & 2.71e-5
 & .855 & 1.87e-4
 & .938 & 2.38e-4
 & \textbf{.990} & \textbf{7.92e-5}
@@ -72,7 +72,7 @@ The left columns show results on the full test sets of each benchmark for models
 & .997 & 3.29e-5 \\
 
 \unilid (calibrated, \cref{sec:calibration})
-& .957 & 1.77e-5
+& \camrev{\textbf{.957}} & \camrev{\textbf{1.77e-5}}
 & .838 & 2.08e-4
 & .933 & 2.91e-4
 & .975 & --
@@ -80,11 +80,11 @@ The left columns show results on the full test sets of each benchmark for models
 & .992 & -- \\
 
 \unilid-Mistral-Nemo
-& .912 & \textbf{1.84e-5}
+& .912 & \camrev{1.84e-5}
 & .836 & 1.79e-4
 & .923 & 3.22e-4
 & .972 & 1.53e-4
-& .992 & \textbf{1.03e-4}
+& .992 & \camrev{1.03e-4}
 & .994 & 8.05e-5 \\
 
 \unilid-DeepSeek3.2
