@@ -601,19 +601,49 @@ We compare this cost with \fasttext and \cld in \cref{app:efficiency} and report
 
 
 \paragraph{Calibrated \unilid.}\label{sec:calibration}
-\defn{Calibrated \unilid} adds two inference-time
-corrections.
-First, it replaces the log-probability that each language assigns to tokens in $\vocab$ that are not seen in $\corpus^\lang$ with one shared constant across all languages: $\log\unigramdistlang[\token] \defeq c$ for every $\token$ unseen in $\corpus^\lang$.
-Without intervention, this value ends up being a
-byproduct of the training-time smoothing floor and renormalization, varying largely as a function of $|\corpus^\lang|$.
-%Since \cref{eq:lang-id} compares scores across languages, these values act as language-dependent offsets on every unseen token.
-Second, it re-examines low-margin predictions into languages with fewer than 18{,}000 training samples (and four large-corpus languages with unusually flat token distributions), i.e., predictions into such languages where the top-scoring and runner-up languages' scores are very close.
-%This is a particularly effective step for low-resource languages, where noisy estimates cause samples to be incorrectly assigned as that language.
-Concretely, let $s_\lang(\str) = \log \punigramlang(\tokfunc_{\unigramdistlang}(\str))$ be the score assigned by language $\lang$ and
-$\hat\lang = \argmax_\lang s_\lang(\str)$ be our predicted language.
-If $\hat\lang$ is in the re-examined set and $s_{\hat\lang}(\str)$ exceeds the runner-up score by less than a threshold $\tau_{\hat\lang}$, the prediction moves to the highest-ranked of the candidates ranked 2 to 5 that has at least 100{,}000 training samples and a score within 21 natural-log units of the top candidate; if no candidate qualifies, the prediction is unchanged.
-Each threshold $\tau_\lang$ is a percentile of the margins $\lang$ attains on its own training samples; apart from the flat-language diagnostic, both corrections depend only on shared constants and on each language's own data, preserving \unilid's ability to add languages incrementally.
-The constants are selected on data disjoint from the subset on which we report their effect; \cref{app:protocol} gives the provenance of each.
+An error analysis of \unilid on GlotLID-C shows that misclassifications
+concentrate on predictions \emph{into} two identifiable groups of languages:
+languages with fewer than 18{,}000 training samples, whose estimates
+$\unigramdistlang$ remain close to their initialization and therefore assign
+moderate probability to strings from many languages, and a group of four
+larger languages whose estimated distributions have unusually high entropy
+for their script and which attract misclassified samples for the same reason
+(the identification criteria are stated in \cref{app:protocol}). Both patterns
+are symptoms of under-fit distribution estimates. \defn{Calibrated \unilid}
+corrects for the two symptoms at inference time; obtaining better estimates
+of $\unigramdistlang$ at training time is left to future work.
+The first correction makes the treatment of unseen tokens consistent across
+languages: the log-probability that language $\lang$ assigns to tokens in
+$\vocab$ not observed in $\corpus^\lang$ is replaced with one shared
+constant, $\log\unigramdistlang[\token] \defeq c$ for every $\token$ unseen
+in $\corpus^\lang$. Without this correction, that value is a byproduct of
+the training-time probability floor of $10^{-12}$ and renormalization, and
+it varies with $|\corpus^\lang|$; since \cref{eq:lang-id} compares scores
+across languages, the variation acts as a language-dependent offset on every
+unseen token.
+The second correction discounts unreliable wins by the two identified
+groups. Let $s_\lang(\str) = \log
+\punigramlang(\tokfunc_{\unigramdistlang}(\str))$ be the score assigned by
+language $\lang$ and $\hat\lang = \argmax_\lang s_\lang(\str)$ the
+prediction. If $\hat\lang$ belongs to either group and $s_{\hat\lang}(\str)$
+exceeds the runner-up score by less than a threshold $\tau_{\hat\lang}$, the
+prediction moves to the highest-ranked of the candidates ranked 2 to 5 that
+has at least 100{,}000 training samples and a score within 21 natural-log
+units of the top candidate; if no candidate qualifies, the prediction is
+unchanged. Each threshold $\tau_\lang$ is a percentile of the margins
+$\lang$ attains on its own training samples, so a language's threshold
+bounds its own recall loss by construction.
+This methodology avoids fitting to the evaluation data: each $\tau_\lang$
+comes from language $\lang$'s own training samples, the remaining constants
+were selected on a retired validation sample and on a development subset of
+the GlotLID-C pool, and the held-out subset behind the confirmation
+intervals we report, as well as UDHR, FLORES-200, and CommonLID, entered no
+constant selection (with one exception, the coarse 100{,}000-sample bar,
+fixed before the development split existed; \cref{app:protocol} lists which
+data selected each constant). Apart from the high-entropy-group
+identification, both corrections depend only on shared constants and on each
+language's own data, preserving \unilid's ability to add languages
+incrementally.
 
 \section{Experimental Setup}\label{sec:exp_setup}
 
@@ -699,7 +729,7 @@ For each benchmark, we learn language-conditional unigram distributions using th
 In all experiments, we initialize the unigram distribution as the uniform distribution and run EM for $20$ rounds.\footnote{We observed empirically that unigram distributions always converged within 20 rounds (\ie, the total variation distance between subsequent rounds fell below $10^{-6}$).}\clara{Footnote comment: could also use the SentencePiece settings to justify $\leq 20$ rounds if that would make the argument stronger \response{tiago} I think saying it converged is enough. Also, it's our own method and not a baseline, so maybe we don't need to motivate it as much as for baselines? (I mean if our own method underperforms a bit at these settings, it's not really a big issue.)} 
 To avoid zero-probability segmentations when a token's expected counts are estimated to be 0 under a given language (most common in the few-sample regime), we floor token probabilities at $10^{-12}$ during training. For calibrated \unilid (\cref{sec:calibration}) we use the shared unseen-token constant $c = -21$ (natural log).
 %, re-examine predictions into languages with fewer than 18{,}000 training samples (and four large-corpus languages with unusually flat token distributions), 
-We set each margin threshold $\tau_\lang$ at the $q_\lang = 5\,(1 - N_\lang/18{,}000)$ percentile of language $\lang$'s own training margins for the languages below 18{,}000 samples, and at a fixed 5th percentile for the four flat languages.
+We set each margin threshold $\tau_\lang$ at the $q_\lang = 5\,(1 - N_\lang/18{,}000)$ percentile of language $\lang$'s own training margins for the languages below 18{,}000 samples, and at a fixed 5th percentile for the four high-entropy languages of \cref{sec:calibration}.
 The full protocol, remaining constants, and their provenance are in \cref{app:protocol}.
 We consider two variants of \unilid: one that uses a dedicated base tokenizer trained on the LID training set, and one that uses the vocabulary of a pretrained language model; more details below.
 
@@ -1173,27 +1203,35 @@ We checked whether this manifests as a systematic bias in errors and find that o
 
 \paragraph{Full mechanism specification.} Calibrated \unilid
 (\cref{sec:calibration}) re-examines a prediction when (i) the predicted
-language has fewer than 18{,}000 training samples, or is one of four
-large-corpus languages whose token distributions are unusually flat for their
-script (Scots, Banjar, Aragonese, and West Flemish), and (ii) the top score
-exceeds the runner-up score by less than the predicted language's threshold
-$\tau_\lang$. The percentile defining $\tau_\lang$ is
+language has fewer than 18{,}000 training samples, or is one of the four
+high-entropy languages defined next, and (ii) the top score exceeds the
+runner-up score by less than the predicted language's threshold
+$\tau_\lang$. A language belongs to the high-entropy group when the entropy
+of its estimated distribution $\unigramdistlang$, standardized among the
+languages sharing its script (a z-score computed with the median and the
+median absolute deviation), exceeds $1.5$ AND the language received more
+than twice as many misclassified validation samples as it has validation
+samples of its own, or when the standardized entropy alone exceeds $5$;
+restricted to languages with at least 18{,}000 training samples (so the two
+re-examined groups are disjoint), this selects Scots, Banjar, Aragonese, and
+West Flemish. The percentile defining $\tau_\lang$ is
 $q_\lang = 5\,(1 - N_\lang/18{,}000)$ for a language with $N_\lang$ training
-samples, and a fixed 5th percentile for the four flat languages; margins are
-computed under the calibrated (shared-floor) distributions. A re-examined
-prediction is reassigned to the highest-ranked of the candidates ranked 2 to
-5 that has at least 100{,}000 training samples and a score within 21
-natural-log units of the top candidate; if no candidate qualifies, the
-prediction is unchanged. Under the shared floor alone, held-out macro F1
-rises from 0.912 to 0.930 (the floor's isolated contribution).
+samples, and a fixed 5th percentile for the high-entropy group; margins are
+computed under the distributions with the unseen-token constant applied. A
+re-examined prediction is reassigned to the highest-ranked of the candidates
+ranked 2 to 5 that has at least 100{,}000 training samples and a score
+within 21 natural-log units of the top candidate; if no candidate qualifies,
+the prediction is unchanged. Under the unseen-token constant alone, with no
+re-examination, held-out macro F1 rises from 0.912 to 0.930.
 
-\paragraph{Provenance of the constants.} The floor $-21$ was chosen from a
-sweep over $\{-17, -19, -21, -23\}$ on a held-out validation subset of
-GlotLID-C; the proximity bound $21$ from a grid over $0.5$ to $100$ in steps
-of $1$ (the optimum is a plateau spanning roughly $15$ to $35$) on a
-development subset of the test pool; the $100{,}000$-sample bar from an
-analysis of where reassignments send their false positives. Membership of the
-four flat languages uses one diagnostic computed on validation data. All
+\paragraph{Provenance of the constants.} The unseen-token constant
+$c = -21$ was chosen from a sweep over $\{-17, -19, -21, -23\}$ on a
+held-out validation subset of GlotLID-C; the proximity bound $21$ from a
+grid over $0.5$ to $100$ in steps of $1$ (the optimum is a plateau spanning
+roughly $15$ to $35$) on a development subset of the test pool; the
+$100{,}000$-sample bar from an analysis of where reassignments send their
+false positives. The misclassified-validation-sample count in the
+high-entropy-group criterion is computed on the retired validation sample. All
 constants are frozen before evaluation on the held-out reporting subset,
 which was excluded from every one of these selections except the
 $100{,}000$-sample bar, fixed from a false-positive profile measured on the
@@ -1205,7 +1243,7 @@ of the GlotLID-C test pool, we removed two balanced draws (188{,}061 and
 185{,}204 lines, at most 100 lines per language, seeds 101 and 201) and split
 the remaining 45{,}004{,}014 lines by a seeded 40/60 partition (seed 301)
 into a development part (18{,}001{,}573 lines) and a held-out part
-(27{,}002{,}441 lines). The floor value was selected on a retired
+(27{,}002{,}441 lines). The unseen-token constant was selected on a retired
 250{,}000-line validation sample outside this pool; the proximity bound on the
 development part; the re-examination thresholds on each language's own
 training samples. The held-out part was used only to confirm each candidate
@@ -1241,11 +1279,11 @@ mass from its own Good-Turing estimate, instead of the shared constant,
 raises false positives into the under-1{,}000-sample languages from
 22{,}404 to 79{,}113 (counted over the 45.0M-line post-draw pool): each
 language's own calibration is honest in isolation, but the cross-language
-comparison needs the shared value. (ii) Assigning the floor per language
-(unmodified rows for languages with at least 18{,}000 samples, the shared
-floor otherwise) is statistically indistinguishable from applying the shared
-floor everywhere ($+0.0002$, 95\% interval $[-0.0003, +0.0006]$, held-out
-part). (iii) Replacing the per-language re-examination thresholds with one
+comparison needs the shared value. (ii) Applying the unseen-token constant
+only to languages with fewer than 18{,}000 training samples (leaving the
+larger languages' unseen-token values as trained) is statistically
+indistinguishable from applying it to every language ($+0.0002$, 95\%
+interval $[-0.0003, +0.0006]$, held-out part). (iii) Replacing the per-language re-examination thresholds with one
 shared threshold, with the replacement-candidate bar also lowered to
 18{,}000 samples, gives a higher aggregate (0.953 on the held-out part) but
 lets 9 individual languages lose more than 0.10 F1 each: a per-language
