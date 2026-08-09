@@ -338,7 +338,7 @@ Finally, inference is computationally efficient: using clever dynamic programmin
 Across a diverse set of benchmarks, \unilid achieves performance competitive with widely-used baselines while requiring substantially fewer labeled examples. The method is particularly effective in regimes where LID remains challenging. 
 In low-resource settings, \unilid attains $\sim$70\% accuracy with as few as five samples per language and $\sim$90\% accuracy with fewer than 50 samples.
 On fine-grained dialect identification, \unilid improves macro F1 from 0.53 to 0.72 relative to a \fasttext baseline. 
-Simple post-training calibration steps raise macro F1 on the 1{,}940-language GlotLID-C test set from .929 to .957, outperforming every system we compare against. 
+Simple post-training calibration steps (calibrated \unilid, \cref{sec:calibration}) raise macro F1 on the 1{,}940-language GlotLID-C test set from .929 to .957, outperforming every system with full GlotLID-C label coverage.
 %From a practical perspective, \unilid exhibits substantially shorter training times than \fasttext, while achieving comparable inference throughput, despite using a non-optimized research implementation. 
 Taken together, these results suggest that treating segmentation as a language-specific phenomenon provides an effective foundation for language identification.
 
@@ -601,20 +601,19 @@ We compare this cost with \fasttext and \cld in \cref{app:efficiency} and report
 
 
 \paragraph{Calibrated \unilid.}\label{sec:calibration}
-Calibrated \unilid adds two inference-time
-corrections. 
-First, it replaces the unigram probability that each language assigns to tokens in $\vocab$ that are not seen in $\corpus^\lang$ with one shared constant across all languages: $\log\unigramdistlang[\token] \defeq c$ for every $\token$ unseen in $\corpus^\lang$.  
-Without intervention, this probability ends up being a
-byproduct of the training-time smoothing floor and renormalization, varying largely as a function of $|\corpus^\lang|$. 
-%Since \cref{eq:lang-id} compares scores across languages, these values act as language-dependent offsets onevery unseen token. 
-Second, it re-examines low-margin predictions, i.e., predictions where the margin between the scores assigned by the top-scoring and runner-up languages are very close. 
-%This is a particularly effective step for low-resource languages, where noisy estimates cause samples to be incorrectly assigned as that language. 
+\defn{Calibrated \unilid} adds two inference-time
+corrections.
+First, it replaces the log-probability that each language assigns to tokens in $\vocab$ that are not seen in $\corpus^\lang$ with one shared constant across all languages: $\log\unigramdistlang[\token] \defeq c$ for every $\token$ unseen in $\corpus^\lang$.
+Without intervention, this value ends up being a
+byproduct of the training-time smoothing floor and renormalization, varying largely as a function of $|\corpus^\lang|$.
+%Since \cref{eq:lang-id} compares scores across languages, these values act as language-dependent offsets on every unseen token.
+Second, it re-examines low-margin predictions into languages with fewer than 18{,}000 training samples (and four large-corpus languages with unusually flat token distributions), i.e., predictions into such languages where the top-scoring and runner-up languages' scores are very close.
+%This is a particularly effective step for low-resource languages, where noisy estimates cause samples to be incorrectly assigned as that language.
 Concretely, let $s_\lang(\str) = \log \punigramlang(\tokfunc_{\unigramdistlang}(\str))$ be the score assigned by language $\lang$ and
-$\hat\lang = \argmax_\lang s_\lang(\str)$ be our predicted language.  
-We learn a per-language threshold $\tau_\lang$ such that if language $\hat{\lang}$ is the highest scoring language and the score it assigns is less than $\tau_{\hat\lang}$ apart from the runner-up, then we re-assign it to the next highest-scoring language whose $\tau_\lang$ is larger than its margin from  $\hat{\lang}$. %and that languages training da when the margin between 
-Both corrections depend only on shared constants and on each language's own data, preserving \unilid's ability to add languages incrementally.
-We derive these constants using a validation set, which we discuss further in \cref{app:protocol} .
-%gives the full specification and the provenance of everyconstant; \cref{sec:exp_setup} lists the values used, and \cref{sec:results}reports the measured effect.
+$\hat\lang = \argmax_\lang s_\lang(\str)$ be our predicted language.
+If $\hat\lang$ is in the re-examined set and $s_{\hat\lang}(\str)$ exceeds the runner-up score by less than a threshold $\tau_{\hat\lang}$, the prediction moves to the highest-ranked of the candidates ranked 2 to 5 that has at least 100{,}000 training samples and a score within 21 natural-log units of the top candidate; if no candidate qualifies, the prediction is unchanged.
+Each threshold $\tau_\lang$ is a percentile of the margins $\lang$ attains on its own training samples; apart from the flat-language diagnostic, both corrections depend only on shared constants and on each language's own data, preserving \unilid's ability to add languages incrementally.
+The constants are selected on data disjoint from the subset on which we report their effect; \cref{app:protocol} gives the provenance of each.
 
 \section{Experimental Setup}\label{sec:exp_setup}
 
@@ -700,7 +699,7 @@ For each benchmark, we learn language-conditional unigram distributions using th
 In all experiments, we initialize the unigram distribution as the uniform distribution and run EM for $20$ rounds.\footnote{We observed empirically that unigram distributions always converged within 20 rounds (\ie, the total variation distance between subsequent rounds fell below $10^{-6}$).}\clara{Footnote comment: could also use the SentencePiece settings to justify $\leq 20$ rounds if that would make the argument stronger \response{tiago} I think saying it converged is enough. Also, it's our own method and not a baseline, so maybe we don't need to motivate it as much as for baselines? (I mean if our own method underperforms a bit at these settings, it's not really a big issue.)} 
 To avoid zero-probability segmentations when a token's expected counts are estimated to be 0 under a given language (most common in the few-sample regime), we floor token probabilities at $10^{-12}$ during training. For calibrated \unilid (\cref{sec:calibration}) we use the shared unseen-token constant $c = -21$ (natural log).
 %, re-examine predictions into languages with fewer than 18{,}000 training samples (and four large-corpus languages with unusually flat token distributions), 
-We set each margin threshold $\tau_\lang$ at the $q_\lang = 5\,(1 - N_\lang/18{,}000)$ percentile of language $\lang$'s own training margins. %; replacement candidates need at least 100{,}000 training samples and a score within 21 natural-log units of the top candidate. 
+We set each margin threshold $\tau_\lang$ at the $q_\lang = 5\,(1 - N_\lang/18{,}000)$ percentile of language $\lang$'s own training margins for the languages below 18{,}000 samples, and at a fixed 5th percentile for the four flat languages.
 The full protocol, remaining constants, and their provenance are in \cref{app:protocol}.
 We consider two variants of \unilid: one that uses a dedicated base tokenizer trained on the LID training set, and one that uses the vocabulary of a pretrained language model; more details below.
 
@@ -777,21 +776,24 @@ In subsequent sections, we compare primarily against \fasttext. It is the only o
 
 \paragraph{Effect of Calibration.}
 On GlotLID-C, calibrated \unilid (\cref{sec:calibration}) raises macro F1
-from 0.929 to 0.957, above every system in \cref{tab:lid_main}, while
-lowering macro FPR from 2.03e-5 to 1.77e-5; on a held-out subset that no
-calibration constant was selected on, the paired bootstrap interval of the
+from 0.929 to 0.957, above every system in \cref{tab:lid_main} with full
+GlotLID-C label coverage, while
+lowering macro FPR from 2.03e-5 to 1.77e-5; on a held-out subset outside
+every calibration-constant selection except the 100{,}000-sample bar
+(\cref{app:protocol}), the paired bootstrap interval of the
 improvement over \unilid is $+0.038$ with 95\% interval $[+0.033, +0.043]$
-(\cref{tab:calibrated_heldout}). The gain sits where \cref{tab:resource-tier}
+(\cref{tab:calibrated_heldout}). The gain sits where \cref{tab:calibrated_views}
 reports \unilid's weakness: for languages with under 1{,}000 training
 samples, mean per-language F1 rises from 0.332 to 0.732 (held-out subset, all
 false positives counted). The gains are specific to natural-distribution test
 data, where false-positive volume into under-resourced languages matters: on
 the parallel, equal-support UDHR set calibration lowers macro F1 (0.859 to
 0.838) while FLORES-200 changes little (0.932 to 0.933), and
-\cref{app:protocol} reports both views of this trade. On out-of-domain
-web-domain data (CommonLID, \cref{tab:commonlid}), calibration raises
-macrolanguage-aware accuracy from 0.845 to 0.860. On benchmarks restricted
-to larger languages the added mechanisms rarely fire.
+\cref{app:protocol} reports the balanced-draw measurement of the same trade.
+On out-of-domain web-domain data (CommonLID, \cref{tab:commonlid}),
+calibration raises macrolanguage-aware accuracy from 0.845 to 0.860. The
+re-examination touches few lines on benchmarks of larger languages: on
+FLORES-200 it examines 1{,}484 of 192{,}280 lines and moves 799.
 
 %\Ahmetcan{On dslml we didn't use sentencepiece because it gives an error on dslml we use your custom EM method, Also updated numbers}
 \paragraph{Dialect Differentiation.}
@@ -1193,7 +1195,9 @@ development subset of the test pool; the $100{,}000$-sample bar from an
 analysis of where reassignments send their false positives. Membership of the
 four flat languages uses one diagnostic computed on validation data. All
 constants are frozen before evaluation on the held-out reporting subset,
-which was excluded from every one of these selections.
+which was excluded from every one of these selections except the
+$100{,}000$-sample bar, fixed from a false-positive profile measured on the
+whole post-draw pool before this split existed.
 
 \paragraph{Development protocol.} The constants were selected on data disjoint from
 the subset used to report their effect. From the 45{,}377{,}279 scored lines
@@ -1242,7 +1246,8 @@ comparison needs the shared value. (ii) Assigning the floor per language
 floor otherwise) is statistically indistinguishable from applying the shared
 floor everywhere ($+0.0002$, 95\% interval $[-0.0003, +0.0006]$, held-out
 part). (iii) Replacing the per-language re-examination thresholds with one
-shared threshold gives a higher aggregate (0.953 on the held-out part) but
+shared threshold, with the replacement-candidate bar also lowered to
+18{,}000 samples, gives a higher aggregate (0.953 on the held-out part) but
 lets 9 individual languages lose more than 0.10 F1 each: a per-language
 threshold set at a percentile of that language's own margins bounds its own
 recall loss by construction, and one shared value does not.

@@ -3,7 +3,7 @@
 \small
 \caption{Classification results on benchmark evaluation sets.  
 \unilid variants and \fasttext are trained using the GlotLID-C corpus. 
-The left columns show results on the full test sets of each benchmark for models that have full coverage of those benchmark's language label set. The right columns show results on the subsets of the benchmarks that \cld has label coverage for. The calibrated row (\cref{sec:calibration}) is evaluated on the same test sets; its \cld-subset cells are pending a convention alignment described in \cref{app:protocol}, and its gains are specific to natural-distribution data, which is why the parallel-text UDHR cell decreases.}
+The left columns show results on the full test sets of each benchmark for models that have full coverage of those benchmark's language label set; GlotLID-C cells are macro-averaged over the 1{,}940 labels on the 45{,}377{,}279 scored test lines. The right columns show results on the subsets of the benchmarks that \cld has label coverage for. The calibrated row (\cref{sec:calibration}) is evaluated on the same test sets; its \cld-subset F1 cells use the restricted-lines convention that reproduces the \unilid GlotLID-C and UDHR subset cells (the printed \unilid FLORES subset cell reproduces under no convention we tested, so these cells and the FPR cells remain provisional pending a convention alignment), and its gains are specific to natural-distribution data, which is why the parallel-text UDHR cell decreases.}
 \label{tab:lid_main}
 \setlength{\tabcolsep}{5pt}
 \renewcommand{\arraystretch}{1.15}
@@ -75,9 +75,9 @@ The left columns show results on the full test sets of each benchmark for models
 & .957 & 1.77e-5
 & .838 & 2.08e-4
 & .933 & 2.91e-4
-& -- & --
-& -- & --
-& -- & -- \\
+& .975 & --
+& .986 & --
+& .992 & -- \\
 
 \unilid-Mistral-Nemo
 & .912 & \textbf{1.84e-5}
