@@ -75,6 +75,42 @@ for the infrastructure record.
   the draw-201 confirmation pattern); (iii) the corresponding Ahmetcan ask
   (script-table basis) is resolved and can be dropped from the ask list.
 
+### 2026-08-09: calibration prose accuracy review after the user's hand edits; CLD3-subset F1 cells filled; user decisions recorded
+
+- **User decisions (2026-08-09):** (1) the calibrated row's CLD3-subset F1
+  cells are filled under the restricted-lines convention that reproduces the
+  printed UniLID GlotLID-C and UDHR cells (.975 / .986 / .992 from
+  `paper_eval_cld3_subset.md` and `paper_eval_cld3_subset_external.md`);
+  subset FPR cells stay dashed; the existing fastText cells stay as printed
+  (our measured fastText GlotLID-C subset value under the same convention is
+  0.9767 vs the printed .990, reported to the user). (2) No further trimming:
+  the compiled paper fits exactly; the arXiv version has no limit. (3) The
+  disabled author notes stay in the source. (4) On the retrained Mistral-Nemo
+  variant: recommendation delivered (appendix comparison, existing Table 1
+  row untouched); awaiting the user's confirmation.
+- **Accuracy review (Opus) of the calibration prose** against the record,
+  requested because the user's jargon-reduction edits may have introduced
+  errors. 17 findings; the substantive ones, all fixed (commit c7ef48e):
+  the reassignment rule had become "reassign to the next language whose tau
+  exceeds the margin" (tau plays no role in acceptance; corrected to the
+  recorded ranks-2-to-5 walk with the 100,000-sample and 21-nat conditions);
+  the re-examination scope had lost the under-18,000 / flat-four restriction;
+  "we derive these constants using a validation set" was wrong for most
+  constants (replaced with the disjoint-data statement + appendix pointer);
+  the q_L formula was stated without its under-18,000 domain; the
+  "held-out subset outside every selection" claim over-reached for
+  RES_CAP=100,000 (selected on the full post-draw pool before the seed-301
+  split existed; qualified in four places); the shared-threshold alternative
+  now names the lowered replacement bar; "outperforming every system" scoped
+  to full-label-coverage systems; the tail-gain citation re-pointed from
+  tab:resource-tier (within-stratum view, where the small tiers decrease) to
+  tab:calibrated_views; the unmeasured "mechanisms rarely fire" replaced with
+  the measured FLORES accounting (1,484 of 192,280 examined, 799 moved);
+  Table 1 caption now names its instrument and states the FLORES subset-cell
+  convention mismatch honestly; \defn restored; the stale
+  `paper/draft_new_sections.tex` deleted. The appendix mechanism
+  specification and every checked number were verified accurate.
+
 ### 2026-08-08: E3 chain progressing (jobs 3032625 done, 3036767 failed-and-fixed, 3036829 submitted); flat set derived; paper trimming committed
 
 - **Job 3032625 (baseline+calibval): COMPLETED** in 2h14m; all 45.6M lines
