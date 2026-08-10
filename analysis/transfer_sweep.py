@@ -79,16 +79,18 @@ def _load_train_counts():
 
 
 def _load_unilid_model(model_path: str = UNILID_MODEL_PATH):
-    """Load UnilidModel."""
-    spec = importlib.util.spec_from_file_location(
-        "model_io",
-        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                     "UNILID", "unilid", "model_io.py"),
-    )
-    model_io = importlib.util.module_from_spec(spec)
-    sys.modules["unilid.model_io"] = model_io
-    spec.loader.exec_module(model_io)
-    return model_io.UnilidModel(model_path)
+    """Load UnilidModel (base mode: the analysis chain is defined on the base
+    matrix and applies the unseen-token constant itself via
+    floor_equalization.build_equalized_weights). The former
+    spec_from_file_location single-file load broke once model_io.py gained
+    intra-package imports (calibration-release branch), so the package is
+    imported normally off sys.path."""
+    unilid_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "UNILID")
+    if unilid_dir not in sys.path:
+        sys.path.insert(0, unilid_dir)
+    from unilid.model_io import UnilidModel
+    return UnilidModel(model_path, calibrated=False)
 
 
 def _stream_sampled_texts(sample_size: int = DEFAULT_SAMPLE_SIZE) -> list[str]:

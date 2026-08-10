@@ -1,0 +1,14 @@
+{
+ "mode": "calibrated",
+ "n_lines": 250000,
+ "n_agree": 250000,
+ "agreement": 1.0,
+ "eps_nats": 0.001,
+ "model": "/capstor/store/cscs/swissai/a0229/cmeister/unilid_analysis/release/unilid-1940-calibrated.unilid",
+ "reference": "/capstor/store/cscs/swissai/a0229/cmeister/unilid_analysis/full_test_eval/pred_gate_flat4_prox21.npy",
+ "gate": "agreement >= 0.999 and every disagreement a classified boundary case",
+ "n_disagree": 0,
+ "n_unexplained": 0,
+ "disagreements": [],
+ "passed": true
+}

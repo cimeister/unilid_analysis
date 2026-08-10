@@ -1,0 +1,11 @@
+{
+ "mode": "base",
+ "n_lines": 250000,
+ "n_agree": 250000,
+ "agreement": 1.0,
+ "eps_nats": 0.001,
+ "model": "/capstor/store/cscs/swissai/a0229/cmeister/unilid_analysis/glotlidc.unilid",
+ "reference": "/capstor/store/cscs/swissai/a0229/cmeister/unilid_analysis/full_test_eval/pred_baseline.npy",
+ "gate": "exact_equality",
+ "passed": true
+}

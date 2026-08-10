@@ -27,6 +27,42 @@ for the infrastructure record.
 `EXPERIMENTAL_SETUP.md` (hierarchical pooling). Full plan:
 `~/.claude/plans/yes-do-both-then-giggly-sprout.md`.
 
+### 2026-08-10: Open-source release verification gates PASSED (login node, no SLURM)
+
+- **Purpose:** OPEN_SOURCE_DESIGN.md section 5 blocking gates for the calibrated
+  UniLID package (UNILID/ branch calibration-release): does the package reproduce
+  the analysis chain's predictions?
+- **Golden subset:** test half of the seed-42 500k draw (odd positions), 250,000
+  lines; texts from config.TEST_FILE; references full_test_eval/pred_baseline.npy
+  and pred_gate_flat4_prox21.npy on store. Runner: analysis/release_gates.py
+  (RAYON_NUM_THREADS=32).
+- **Base gate (exact equality required): PASS, 250,000/250,000** identical to
+  pred_baseline.npy. Artifact: outputs/release/gate_base.json.
+- **Calibrated gate (>= 99.9% + boundary-case forensics required): PASS,
+  250,000/250,000 (agreement 1.000000, zero disagreements).** Model: the v2
+  release bundle. Artifact: outputs/release/gate_calibrated.json.
+- **Release artifacts:** outputs/release/calibration_glotlidc.json (built by
+  analysis/build_release_calibration.py from tau_floor21_gate.csv,
+  tau_flat4.csv, glotlid_train_counts.json; source CSV sha256s in provenance;
+  value-level round trip verified) and
+  /capstor/store/.../release/unilid-1940-calibrated.unilid (779,663,390 bytes;
+  differs from glotlidc.unilid in exactly the header version byte plus the
+  calibration trailer; bundled JSON byte-identical to the transcribed artifact).
+
+### 2026-08-10: glotlid_train_counts.json and glotlid_correct_test.txt migrated to durable store (login node, no SLURM)
+
+- **Purpose:** two release-critical inputs existed only on purgeable scratch: the
+  per-language training-line-count artifact (N_L, 1,940 entries, sum 60,683,151 =
+  config.TRAIN_LINES; consumed by ~15 analysis scripts via `config.TRAIN_COUNTS_FILE`
+  and by the open-source calibration workflow) and the GlotLID-C test pool of record
+  (`config.TEST_FILE`, 45,627,279 lines, backing y_true.npy and every pred_*.npy).
+  Found during release-preparation artifact verification (open-source session).
+- **Moved** to `/capstor/store/cscs/swissai/a0229/cmeister/unilid_analysis/glotlid_unilid/`:
+  `glotlid_train_counts.json` (40,531 bytes, sha256 `77afede8...`) and
+  `glotlid_correct_test.txt` (7,143,311,471 bytes, sha256 `8125d817...`); both sha256
+  verified identical after copy; scratch paths replaced with symlinks to the store
+  copies, so `config.TRAIN_COUNTS_FILE` and `config.TEST_FILE` resolve unchanged.
+
 ### 2026-08-10: E3 artifacts of record migrated to durable store (login node, no SLURM)
 
 - **Purpose:** move the Mistral-Nemo E3 artifacts off purgeable scratch before the
