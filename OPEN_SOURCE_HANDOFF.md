@@ -88,8 +88,8 @@ the base model); margins and the walk operate on the clamped matrix, not the bas
   from scratch on a new vocab; proof the customization recipe works):
   glotlid_mistralnemo_fp64.unilid + its own tau CSVs + flat set (bjn/sco/srp) under
   results_mistralnemo/ and outputs/diagnostic/ (see EXPERIMENTS_RESULTS.md
-  "Camera-ready E3"). NOTE: these E3 artifacts are due for store migration before the
-  ~2026-08-22 scratch purge (SESSION_STATUS.md pending action).
+  "Camera-ready E3"). Migrated to store 2026-08-10 (sha256-verified; scratch paths are
+  now symlinks into /capstor/store/cscs/swissai/a0229/cmeister/unilid_analysis/).
 - Reference predictions for verification gates: full_test_eval/ store dir has
   y_true.npy, pred_baseline.npy, pred_gate_flat4_prox21.npy (.npy with headers, int16,
   45,627,279 lines; y_true < 0 marks 250k excluded validation lines; scored pool =

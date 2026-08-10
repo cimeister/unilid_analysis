@@ -20,7 +20,7 @@ Everything experimental is FINISHED (E1-E5, results entries "Camera-ready E1".."
 
 ## Pending actions (non-paper)
 - Open-source release of calibrated UniLID: fully specified in OPEN_SOURCE_HANDOFF.md (goal, four binding user decisions of 2026-08-09, mechanism spec + reference code paths, verification gates, checklist, and the verbatim prompt for the new session). Not started; intended for a dedicated session.
-- Store migration of the E3 artifacts of record (glotlid_mistralnemo_fp64.unilid, full_test_eval_mistralnemo/ memmaps + banked arrays + fingerprints, results_mistralnemo/ per-language tokenizers) to /capstor/store/cscs/swissai/a0229/cmeister with scratch symlinks; purge deadline about 2026-08-22; login-node chunked procedure, no SLURM for transfers (unilid-durable-storage memory).
+- E3 store migration: DONE 2026-08-10 (all three artifact sets on store, sha256-verified, scratch symlinks in place; chronological log entry).
 
 ## Open decisions
 - None beyond the camera-ready items above.

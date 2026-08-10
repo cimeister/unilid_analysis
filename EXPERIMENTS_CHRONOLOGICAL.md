@@ -27,6 +27,22 @@ for the infrastructure record.
 `EXPERIMENTAL_SETUP.md` (hierarchical pooling). Full plan:
 `~/.claude/plans/yes-do-both-then-giggly-sprout.md`.
 
+### 2026-08-10: E3 artifacts of record migrated to durable store (login node, no SLURM)
+
+- **Purpose:** move the Mistral-Nemo E3 artifacts off purgeable scratch before the
+  ~2026-08-22 14-day purge window (user instruction 2026-08-10; unilid-durable-storage
+  pattern of 2026-08-06).
+- **Moved (scratch -> /capstor/store/cscs/swissai/a0229/cmeister/unilid_analysis/):**
+  `glotlid_mistralnemo_fp64.unilid` (1,021,692,427 bytes),
+  `full_test_eval_mistralnemo/` (416M; memmaps, banked top-5 arrays, fingerprints),
+  `results_mistralnemo/` (16G; per-language tokenizers). 3,990 files total.
+- **Procedure:** sequential login-node rsync; sha256 manifests of both sides compared
+  (3,990/3,990 identical, VERIFY_OK); scratch originals then replaced with symlinks to
+  the store copies, so all recorded scratch paths keep resolving. Reads through the
+  symlinks spot-checked (UNILID magic bytes; fingerprint files listed).
+- Checkpoint hygiene: scratch originals deleted only after the manifest comparison
+  passed, per the move instruction; no other deletions.
+
 ### 2026-08-09: camera-ready edit pass applied (review-driven; two login-node measurements, no SLURM)
 
 - **Purpose:** implement the 36-finding review (paper/review_notes_2026-08-09.md) with
