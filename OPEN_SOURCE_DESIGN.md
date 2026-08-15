@@ -3,6 +3,11 @@
 Written 2026-08-10 (release session, checklist step 1 of OPEN_SOURCE_HANDOFF.md).
 Status: APPROVED by the user 2026-08-10 (overall design + three sub-decisions: v2
 container, loud error on missing calibration, new fork binding for tokens).
+IMPLEMENTED AND SHIPPED (merged upstream 2026-08-11); current state and post-design
+additions (forward= integration behind a base-mode guard, lazy training imports,
+language subsetting with carried-threshold semantics, the add-language worked
+example, README/REPRODUCING restructure) are recorded in OPEN_SOURCE_STATUS.md,
+which is the file to read first when resuming this effort.
 Revision 1, same day: an adversarial plan-consistency review (Opus, per the standing
 review-before-execution practice) returned 19 findings (3 blocking); all fixes are
 applied in this revision and marked [R1] where substantive. None change the four

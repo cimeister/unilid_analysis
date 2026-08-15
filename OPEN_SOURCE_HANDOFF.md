@@ -1,5 +1,13 @@
 # Open-source release handoff (calibrated UniLID)
 
+> **SUPERSEDED 2026-08-11 by OPEN_SOURCE_STATUS.md** (the release shipped and
+> was merged upstream; read the status file first). Kept for the original spec
+> and provenance. Three factual claims below were corrected during execution
+> (recorded in OPEN_SOURCE_DESIGN.md revision 1 and the status file): the
+> analysis chain is fp32 end to end, not fp64; the tau recipe of record is
+> analysis/solo_gates.py, not margin_diagnostic.py; the 99.51% self-agreement
+> was the paper-era run vs the current run, not a precision artifact.
+
 Written 2026-08-09 for a fresh session tasked with open-sourcing a working, customizable
 UniLID system. This file is the source of truth for that task: goal, user decisions,
 where every needed piece lives, the exact mechanism spec, verification gates, and the

@@ -27,6 +27,24 @@ for the infrastructure record.
 `EXPERIMENTAL_SETUP.md` (hierarchical pooling). Full plan:
 `~/.claude/plans/yes-do-both-then-giggly-sprout.md`.
 
+### 2026-08-11: Open-source release SHIPPED and merged upstream
+
+- **Outcome:** calibrated UniLID merged into github.com/Ahmetcanyvz/UNILID
+  branch `release` (PR #1 merged by Ahmetcan, "lgtm!", 10:02Z; PR #2 with
+  subsetting + docs restructure merged by the user, 16:57Z; upstream tip
+  3867b1b). Apache-2.0 + weight notices LICENSE published via the merge.
+  Weights public at huggingface.co/cmeister/unilid-1940 (v2 container +
+  calibration.json + model card). Gates re-passed at every inference-path
+  change (base and calibrated both 250,000/250,000 exact); final test count
+  94. Full record, runbook, and decisions ledger: OPEN_SOURCE_STATUS.md
+  (supersedes OPEN_SOURCE_HANDOFF.md).
+- Post-design additions beyond OPEN_SOURCE_DESIGN.md: forward= marginalized
+  scoring (Ahmetcan's, guarded to base mode), language subsetting (load-time
+  languages= + unilid-calibrate subset; carried thresholds fire at most as
+  often as calibrated, re-estimation optional), add-language worked example
+  with committed toy data, lazy training imports (prediction-only installs),
+  Python floor 3.9.
+
 ### 2026-08-10: Open-source release verification gates PASSED (login node, no SLURM)
 
 - **Purpose:** OPEN_SOURCE_DESIGN.md section 5 blocking gates for the calibrated
