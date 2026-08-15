@@ -37,8 +37,50 @@ claims were corrected during execution, see "Corrections" below).
   `calibration.json` (160,363 bytes, identical to the bundled section),
   model-card README (license apache-2.0 + notices; install pointer updated
   post-merge). Polybox stays as the mirror for the version-1 base file.
-- **Package**: version 0.2.0, Python >= 3.9. Test suite: 94 passing
-  (unit + real-trainer integration + lazy-import + subsetting).
+- **Package**: version 0.2.1, Python >= 3.9. Test suite: 104 passing
+  (unit + real-trainer integration + lazy-import + subsetting + doctor +
+  SentencePiece-path coverage).
+
+## Setup-feedback follow-up (2026-08-15, on the fork branch, not yet upstream)
+
+SETUP_FEEDBACK.md (a new user's clean-macOS install report) drove commit
+8a09bd6 on `calibration-release`. Plan of record:
+~/.claude/plans/this-session-focuses-on-shimmering-dusk.md. What changed and
+what it was measured against:
+
+- Two defects kept the suite from running on the documented `[dev]`-only
+  install: an unconditional `import torch` in standard_trainer.py (torch is in
+  `[train]`, used only in `pad()`), and the base tokenizer reaching `spm_train`
+  even when the caller passed `use_sentencepiece=False`, because
+  `train_language_specific_tokenizer` fed one em_mode to both the base and the
+  per-language step. Base and per-language are now separate: `base_em_mode`,
+  `use_sp_seed_vocab`, `use_sp_em` on the trainer and the api helpers (defaults
+  unchanged), and `--base-seed-vocab` / `--base-em-impl` on train.py (defaults
+  `sp`, recorded in training_summary.json).
+- ROOT CAUSE of the reported `FileNotFoundError: 'spm_train'`, and a correction
+  to an adversarial review that claimed the reporter must have had `[train]`
+  installed: the `sentencepiece/` submodule directory at the repo root makes
+  `import sentencepiece` succeed as a NAMESPACE PACKAGE whenever the pip
+  package is absent, so every `spm is None` guard was dead in a source
+  checkout. Guards now test `hasattr(spm, "SentencePieceProcessor")`, and the
+  test skip conditions require both the binary and the package. The reporter's
+  account of their environment was right.
+- doctor.py (top level, run as `python doctor.py`): submodules, rustc version
+  (MIN_RUST_VERSION = (1, 85), derived from the fork's pinned crate manifests),
+  maturin, the extension's three scorer methods, spm_train. It imports nothing
+  from `unilid` by design, because `import unilid` pulls in the tokenizers
+  extension and would crash in exactly the broken setups it diagnoses; a
+  console script or `python -m unilid.doctor` cannot work for that reason.
+- Python range MEASURED, not assumed: 3.9, 3.12, 3.13, 3.14 each in a fresh
+  uv venv with `[dev]` plus the abi3 wheel, all 102 passed / 2 skipped
+  (SentencePiece tests, correctly skipped); 3.11.5 dev env 104 passed. No cap
+  on requires-python; classifiers extended to 3.13/3.14; `datetime.utcnow()`
+  replaced (deprecated from 3.12, on a removal path).
+- .github/workflows/ci.yml: one abi3 build feeding a 3.9/3.11/3.12/3.13/3.14
+  matrix, deliberately without building SentencePiece, so the minimal install
+  staying green is enforced.
+- Open item 3 (packaging extras: CI) is thereby DONE for CI; a published wheel
+  for the Rust parts is still unstarted.
 
 ## Corrections to the original handoff (details in OPEN_SOURCE_DESIGN.md rev 1)
 
@@ -144,17 +186,16 @@ of record), analysis/build_release_calibration.py, analysis/release_gates.py.
 
 ## Open items
 
-1. Commit 8dd90ec (drops the now-stale fork-branch clone note from the README)
-   is on the fork branch, not yet upstream. The user merges this branch via
-   PRs from their own account; nothing to do beyond flagging it, or open a PR
-   on their OK.
+1. Commits 8dd90ec (drops the now-stale fork-branch clone note from the README)
+   and 8a09bd6 (the setup-feedback fixes above) are on the fork branch, not yet
+   upstream. PR #3 is authorized by the user for this work; it carries both.
 2. Mistral-Nemo variant release (glotlid_mistralnemo_fp64.unilid + its own
    calibration, all on store): open user decision, unstarted. The E3 chain is
    the evidence the recipe transfers; a release would repeat the
    build_release_calibration + bundle + gates pattern with the nemo artifacts
    (tau_mistralnemo_*.csv, its 3-language high-entropy group bjn/sco/srp).
-3. Packaging extras: wheel build for the Rust parts, CI. Unstarted; evaluate
-   cost before proposing.
+3. Packaging extras: CI DONE 2026-08-15 (see the setup-feedback section above).
+   A published wheel for the Rust parts is still unstarted.
 4. Known interaction for the paper team: the four unilid_resources/eval_*.py
    scripts construct UnilidModel(path) with default arguments, which now
    raises on files without a calibration artifact and would run CALIBRATED on

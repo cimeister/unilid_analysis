@@ -19,7 +19,8 @@ Everything experimental is FINISHED (E1-E5, results entries "Camera-ready E1".."
 - The user compiles the PDF themselves (no icml2026.sty in this repo); page count fit exactly as of the trimming commit; reserves 9-12 of the trimming report (chat, 2026-08-08) remain available.
 
 ## Pending actions (non-paper)
-- Open-source release of calibrated UniLID: SHIPPED AND MERGED UPSTREAM (PR #1 merged by Ahmetcan "lgtm!" 2026-08-11, license thereby published; PR #2 merged by the user; HF repo cmeister/unilid-1940 live; both gates 250,000/250,000 exact; 94 tests). Full state, runbook, decisions ledger, and open items: OPEN_SOURCE_STATUS.md (supersedes OPEN_SOURCE_HANDOFF.md). Open: commit 8dd90ec (post-merge clone-note cleanup) on the fork branch awaiting the user's PR; Mistral-Nemo variant release (user decision); packaging extras (wheel/CI) if wanted.
+- Open-source release of calibrated UniLID: SHIPPED AND MERGED UPSTREAM (PR #1 merged by Ahmetcan "lgtm!" 2026-08-11, license thereby published; PR #2 merged by the user; HF repo cmeister/unilid-1940 live; both gates 250,000/250,000 exact). Full state, runbook, decisions ledger, and open items: OPEN_SOURCE_STATUS.md (supersedes OPEN_SOURCE_HANDOFF.md).
+- SETUP_FEEDBACK.md follow-up (2026-08-15): commit 8a09bd6 on calibration-release, 104 tests, version 0.2.1, Python 3.9/3.12/3.13/3.14 measured green, CI added, doctor.py added. Details in OPEN_SOURCE_STATUS.md. Remaining: Rust-toolchain pin in the tokenizers fork (rebuild + both gates in progress), then push the fork branch and open PR #3 (authorized).
 - E3 store migration: DONE 2026-08-10 (all three artifact sets on store, sha256-verified, scratch symlinks in place; chronological log entry).
 
 ## Open decisions
