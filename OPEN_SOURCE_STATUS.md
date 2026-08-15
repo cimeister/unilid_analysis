@@ -79,8 +79,28 @@ what it was measured against:
 - .github/workflows/ci.yml: one abi3 build feeding a 3.9/3.11/3.12/3.13/3.14
   matrix, deliberately without building SentencePiece, so the minimal install
   staying green is enforced.
+- Tokenizers fork: both `rust-toolchain` files pinned from `stable` to 1.93.1
+  (cimeister/tokenizers a731efdf, pushed), gitlink bumped here. `stable` is why
+  the reporter's 2021 toolchain was selected. Extension rebuilt against the pin
+  and BOTH GATES RE-RUN AND RE-PASSED: base 250,000/250,000 exact, calibrated
+  250,000/250,000 with zero disagreements (outputs/release/gate_*.json).
 - Open item 3 (packaging extras: CI) is thereby DONE for CI; a published wheel
   for the Rust parts is still unstarted.
+- PR #3 open: github.com/Ahmetcanyvz/UNILID/pull/3, carrying 8dd90ec, 3427640,
+  6ab2201.
+
+### Found, not fixed (out of scope, flagged for a later decision)
+
+`unilid/algorithms/accumulate.py:111` opens a `multiprocessing.Pool` per
+`_accumulate_usage` call, i.e. once per EM iteration per language. By then the
+tokenizers Rust extension has rayon threads running, so on Python 3.12 and 3.13
+each fork raises `DeprecationWarning: This process is multi-threaded, use of
+fork() may lead to deadlocks in the child` (560 of them in the integration test
+alone). Python 3.14 does not warn because its Linux default start method is
+`forkserver`. The suite passes on all of 3.9/3.11/3.12/3.13/3.14, but this is a
+real fork-safety hazard, not only noise. Fixing it means choosing a start
+method for the trainer's pools, which changes training startup cost and
+picklability requirements, so it was left alone rather than changed quietly.
 
 ## Corrections to the original handoff (details in OPEN_SOURCE_DESIGN.md rev 1)
 
