@@ -122,7 +122,18 @@ and passes 8 of 8 languages.
 
 ### 2. Make the evaluation chain safe to point at a different model
 
-[R] BLOCKING, both verified here. Nothing may be scored until these are fixed.
+[R] BLOCKING. Nothing may be scored until these are fixed. Each guard below was
+verified by triggering it, not by reading it.
+
+DONE so far: `full_test_eval.py` hashes the model into its resume fingerprint,
+refuses to write a non-default model's results into the store-symlinked scratch
+directory, and refuses to apply the released model's `learned_bias.npy` to a
+different model. `length_bias.py` refuses to pair a non-default model with the
+recorded prediction file. Remaining: `floor_equalization.run()`,
+`solo_gates.run()`, `release_gates.py`, `build_release_calibration.py`,
+`commonlid_calibrated.py`. Those four abort loudly against corrected weights
+rather than producing wrong numbers, so they are lower risk than the two silent
+paths above, but each still needs a model parameter before step 4.
 
 - `analysis/full_test_eval.py:63-72` computes its resume fingerprint from the
   bias vectors, the language list, `CHUNK_LINES` and `TOTAL_LINES`. It does not
