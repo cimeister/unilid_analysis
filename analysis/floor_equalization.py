@@ -42,16 +42,30 @@ SPECIAL_P = 0.2
 OUT_DIR = "outputs"
 
 
-def build_equalized_weights(W: np.ndarray, target: float) -> tuple[np.ndarray, int]:
+def build_equalized_weights(W: np.ndarray, target: float,
+                            special_idx=()) -> tuple[np.ndarray, int]:
     """Clamp each row's exact floor plateau to min(floor, target). Returns the new
-    matrix and the number of modified languages."""
+    matrix and the number of modified languages.
+
+    ``special_idx`` names columns to leave out of the minimum, and is required
+    for matrices produced by UNILID 0.3.0 or later, which park the special tokens
+    at the training floor below every real token. Without it the row minimum is
+    the special tokens, the unseen-token plateau is never found, and this
+    function reports zero modified languages while doing nothing. Matrices
+    written earlier hold their special tokens near the top of the row, so naming
+    them changes nothing for those."""
     out = np.array(W, dtype=np.float32)
+    real = np.ones(W.shape[1], dtype=bool)
+    real[list(special_idx)] = False
+    if not real.any():
+        raise RuntimeError("every column was named special; nothing to clamp")
+    real_cols = np.flatnonzero(real)
     n_mod = 0
     for i in range(W.shape[0]):
         row = W[i]
-        floor = row.min()
+        floor = row[real_cols].min()
         if floor > target:
-            out[i, row == floor] = np.float32(target)
+            out[i, real_cols[row[real_cols] == floor]] = np.float32(target)
             n_mod += 1
     if not np.isfinite(out).all():
         raise RuntimeError("non-finite weights after floor equalization")
