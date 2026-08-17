@@ -57,7 +57,17 @@ Scripts: scratchpad repro_sp_vs_em.py, released_sp_vs_em.py, measure_correction.
 
 Shipped into PR #3 (folded per author decision): branch pushed at 9f7c1cf, PR retitled "Special tokens hold no probability mass, plus the out-of-box setup fixes", description rewritten to lead with the training fix.
 
-## Re-release of the corrected model: PLAN WRITTEN, NOTHING EXECUTED
+## Re-release of the corrected model: IN EXECUTION (RERELEASE_PLAN.md, revised after adversarial review)
+
+Done: all four stored models corrected (`analysis/correct_special_token_mass.py`, outputs on scratch under `corrected/`); retrain corroboration passes 8/8 languages; effect measured (macro F1 0.9454 -> 0.9460 on the golden subset, 699 gained / 669 lost, a wash); the two blocking safety defects fixed and verified (`full_test_eval.py` now fingerprints the model, and refuses to write a non-default model's results into the store-symlinked scratch directory).
+
+Blocked on the author: `lid_main.tex:90,98` carry `\unilid-DeepSeek3.2` and `\unilid-Qwen3`, 24 cells of GlotLID-C-trained UniLID numbers with no artifact on this machine and no identified owner. Step 4 cannot complete without them.
+
+Needs measurement before the paper is touched: the paper's stated cause of the above-c unseen-token values is wrong, and the replacement I had planned would also be wrong (the defect accounts for 1.609 of an 11.58-nat gap). `submission.tex:1383-1384` reverses: released Mistral-Nemo has exactly two rows below c=-21 (khm_Khmr, ory_Orya), corrected has zero.
+
+Not started: calibration re-derivation, full-pool runs, paper edits, HF uploads.
+
+## Superseded plan note
 
 RERELEASE_PLAN.md. The load-bearing finding is that the corrected artifact is a deterministic transformation of the released weights, not a retrain: real tokens += log(5), specials to the floor. Verified by retraining aai_Latn (24,580 lines) with the 0.3.0 code and comparing against (released row + log 5) over 99,996 real tokens: correlation 1.00000000, median absolute difference 1.7e-5, 99.69% within 1e-4. All four stored GlotLID-scale models carry the same 0.800000 special mass and take the same transformation.
 
