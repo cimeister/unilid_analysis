@@ -37,7 +37,7 @@ training lines and are exactly the languages direction 2 (Experiment 48) propose
 to add to the re-examined set. The expanded label set covers 1,084 languages and is
 expected to affect 2,236,864 kept test lines; the topk stage aborts if the measured
 count falls outside 2,000,000 to 2,600,000.
-Outputs, all in SCRATCH_DIR: gate_topk_lines.npy, gate_topk_ids.npy,
+Outputs, all in the resolved output root (see configure()): gate_topk_lines.npy, gate_topk_ids.npy,
 gate_topk_scores.npy, and gate_topk_fingerprint.json.
 
 Stage "apply" (run("apply", variant=NAME)) reads those three saved arrays and the
@@ -47,7 +47,7 @@ gate_topk_ids.npy and gate_topk_scores.npy already carry every candidate score t
 stage needs. One variant, "flat4_tau5" (direction 2), does its own scoring inside
 this stage, but only of calibration lines drawn from training corpora, to compute
 its per-language thresholds; that scoring is separate from, and does not modify,
-gate_topk_*. Every variant declares a "base_pred" field naming the SCRATCH_DIR
+gate_topk_*. Every variant declares a "base_pred" field naming the output-root
 prediction file its output is a copy-and-selectively-modify of: the first variant,
 "shared9_bar18k", uses pred_floor21.npy; the second, "flat4_tau5", uses
 pred_floor21_gate.npy (the promoted configuration's own predictions); the third,
@@ -111,7 +111,7 @@ recalibrated: this variant reuses the two prior variants' own calibration output
 rather than re-deriving them. A mandatory self-check (inside
 _run_apply_flat4_prox21, before the conditioned build is trusted) reruns the
 identical two-step walk with the D3_PROX condition disabled and requires the result
-to be bit-identical to SCRATCH_DIR/pred_gate_flat4_tau5.npy (flat4_tau5's own
+to be bit-identical to pred_gate_flat4_tau5.npy in the output root (flat4_tau5's own
 output) over the full array, aborting otherwise.
 
 Pattern sources: analysis/solo_gates.py (floor-21 matrix rebuild and sha256
@@ -120,7 +120,7 @@ loading, _topk_batch usage, the per-line reassignment loop over saved candidates
 and for flat4_tau5 specifically, its per-language calibration loop: rng creation,
 corpus sampling, own-win margin collection); analysis/mixed_matrix.py (fingerprint
 and chunked resumable full-pool conventions); analysis/full_test_eval.py
-(SCRATCH_DIR, memmap sentinels, _parse_line).
+(the output root, memmap sentinels, _parse_line).
 
 Constants imported, never redefined here: HEAD_N (analysis.full_test_margin),
 FLOOR_TARGET (analysis.full_test_floor21), TOPK_MARGIN, PRF_CSV, MARGIN_Q,
@@ -141,15 +141,53 @@ import pandas as pd
 
 from analysis.config import TEST_FILE, TOTAL_LINES
 from analysis.transfer_sweep import _load_model_data, _load_unilid_model
-from analysis.full_test_eval import SCRATCH_DIR, _parse_line
+from analysis.full_test_eval import _parse_line
 from analysis.full_test_margin import HEAD_N
 from analysis.full_test_floor21 import FLOOR_TARGET
-from analysis.floor_equalization import build_equalized_weights
+from analysis.floor_equalization import build_equalized_weights, _special_columns
+from analysis.model_context import resolve
 from analysis.hierarchical_pool import RES_CAP, DIAG_CSV
 from analysis.margin_diagnostic import (_topk_batch, _gap, PRF_CSV, TOPK_MARGIN,
                                         MARGIN_Q, MIN_CALIB_LINES, CALIB_MAX,
                                         CALIB_SEED, CORPUS_DIR)
 from analysis.diagnostic import ZH_MAGNET
+
+# ---------------------------------------------------------------- model context
+#
+# This module's stages share their model and their output root across a dozen
+# free functions, so the pair is configured once here rather than threaded
+# through every signature. configure() is called by main(); anything that runs
+# without it falls back to the released model and its own output root, which is
+# the historical behaviour. The guard in analysis.model_context refuses to pair a
+# non-default model with a store-backed root, which is what this directory is.
+_CTX = None
+_OUT_DIR = "outputs"
+
+
+def configure(model_path: str = None, scratch_dir: str = None,
+              out_dir: str = "outputs"):
+    global _CTX, _OUT_DIR
+    _CTX = resolve(model_path, scratch_dir, purpose="gate-variant scoring")
+    _OUT_DIR = out_dir
+    print(f"gate variants against {_CTX.describe()}\n  tables under {out_dir}",
+          flush=True)
+    return _CTX
+
+
+def _ctx():
+    global _CTX
+    if _CTX is None:
+        _CTX = resolve(None, None, purpose="gate-variant scoring")
+    return _CTX
+
+
+def _scratch(*parts) -> str:
+    return os.path.join(_ctx().scratch_dir, *parts)
+
+
+def _out(*parts) -> str:
+    return os.path.join(_OUT_DIR, *parts)
+
 
 # Bounds peak memory for the topk stage's saved-candidate accumulation: a prior
 # single 2.17-million-line batch through _topk_batch was killed on the login node.
@@ -174,14 +212,20 @@ SHARED_TAU_V1 = 9.0
 # for the flat4_tau5 variant's four per-language calibrated thresholds, written by
 # _calibrate_flat4_tau5 in the same format as the other tau_*.csv files (e.g.
 # outputs/diagnostic/tau_floor21_gate.csv).
-TAU_FLAT4_CSV = "outputs/diagnostic/tau_flat4.csv"
+TAU_FLAT4_CSV_NAME = "diagnostic/tau_flat4.csv"
 # Experiment 49 pre-registration (EXPERIMENTS_RESULTS.md, direction 3): input path
 # for the flat4_prox21 variant's step-1 per-language thresholds. This CSV already
 # exists (written by analysis/solo_gates.py's run("floor21"), the promoted
 # configuration's own build); flat4_prox21 reads it directly rather than
 # recalibrating, since the promoted configuration's step 1 is being re-run
 # unchanged, only with the added proximity condition on the replacement walk.
-TAU_FLOOR21_GATE_CSV = "outputs/diagnostic/tau_floor21_gate.csv"
+TAU_FLOOR21_GATE_CSV_NAME = "diagnostic/tau_floor21_gate.csv"
+# The default-root spellings, kept because analysis/external_bench_eval.py and
+# analysis/commonlid_calibrated.py import them by name. Inside this module the
+# configurable _out(..._NAME) form is used instead, so a corrected-model run
+# writes its thresholds under its own output root.
+TAU_FLAT4_CSV = os.path.join("outputs", TAU_FLAT4_CSV_NAME)
+TAU_FLOOR21_GATE_CSV = os.path.join("outputs", TAU_FLOOR21_GATE_CSV_NAME)
 # Experiment 49 pre-registration (direction 3): score-proximity bound on a
 # replacement candidate, in natural-log units (top1_score - candidate_score must be
 # at or below this to be accepted). Chosen on the derivation part by a grid search
@@ -201,21 +245,24 @@ def _build_verified_floor21_matrix(langs: list) -> tuple[np.ndarray, str, str]:
     and the flat4_tau5 calibration helper (_calibrate_flat4_tau5), both of which
     need a bit-identical rebuild of the same floor-21 matrix."""
     n_lang = len(langs)
-    weights, langs_m, _lang_to_idx = _load_model_data()
+    weights, langs_m, _lang_to_idx = _load_model_data(_ctx().model_path)
     if langs_m != langs:
         raise RuntimeError("model language order does not match the caller's "
                            f"language list ({PRF_CSV})")
     W = np.array(weights, dtype=np.float32)
     del weights
 
-    fp21_path = os.path.join(SCRATCH_DIR, "fingerprint_floor21.json")
+    fp21_path = _scratch("fingerprint_floor21.json")
     with open(fp21_path) as f:
         fp21 = json.load(f)
     sha_w = hashlib.sha256(W.tobytes()).hexdigest()
     if sha_w != fp21["sha256_base_W"]:
         raise RuntimeError(f"loaded W does not match sha256_base_W in {fp21_path}")
 
-    matrix, n_mod = build_equalized_weights(W, FLOOR_TARGET)
+    # Special columns by name; from 0.3.0 they are the row minimum and
+    # would otherwise be selected as the plateau, disabling the clamp.
+    matrix, n_mod = build_equalized_weights(
+        W, FLOOR_TARGET, special_idx=_special_columns(_ctx().model_path))
     if n_mod != n_lang:
         raise RuntimeError(f"floor {FLOOR_TARGET} modified {n_mod} of {n_lang} "
                            "rows; expected all of them (row floors all exceed the "
@@ -258,7 +305,8 @@ def _calibrate_flat4_tau5(langs: list, N: np.ndarray, reexam_idx: np.ndarray) ->
     corpus file, wrong cached matrix, wrong language index), not a genuine
     low-resource case.
 
-    Writes the four thresholds to TAU_FLAT4_CSV with the same columns as the other
+    Writes the four thresholds to tau_flat4.csv under the output root,
+    with the same columns as the other
     tau_*.csv files (lang, n_scoreable, n_self_won, tau, excluded, cause); "excluded"
     is always False and "cause" always empty here because a language that would
     need excluding instead aborts the run, per the above. Returns
@@ -270,7 +318,7 @@ def _calibrate_flat4_tau5(langs: list, N: np.ndarray, reexam_idx: np.ndarray) ->
                            f"{[langs[i] for i in reexam_idx]}")
 
     matrix, _sha_w, _sha_w21 = _build_verified_floor21_matrix(langs)
-    model = _load_unilid_model()
+    model = _load_unilid_model(_ctx().model_path)
     print("Caching floor-21 weights for flat4_tau5 calibration...", flush=True)
     model.model.set_weight_sets(matrix.tolist())
     del matrix
@@ -310,9 +358,9 @@ def _calibrate_flat4_tau5(langs: list, N: np.ndarray, reexam_idx: np.ndarray) ->
               f"lines, {len(ctopk):,} scoreable of {len(lines):,} sampled)",
               flush=True)
 
-    os.makedirs(os.path.dirname(TAU_FLAT4_CSV), exist_ok=True)
-    pd.DataFrame(calib_rows).to_csv(TAU_FLAT4_CSV, index=False)
-    print(f"Wrote {TAU_FLAT4_CSV}")
+    os.makedirs(os.path.dirname(_out(TAU_FLAT4_CSV_NAME)), exist_ok=True)
+    pd.DataFrame(calib_rows).to_csv(_out(TAU_FLAT4_CSV_NAME), index=False)
+    print(f"Wrote {_out(TAU_FLAT4_CSV_NAME)}")
     return tau
 
 
@@ -377,7 +425,7 @@ VARIANTS = {
             f"promoted configuration's own bar) to HEAD_N ({HEAD_N:,} training "
             "lines)."
         ),
-        # base_pred: the SCRATCH_DIR prediction file this variant's output is a
+        # base_pred: the output-root prediction file this variant's output is a
         # copy-and-selectively-modify of. Direction 1 re-examines pred_floor21.npy
         # directly (the same array stage "topk" anchored its affected-line
         # selection on).
@@ -441,7 +489,7 @@ VARIANTS = {
         # path in _run_apply, instead of one fixed scalar nats value.
         "threshold": None,
         "calibrate": _calibrate_flat4_tau5,
-        "tau_csv": TAU_FLAT4_CSV,
+        "tau_csv": _out(TAU_FLAT4_CSV_NAME),
         "replacement_min_n": RES_CAP,
         "replacement_min_n_desc": (
             f"RES_CAP ({RES_CAP:,} training lines), the promoted configuration's "
@@ -456,8 +504,8 @@ VARIANTS = {
             "Direction 3 (Experiment 49): a full reimplementation of the promoted "
             "configuration's two re-examination steps (step 1: languages with "
             f"N < HEAD_N ({HEAD_N:,} training lines), thresholds from "
-            f"{TAU_FLOOR21_GATE_CSV}; step 2: the four flat_magnet-category "
-            f"languages with N >= HEAD_N, thresholds from {TAU_FLAT4_CSV}), both "
+            f"{_out(TAU_FLOOR21_GATE_CSV_NAME)}; step 2: the four flat_magnet-category "
+            f"languages with N >= HEAD_N, thresholds from {_out(TAU_FLAT4_CSV_NAME)}), both "
             "re-run fresh from pred_floor21.npy (not chained through "
             "pred_floor21_gate.npy) so the added condition below applies to step "
             "1's moves too. Added condition: a replacement candidate must also "
@@ -500,7 +548,7 @@ VARIANTS = {
         # Third tau_csv pattern (see the validation loop below): two pre-computed
         # CSVs, read directly by _load_tau_csv, no fresh calibration in this
         # module.
-        "tau_csv": (TAU_FLOOR21_GATE_CSV, TAU_FLAT4_CSV),
+        "tau_csv": (_out(TAU_FLOOR21_GATE_CSV_NAME), _out(TAU_FLAT4_CSV_NAME)),
         "replacement_min_n": RES_CAP,
         "replacement_min_n_desc": (
             f"RES_CAP ({RES_CAP:,} training lines), the promoted configuration's "
@@ -518,7 +566,7 @@ VARIANTS = {
 for _vname, _ventry in VARIANTS.items():
     for _key, _hint in (
         ("accept", "None selects the default N >= replacement_min_n rule"),
-        ("base_pred", "the SCRATCH_DIR prediction file this variant's output is a "
+        ("base_pred", "the output-root prediction file this variant's output is a "
                       "copy-and-selectively-modify of"),
         ("expected_reexam_langs", "None disables the exact-language-count check"),
         ("calibrate", "None when 'threshold' is a fixed scalar nats value; a "
@@ -600,10 +648,10 @@ def _load_topk_arrays():
     """Reads the three stage-"topk" output arrays plus their fingerprint. Aborts if
     any of the four files is missing, or if the loaded arrays' shapes disagree with
     what the fingerprint itself recorded."""
-    lines_path = os.path.join(SCRATCH_DIR, "gate_topk_lines.npy")
-    ids_path = os.path.join(SCRATCH_DIR, "gate_topk_ids.npy")
-    scores_path = os.path.join(SCRATCH_DIR, "gate_topk_scores.npy")
-    fp_path = os.path.join(SCRATCH_DIR, "gate_topk_fingerprint.json")
+    lines_path = _scratch("gate_topk_lines.npy")
+    ids_path = _scratch("gate_topk_ids.npy")
+    scores_path = _scratch("gate_topk_scores.npy")
+    fp_path = _scratch("gate_topk_fingerprint.json")
     missing = [p for p in (lines_path, ids_path, scores_path, fp_path)
                if not os.path.exists(p)]
     if missing:
@@ -631,7 +679,7 @@ def _load_topk_arrays():
 def _run_topk() -> str:
     """Stage "topk": scores the top-TOPK_MARGIN floor-21 candidates for every kept
     line whose floor21 prediction falls in the expanded label set, and saves them
-    to SCRATCH_DIR. Idempotent: if gate_topk_lines/ids/scores.npy already exist and
+    to the output root. Idempotent: if gate_topk_lines/ids/scores.npy already exist and
     match gate_topk_fingerprint.json, prints and returns without rescoring; if a
     fingerprint exists but does not match, aborts naming what changed."""
     prf = pd.read_csv(PRF_CSV)
@@ -651,11 +699,11 @@ def _run_topk() -> str:
     matrix, sha_w, sha_w21 = _build_verified_floor21_matrix(langs)
 
     y = np.asarray(np.lib.format.open_memmap(
-        os.path.join(SCRATCH_DIR, "y_true.npy"), mode="r"))
+        _scratch("y_true.npy"), mode="r"))
     if y.shape != (TOTAL_LINES,):
         raise RuntimeError(f"y_true.npy shape {y.shape} != ({TOTAL_LINES},)")
     pf21 = np.asarray(np.lib.format.open_memmap(
-        os.path.join(SCRATCH_DIR, "pred_floor21.npy"), mode="r"))
+        _scratch("pred_floor21.npy"), mode="r"))
     if pf21.shape != (TOTAL_LINES,):
         raise RuntimeError(f"pred_floor21.npy shape {pf21.shape} != ({TOTAL_LINES},)")
 
@@ -688,10 +736,10 @@ def _run_topk() -> str:
         "total_lines": TOTAL_LINES,
     }
 
-    lines_path = os.path.join(SCRATCH_DIR, "gate_topk_lines.npy")
-    ids_path = os.path.join(SCRATCH_DIR, "gate_topk_ids.npy")
-    scores_path = os.path.join(SCRATCH_DIR, "gate_topk_scores.npy")
-    fp_path = os.path.join(SCRATCH_DIR, "gate_topk_fingerprint.json")
+    lines_path = _scratch("gate_topk_lines.npy")
+    ids_path = _scratch("gate_topk_ids.npy")
+    scores_path = _scratch("gate_topk_scores.npy")
+    fp_path = _scratch("gate_topk_fingerprint.json")
     arrays_exist = all(os.path.exists(p) for p in (lines_path, ids_path, scores_path))
 
     if os.path.exists(fp_path):
@@ -699,19 +747,19 @@ def _run_topk() -> str:
             prev = json.load(f)
         if prev == fp:
             if arrays_exist:
-                print(f"existing gate_topk_* arrays in {SCRATCH_DIR} match the "
+                print(f"existing gate_topk_* arrays in {_ctx().scratch_dir} match the "
                       "current fingerprint; skipping rescoring.")
                 return lines_path
             raise RuntimeError(f"{fp_path} matches the current fingerprint but one "
                                "or more of gate_topk_lines.npy / gate_topk_ids.npy / "
-                               f"gate_topk_scores.npy is missing from {SCRATCH_DIR}; "
+                               f"gate_topk_scores.npy is missing from {_ctx().scratch_dir}; "
                                "investigate before rerunning")
         bad = sorted(k for k in fp if prev.get(k) != fp[k])
         raise RuntimeError(f"gate_topk scratch state mismatch ({bad}); clear the "
-                           f"gate_topk_* files in {SCRATCH_DIR} or investigate what "
+                           f"gate_topk_* files in {_ctx().scratch_dir} or investigate what "
                            "changed")
     elif arrays_exist:
-        raise RuntimeError(f"gate_topk_lines/ids/scores.npy exist in {SCRATCH_DIR} "
+        raise RuntimeError(f"gate_topk_lines/ids/scores.npy exist in {_ctx().scratch_dir} "
                            f"but {fp_path} is missing; they cannot be verified as "
                            "produced under the current inputs; remove the stale "
                            "arrays to force a rescore or restore the fingerprint")
@@ -719,7 +767,7 @@ def _run_topk() -> str:
     # Model load and weight-set caching complete before the wanted-lines read so
     # `matrix`'s memory is freed (del matrix) before raw_lines' dict allocation
     # begins, instead of the two large allocations overlapping in peak memory.
-    model = _load_unilid_model()
+    model = _load_unilid_model(_ctx().model_path)
     print("Caching floor-21 weights...", flush=True)
     model.model.set_weight_sets(matrix.tolist())
     del matrix
@@ -931,7 +979,8 @@ def _run_apply_flat4_prox21() -> str:
     reimplementation of the promoted configuration's two re-examination steps, not
     an instance of the generic single-threshold logic the rest of _run_apply runs
     for every other VARIANTS entry: it needs two different tau sources (step 1
-    from TAU_FLOOR21_GATE_CSV, step 2 from TAU_FLAT4_CSV) and a shared
+    from tau_floor21_gate.csv, step 2 from tau_flat4.csv, both under the
+    output root) and a shared
     score-proximity acceptance condition (D3_PROX) that the generic path's
     (candidate_lang_idx, N) -> bool 'accept' callable cannot express.
 
@@ -941,7 +990,8 @@ def _run_apply_flat4_prox21() -> str:
 
     Mandatory self-check before the conditioned build is trusted: the identical
     two-step walk with the proximity condition disabled (prox_limit=None) must
-    reproduce SCRATCH_DIR/pred_gate_flat4_tau5.npy bit-identically over the full
+    reproduce pred_gate_flat4_tau5.npy in the output root bit-identically
+    over the full
     TOTAL_LINES-length array (np.array_equal); this aborts, not warns, on any
     mismatch. Only after that passes is the D3_PROX=21.0 conditioned build run and
     saved."""
@@ -994,10 +1044,10 @@ def _run_apply_flat4_prox21() -> str:
                            "arg_Latn, vls_Latn)")
 
     y = np.asarray(np.lib.format.open_memmap(
-        os.path.join(SCRATCH_DIR, "y_true.npy"), mode="r"))
+        _scratch("y_true.npy"), mode="r"))
     if y.shape != (TOTAL_LINES,):
         raise RuntimeError(f"y_true.npy shape {y.shape} != ({TOTAL_LINES},)")
-    base_pred_path = os.path.join(SCRATCH_DIR, entry["base_pred"])
+    base_pred_path = _scratch(entry["base_pred"])
     base_pred_arr = np.asarray(np.lib.format.open_memmap(base_pred_path, mode="r"))
     if base_pred_arr.shape != (TOTAL_LINES,):
         raise RuntimeError(f"{base_pred_path} shape {base_pred_arr.shape} != "
@@ -1030,8 +1080,8 @@ def _run_apply_flat4_prox21() -> str:
 
     step1_lang_set = {langs[i] for i in np.where(step1_mask)[0]}
     step2_lang_set = {langs[i] for i in np.where(step2_mask)[0]}
-    tau1, sha_tau1 = _load_tau_csv(TAU_FLOOR21_GATE_CSV, langs, step1_lang_set)
-    tau2, sha_tau2 = _load_tau_csv(TAU_FLAT4_CSV, langs, step2_lang_set)
+    tau1, sha_tau1 = _load_tau_csv(_out(TAU_FLOOR21_GATE_CSV_NAME), langs, step1_lang_set)
+    tau2, sha_tau2 = _load_tau_csv(_out(TAU_FLAT4_CSV_NAME), langs, step2_lang_set)
 
     top1 = ids[:, 0]
     agree_mask = top1 == base_line_pred
@@ -1052,7 +1102,7 @@ def _run_apply_flat4_prox21() -> str:
 
     # --- mandatory self-check: reproduce pred_gate_flat4_tau5.npy with the ---
     # --- proximity condition disabled, before trusting the conditioned build ---
-    ref_path = os.path.join(SCRATCH_DIR, "pred_gate_flat4_tau5.npy")
+    ref_path = _scratch("pred_gate_flat4_tau5.npy")
     if not os.path.exists(ref_path):
         raise RuntimeError(f"self-check reference missing: {ref_path}; run "
                            "Experiment 48's flat4_tau5 apply stage first")
@@ -1109,7 +1159,7 @@ def _run_apply_flat4_prox21() -> str:
                            f"n_moved={n_moved:,}; the moved-set count does not "
                            f"match the actual diff against {entry['base_pred']}")
 
-    out_pred = os.path.join(SCRATCH_DIR, "pred_gate_flat4_prox21.npy")
+    out_pred = _scratch("pred_gate_flat4_prox21.npy")
     np.save(out_pred, pred)
 
     try:
@@ -1126,9 +1176,9 @@ def _run_apply_flat4_prox21() -> str:
         "d3_prox": D3_PROX,
         "replacement_min_n": RES_CAP,
         "tau_csv": {
-            "step1_floor21_gate": {"path": TAU_FLOOR21_GATE_CSV,
+            "step1_floor21_gate": {"path": _out(TAU_FLOOR21_GATE_CSV_NAME),
                                    "sha256": sha_tau1},
-            "step2_flat4": {"path": TAU_FLAT4_CSV, "sha256": sha_tau2},
+            "step2_flat4": {"path": _out(TAU_FLAT4_CSV_NAME), "sha256": sha_tau2},
         },
         "reexamined_set_desc": entry["reexamined_set_desc"],
         "self_check": {
@@ -1155,7 +1205,7 @@ def _run_apply_flat4_prox21() -> str:
         },
         "git_commit": git_commit,
     }
-    out_meta = os.path.join(SCRATCH_DIR, "pred_gate_flat4_prox21_meta.json")
+    out_meta = _scratch("pred_gate_flat4_prox21_meta.json")
     with open(out_meta + ".tmp", "w") as f:
         json.dump(meta, f)
     os.replace(out_meta + ".tmp", out_meta)
@@ -1174,8 +1224,8 @@ def _run_apply_flat4_prox21() -> str:
         f"candidates per affected line; D3_PROX = {D3_PROX} nats (the added "
         "score-proximity bound, derivation-part grid search, plateau 15 to 35). "
         f"Base predictions: {entry['base_pred']}.",
-        f"- Tau sources: step 1 from {TAU_FLOOR21_GATE_CSV} (sha256 "
-        f"{sha_tau1[:16]}...); step 2 from {TAU_FLAT4_CSV} (sha256 "
+        f"- Tau sources: step 1 from {_out(TAU_FLOOR21_GATE_CSV_NAME)} (sha256 "
+        f"{sha_tau1[:16]}...); step 2 from {_out(TAU_FLAT4_CSV_NAME)} (sha256 "
         f"{sha_tau2[:16]}...).",
         f"- Affected: {n_affected:,} lines carry a saved floor21-prediction "
         "candidate list (the topk-stage expanded label set).",
@@ -1270,11 +1320,11 @@ def _run_apply(variant: str) -> str:
                            "changed since stage 'topk' ran")
 
     y = np.asarray(np.lib.format.open_memmap(
-        os.path.join(SCRATCH_DIR, "y_true.npy"), mode="r"))
+        _scratch("y_true.npy"), mode="r"))
     if y.shape != (TOTAL_LINES,):
         raise RuntimeError(f"y_true.npy shape {y.shape} != ({TOTAL_LINES},)")
     pf21 = np.asarray(np.lib.format.open_memmap(
-        os.path.join(SCRATCH_DIR, "pred_floor21.npy"), mode="r"))
+        _scratch("pred_floor21.npy"), mode="r"))
     if pf21.shape != (TOTAL_LINES,):
         raise RuntimeError(f"pred_floor21.npy shape {pf21.shape} != ({TOTAL_LINES},)")
 
@@ -1309,7 +1359,7 @@ def _run_apply(variant: str) -> str:
     # base_pred must verify its re-examined-set languages are predicted identically
     # under both arrays before reusing pf21-derived masks against base_pred lines.
     base_pred_name = entry["base_pred"]
-    base_pred_path = os.path.join(SCRATCH_DIR, base_pred_name)
+    base_pred_path = _scratch(base_pred_name)
     base_pred_arr = np.asarray(np.lib.format.open_memmap(base_pred_path, mode="r"))
     if base_pred_arr.shape != (TOTAL_LINES,):
         raise RuntimeError(f"{base_pred_path} shape {base_pred_arr.shape} != "
@@ -1413,7 +1463,7 @@ def _run_apply(variant: str) -> str:
                            f"n_moved={n_moved:,}; the moved-set count does not "
                            f"match the actual diff against {base_pred_name}")
 
-    out_pred = os.path.join(SCRATCH_DIR, f"pred_gate_{variant}.npy")
+    out_pred = _scratch(f"pred_gate_{variant}.npy")
     np.save(out_pred, pred)
 
     try:
@@ -1451,7 +1501,7 @@ def _run_apply(variant: str) -> str:
             "CALIB_SEED": CALIB_SEED,
             "MIN_CALIB_LINES": MIN_CALIB_LINES,
         }
-    out_meta = os.path.join(SCRATCH_DIR, f"pred_gate_{variant}_meta.json")
+    out_meta = _scratch(f"pred_gate_{variant}_meta.json")
     with open(out_meta + ".tmp", "w") as f:
         json.dump(meta, f)
     os.replace(out_meta + ".tmp", out_meta)
@@ -1505,7 +1555,7 @@ def _run_apply(variant: str) -> str:
         f"({n_diff:,} lines differ, verified equal to n_moved). Output: "
         f"{out_pred}; metadata: {out_meta}.",
     ]
-    out_md = f"outputs/tables/gate_{variant}_build.md"
+    out_md = _out(f"tables/gate_{variant}_build.md")
     os.makedirs(os.path.dirname(out_md), exist_ok=True)
     with open(out_md, "w") as f:
         f.write("\n".join(lines_out) + "\n")
@@ -1514,7 +1564,9 @@ def _run_apply(variant: str) -> str:
     return out_pred
 
 
-def run(stage: str, variant: str | None = None) -> str:
+def run(stage: str, variant: str | None = None, model_path: str = None,
+        scratch_dir: str = None, out_dir: str = "outputs") -> str:
+    configure(model_path, scratch_dir, out_dir)
     if stage == "topk":
         return _run_topk()
     if stage == "apply":
@@ -1524,19 +1576,22 @@ def run(stage: str, variant: str | None = None) -> str:
     raise ValueError(f"unknown stage {stage!r}; must be 'topk' or 'apply'")
 
 
+def main(argv=None):
+    import argparse
+    from analysis.model_context import add_arguments
+    ap = argparse.ArgumentParser(description="gate variant stages")
+    ap.add_argument("stage", choices=("topk", "apply"))
+    ap.add_argument("variant", nargs="?", default=None)
+    ap.add_argument("--out-dir", default="outputs")
+    add_arguments(ap)
+    a = ap.parse_args(argv)
+    if a.stage == "apply" and a.variant is None:
+        raise SystemExit("stage 'apply' requires a variant name")
+    if a.stage == "topk" and a.variant is not None:
+        raise SystemExit("stage 'topk' takes no variant name")
+    run(a.stage, variant=a.variant, model_path=a.model_path,
+        scratch_dir=a.scratch_dir, out_dir=a.out_dir)
+
+
 if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        raise SystemExit("usage: python -m analysis.gate_variants topk | "
-                         "python -m analysis.gate_variants apply VARIANT_NAME")
-    stage_arg = sys.argv[1]
-    if stage_arg == "topk":
-        if len(sys.argv) != 2:
-            raise SystemExit("usage: python -m analysis.gate_variants topk")
-        run(stage_arg)
-    elif stage_arg == "apply":
-        if len(sys.argv) != 3:
-            raise SystemExit("usage: python -m analysis.gate_variants apply "
-                             "VARIANT_NAME")
-        run(stage_arg, variant=sys.argv[2])
-    else:
-        raise SystemExit(f"unknown stage {stage_arg!r}; must be 'topk' or 'apply'")
+    main()

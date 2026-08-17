@@ -40,6 +40,22 @@ from analysis.hierarchical_pool import (
 FLOORS = [-17.0, -19.0, -21.0, -23.0]
 OUT_DIR = "outputs"
 
+# The per-row probability of each of the four special tokens in a matrix trained
+# before UNILID 0.3.0. It is the signature of the special-token defect, not a
+# property of the model: the trainer read HuggingFace's score-0 specials as
+# probability 1.0, so four of them normalized to exactly 1/5 each and left the
+# real tokens 0.2 of the mass.
+#
+# This is NOT how special columns are located any more. Detection by probability
+# only worked while that probability was 0.2, and it silently finds nothing on a
+# corrected model; use _special_columns() below, which reads the vocabulary.
+# SPECIAL_P survives solely as the assertion value for the Good-Turing family
+# (analysis/gt_counts.py, full_test_gt.py, full_test_bgfloor.py), whose arithmetic
+# is derived from the 0.2 budget throughout. Those scripts abort when the
+# assertion fails, which is the behaviour wanted: their derivation does not hold
+# for a corrected matrix and must be redone before they can be run against one.
+SPECIAL_P = 0.2
+
 
 def build_equalized_weights(W: np.ndarray, target: float,
                             special_idx=()) -> tuple[np.ndarray, int]:

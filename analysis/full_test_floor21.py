@@ -29,53 +29,74 @@ from analysis.sample_data import load_sample
 from analysis.transfer_sweep import _load_model_data, _load_train_counts, _load_unilid_model
 from analysis.hierarchical_pool import _bootstrap_delta, VAL_MASK, DIAG_CSV
 from analysis.full_test_eval import (
-    CHUNK_LINES, SCRATCH_DIR, UNSEEN, EXCLUDED, EMPTY, BOOTSTRAP_MAX_N,
+    CHUNK_LINES, UNSEEN, EXCLUDED, EMPTY, BOOTSTRAP_MAX_N,
     _sample_line_indices, _parse_line,
 )
-from analysis.floor_equalization import build_equalized_weights
+from analysis.floor_equalization import build_equalized_weights, _special_columns
+from analysis.model_context import resolve
 
 FLOOR_TARGET = -21.0            # the Exp 20 guard-selected constant
 OUT_DIR = "outputs"
 
 
-def run(out_dir: str = OUT_DIR):
-    import pandas as pd
-    os.makedirs(os.path.join(out_dir, "tables"), exist_ok=True)
+def run(out_dir: str = OUT_DIR, model_path: str = None, scratch_dir: str = None):
+    """Score the full pool under the floor-21 clamp.
 
-    weights, langs, lang_to_idx = _load_model_data()
+    ``model_path``/``scratch_dir`` go through analysis.model_context.resolve,
+    which refuses to write a non-default model's arrays into the released
+    model's output root. This script writes pred_floor21.npy and
+    fingerprint_floor21.json, both of which the gate chain and
+    build_release_calibration.py read as provenance, so an unguarded run against
+    corrected weights would have replaced the published artifacts in place.
+    """
+    import pandas as pd
+    ctx = resolve(model_path, scratch_dir, purpose="floor-21 full-pool scoring")
+    scratch = ctx.scratch_dir
+    print(f"floor-21 scoring against {ctx.describe()}", flush=True)
+    os.makedirs(os.path.join(out_dir, "tables"), exist_ok=True)
+    os.makedirs(scratch, exist_ok=True)
+
+    weights, langs, lang_to_idx = _load_model_data(ctx.model_path)
     train_counts = _load_train_counts()
     n_lang = len(langs)
     N = np.array([train_counts.get(l, 0) for l in langs], dtype=np.float64)
     W = np.array(weights, dtype=np.float32)
     del weights
-    w21, n_mod = build_equalized_weights(W, FLOOR_TARGET)
+    # Special columns by name from the model's own vocabulary. Naming them keeps
+    # the clamp off the special tokens, which from UNILID 0.3.0 sit at the
+    # training floor and would otherwise BE each row's minimum, so the plateau of
+    # unseen real tokens would never be found and the clamp would do nothing.
+    special_cols = _special_columns(ctx.model_path)
+    w21, n_mod = build_equalized_weights(W, FLOOR_TARGET, special_idx=special_cols)
     if n_mod != n_lang:
         raise RuntimeError(f"floor {FLOOR_TARGET} modified {n_mod} rows, expected all "
                            f"{n_lang} (row floors all exceed it)")
-    if not np.array_equal(w21[:, :4], W[:, :4]):
-        raise RuntimeError("special-token columns (0-3) were modified by the clamp")
+    if not np.array_equal(w21[:, special_cols], W[:, special_cols]):
+        raise RuntimeError(f"special-token columns {special_cols} were modified "
+                           f"by the clamp")
 
     fp = {"sha256_base_W": hashlib.sha256(W.tobytes()).hexdigest(),
           "sha256_w21": hashlib.sha256(w21.tobytes()).hexdigest(),
           "floor_target": FLOOR_TARGET,
           "langs_sha256": hashlib.sha256("|".join(langs).encode()).hexdigest(),
+          "model_path": ctx.model_path, "model_sha256": ctx.sha256(),
           "chunk_lines": CHUNK_LINES, "total_lines": TOTAL_LINES}
-    fp_path = os.path.join(SCRATCH_DIR, "fingerprint_floor21.json")
+    fp_path = os.path.join(scratch, "fingerprint_floor21.json")
     if os.path.exists(fp_path):
         with open(fp_path) as f:
             prev = json.load(f)
         if prev != fp:
             bad = sorted(k for k in fp if prev.get(k) != fp[k])
             raise RuntimeError(f"floor21 scratch state mismatch ({bad}); clear the "
-                               f"floor21 files in {SCRATCH_DIR} or restore inputs")
+                               f"floor21 files in {scratch} or restore inputs")
     else:
         with open(fp_path + ".tmp", "w") as f:
             json.dump(fp, f)
         os.replace(fp_path + ".tmp", fp_path)
 
     # saved Exp 16 memmaps (read-only inputs)
-    y_mm = np.lib.format.open_memmap(os.path.join(SCRATCH_DIR, "y_true.npy"), mode="r")
-    base_mm = np.lib.format.open_memmap(os.path.join(SCRATCH_DIR, "pred_baseline.npy"),
+    y_mm = np.lib.format.open_memmap(os.path.join(scratch, "y_true.npy"), mode="r")
+    base_mm = np.lib.format.open_memmap(os.path.join(scratch, "pred_baseline.npy"),
                                         mode="r")
     for name, arr in (("y_true", y_mm), ("pred_baseline", base_mm)):
         if arr.shape != (TOTAL_LINES,):
@@ -98,7 +119,7 @@ def run(out_dir: str = OUT_DIR):
     pickle_y = np.array(load_sample(DEFAULT_SAMPLE_SIZE)["y_true"])[~parity_val]
     expect_label = dict(zip(sample_test_lines.tolist(), pickle_y.tolist()))
 
-    pred_path = os.path.join(SCRATCH_DIR, "pred_floor21.npy")
+    pred_path = os.path.join(scratch, "pred_floor21.npy")
     if os.path.exists(pred_path):
         pred_mm = np.lib.format.open_memmap(pred_path, mode="r+")
         if pred_mm.shape != (TOTAL_LINES,):
@@ -108,7 +129,7 @@ def run(out_dir: str = OUT_DIR):
                                             shape=(TOTAL_LINES,))
         pred_mm[:] = UNSEEN
         pred_mm.flush()
-    progress_path = os.path.join(SCRATCH_DIR, "progress_floor21.json")
+    progress_path = os.path.join(scratch, "progress_floor21.json")
     done_chunks = set()
     if os.path.exists(progress_path):
         with open(progress_path) as f:
@@ -127,7 +148,7 @@ def run(out_dir: str = OUT_DIR):
                 continue
             if model is None:
                 print("Loading model + caching floor-21 weights...", flush=True)
-                model = _load_unilid_model()
+                model = _load_unilid_model(ctx.model_path)
                 model.model.set_weight_sets(w21.tolist())
             lines = [fh.readline() for _ in range(hi - lo)]
 
@@ -226,5 +247,15 @@ def run(out_dir: str = OUT_DIR):
     print(f"\nWrote {out_path}")
 
 
+def main(argv=None):
+    import argparse
+    from analysis.model_context import add_arguments
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--out-dir", default=OUT_DIR)
+    add_arguments(ap)
+    a = ap.parse_args(argv)
+    run(out_dir=a.out_dir, model_path=a.model_path, scratch_dir=a.scratch_dir)
+
+
 if __name__ == "__main__":
-    run()
+    main()

@@ -49,17 +49,19 @@ import pandas as pd
 
 from analysis.config import TEST_FILE, TOTAL_LINES
 from analysis.transfer_sweep import _load_model_data, _load_unilid_model
-from analysis.full_test_eval import SCRATCH_DIR, _parse_line
+from analysis.full_test_eval import _parse_line
 from analysis.full_test_margin import HEAD_N
 from analysis.full_test_floor21 import FLOOR_TARGET
-from analysis.floor_equalization import build_equalized_weights
+from analysis.floor_equalization import build_equalized_weights, _special_columns
+from analysis.model_context import resolve
 from analysis.hierarchical_pool import RES_CAP
 from analysis.margin_diagnostic import (_topk_batch, _gap, PRF_CSV, TOPK_MARGIN,
                                         MARGIN_Q, MIN_CALIB_LINES, CALIB_MAX,
                                         CALIB_SEED, CORPUS_DIR)
 
 
-def run(base: str) -> str:
+def run(base: str, model_path: str = None, scratch_dir: str = None,
+        out_dir: str = "outputs") -> str:
     """base="unmod": adaptive margin gate over the unmodified weight matrix and
     pred_baseline.npy. base="floor21": the same gate over the floor-21 matrix
     (build_equalized_weights at FLOOR_TARGET, fingerprint-verified against
@@ -69,16 +71,19 @@ def run(base: str) -> str:
     if base not in ("unmod", "floor21"):
         raise ValueError(f"unknown base {base!r}; must be 'unmod' or 'floor21'")
 
+    ctx = resolve(model_path, scratch_dir, purpose=f"{base} solo-gate build")
+    scratch = ctx.scratch_dir
+    print(f"solo gate ({base}) against {ctx.describe()}", flush=True)
     if base == "unmod":
-        base_pred_path = os.path.join(SCRATCH_DIR, "pred_baseline.npy")
-        out_pred = os.path.join(SCRATCH_DIR, "pred_unmod_gate.npy")
-        out_tau = "outputs/diagnostic/tau_unmod_gate.csv"
-        out_md = "outputs/tables/unmod_gate_build.md"
+        base_pred_path = os.path.join(scratch, "pred_baseline.npy")
+        out_pred = os.path.join(scratch, "pred_unmod_gate.npy")
+        out_tau = os.path.join(out_dir, "diagnostic/tau_unmod_gate.csv")
+        out_md = os.path.join(out_dir, "tables/unmod_gate_build.md")
     else:
-        base_pred_path = os.path.join(SCRATCH_DIR, "pred_floor21.npy")
-        out_pred = os.path.join(SCRATCH_DIR, "pred_floor21_gate.npy")
-        out_tau = "outputs/diagnostic/tau_floor21_gate.csv"
-        out_md = "outputs/tables/floor21_gate_build.md"
+        base_pred_path = os.path.join(scratch, "pred_floor21.npy")
+        out_pred = os.path.join(scratch, "pred_floor21_gate.npy")
+        out_tau = os.path.join(out_dir, "diagnostic/tau_floor21_gate.csv")
+        out_md = os.path.join(out_dir, "tables/floor21_gate_build.md")
 
     prf = pd.read_csv(PRF_CSV)
     langs = prf.lang.tolist()
@@ -86,13 +91,13 @@ def run(base: str) -> str:
     N = prf.N.values
     tail_idx = np.where(N < HEAD_N)[0]   # nonhead gate: every language below the head
 
-    weights, langs_m, _m = _load_model_data()
+    weights, langs_m, _m = _load_model_data(ctx.model_path)
     if langs_m != langs:
         raise RuntimeError("model language order differs from the PRF CSV")
     W = np.array(weights, dtype=np.float32)
     del weights
 
-    fp_path = os.path.join(SCRATCH_DIR, "fingerprint_floor21.json")
+    fp_path = os.path.join(scratch, "fingerprint_floor21.json")
     with open(fp_path) as f:
         fp = json.load(f)
     if base == "unmod":
@@ -105,12 +110,18 @@ def run(base: str) -> str:
                                f"pred_baseline.npy")
         matrix = None
     else:
-        matrix, n_mod = build_equalized_weights(W, FLOOR_TARGET)
+        # Special columns by name: from UNILID 0.3.0 they sit at the training
+        # floor, so an unnamed minimum would select them and the clamp would
+        # silently do nothing.
+        special_cols = _special_columns(ctx.model_path)
+        matrix, n_mod = build_equalized_weights(W, FLOOR_TARGET,
+                                                special_idx=special_cols)
         if n_mod != n_lang:
             raise RuntimeError(f"floor {FLOOR_TARGET} modified {n_mod} rows, expected "
                                f"all {n_lang} (row floors all exceed it)")
-        if not np.array_equal(matrix[:, :4], W[:, :4]):
-            raise RuntimeError("special-token columns (0-3) were modified by the clamp")
+        if not np.array_equal(matrix[:, special_cols], W[:, special_cols]):
+            raise RuntimeError(f"special-token columns {special_cols} were modified "
+                               f"by the clamp")
         sha = hashlib.sha256(matrix.tobytes()).hexdigest()
         if sha != fp["sha256_w21"]:
             raise RuntimeError(f"rebuilt floor-21 matrix does not match sha256_w21 in "
@@ -119,7 +130,7 @@ def run(base: str) -> str:
     del W
 
     y = np.asarray(np.lib.format.open_memmap(
-        os.path.join(SCRATCH_DIR, "y_true.npy"), mode="r"))
+        os.path.join(scratch, "y_true.npy"), mode="r"))
     if y.shape != (TOTAL_LINES,):
         raise RuntimeError(f"y_true.npy shape {y.shape} != ({TOTAL_LINES},)")
     pg = np.asarray(np.lib.format.open_memmap(base_pred_path, mode="r"))
@@ -128,7 +139,7 @@ def run(base: str) -> str:
     affected = np.where((pg >= 0) & np.isin(pg, tail_idx))[0]
     print(f"{len(affected):,} lines carry a gated {base} prediction")
 
-    model = _load_unilid_model()
+    model = _load_unilid_model(ctx.model_path)
     if base == "floor21":
         print("Caching floor-21 weights...", flush=True)
         model.model.set_weight_sets(matrix.tolist())
@@ -240,7 +251,17 @@ def run(base: str) -> str:
     return out_pred
 
 
+def main(argv=None):
+    import argparse
+    from analysis.model_context import add_arguments
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("base", choices=("unmod", "floor21"))
+    ap.add_argument("--out-dir", default="outputs")
+    add_arguments(ap)
+    a = ap.parse_args(argv)
+    run(a.base, model_path=a.model_path, scratch_dir=a.scratch_dir,
+        out_dir=a.out_dir)
+
+
 if __name__ == "__main__":
-    if len(sys.argv) != 2 or sys.argv[1] not in ("unmod", "floor21"):
-        raise SystemExit("usage: python -m analysis.solo_gates {unmod|floor21}")
-    run(sys.argv[1])
+    main()
