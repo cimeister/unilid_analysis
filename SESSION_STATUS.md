@@ -20,20 +20,30 @@ PR #3.
 
 ## Ongoing experiments
 
-- None running. All background jobs from 2026-08-17 completed; measurements are
-  in `outputs/rerelease/`.
+- **Job 3107045, corrected-model full-pool baseline** (`slurm_full_test_eval_corrected.sh`):
+  queued. `--configs baseline` only, fresh scratch root
+  `full_test_eval_corrected/`, tables to `outputs_corrected/`. 3 of 92 chunks
+  already banked, resumable. This is B3 step 1 and everything downstream needs it.
+- **Job 3107082, corrected-model c sweep** (`slurm_floor_sweep_corrected.sh`):
+  queued. Published Exp 20 protocol on the grid shifted by log 5. Expected to
+  land near -19.3906; **a result far from that is a finding, not a tuning
+  problem.** This is B2's first step and gates the floor-21 pass.
 
 ## Next work, in order
 
 - B0: `finished` 2026-08-17, PASS 3/3. The unseen-token plateau is set by corpus
   size, scaling as `T^-0.95`, and the paper's appendix sentence can now be
   rewritten with a causal statement.
-- B1 (`ongoing`, gates all scoring): eight scripts still need a model parameter
-  and a fresh output root, and two paper tables (`viterbi_vs_marginal`,
-  `lenbias-norm`) have no reproducible generator at all. Table in
-  `RERELEASE_PLAN.md` step 2.
-- B2, B3, B4 (`waiting on dependency`): re-derive c, all 1,084 thresholds and the
-  high-entropy group; regenerate the paper numbers; ship.
+- B1: `finished` 2026-08-17. Single resolver (`analysis/model_context.py`), eleven
+  scripts wired, two missing generators written, 13/13 guard cases verified by
+  triggering.
+- B2 remainder (`waiting on` job 3107082): all 1,084 group-A thresholds via
+  `solo_gates.py floor21`, then the high-entropy group re-identified.
+- B3 remainder (`waiting on` job 3107045): `full_test_floor21.py`, then
+  `solo_gates.py`, then `gate_variants.py`, then `build_release_calibration.py`;
+  fresh gate references; `paper_eval.py` and the breakdowns; the Mistral-Nemo
+  chain, which is independent and can run in parallel.
+- B4 (`waiting on dependency`): ship, retire polybox.
 
 ## Open decisions
 

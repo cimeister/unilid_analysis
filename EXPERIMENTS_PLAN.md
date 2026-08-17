@@ -936,20 +936,26 @@ transformation.
   Results: `EXPERIMENTS_RESULTS.md` "B0: corpus size alone sets the plateau".
   Artifacts: `analysis/plateau_vs_corpus_size.py`,
   `analysis/plateau_reference_fit.py`, `outputs/rerelease/`.
-- **B1: make the analysis chain safe to point at a second model** — `ongoing`.
-  Done and verified by triggering the guard: `full_test_eval.py`,
-  `length_bias.py`, `floor_equalization.py`. Remaining: `full_test_floor21.py`,
-  `solo_gates.py`, `gate_variants.py`, `mistralnemo_eval.py`, `release_gates.py`,
-  `build_release_calibration.py`, `commonlid_calibrated.py`,
-  `commonlid_carried.py`. Two paper tables have no reproducible generator at all
-  and need new code: `viterbi_vs_marginal` and `lenbias-norm`.
-- **B2: re-derive the calibration** — `waiting on dependency` (B1). c by the
-  guarded sweep; all 1,084 group-A thresholds; the high-entropy group re-identified
-  under the published criterion (`build_release_calibration.py` asserts the current
-  four and will abort until updated). Group A membership cannot change, being
-  defined by N_L.
-- **B3: regenerate the paper numbers** — `waiting on dependency` (B1, B2).
-  Dependency order in `RERELEASE_PLAN.md`.
+- **B1: make the analysis chain safe to point at a second model** — `finished`
+  2026-08-17. `analysis/model_context.py` is the single resolution point and
+  refuses a non-default model paired with the default output root or any
+  store-backed root. Wired and each verified by triggering the guard:
+  `full_test_eval.py`, `length_bias.py`, `floor_equalization.py`,
+  `full_test_floor21.py`, `solo_gates.py`, `gate_variants.py`,
+  `mistralnemo_eval.py`, `release_gates.py`, `build_release_calibration.py`,
+  `commonlid_calibrated.py`, `commonlid_carried.py`.
+  `analysis/model_context_selfcheck.py` fires all six resolver branches and all
+  seven entry points: 13/13. The two missing generators are written:
+  `analysis/viterbi_vs_marginal.py` and `analysis/lenbias_norm_table.py`.
+- **B2: re-derive the calibration** — `ongoing`. c: job 3107082 submitted
+  2026-08-17, published protocol on the grid shifted by log 5. Still to do once
+  c lands: all 1,084 group-A thresholds; the high-entropy group re-identified
+  under the published criterion (`build_release_calibration.py` asserts the
+  current four and aborts until updated, overridable only by an explicit flag).
+  Group A membership cannot change, being defined by N_L.
+- **B3: regenerate the paper numbers** — `ongoing`. Step 1 (corrected full-pool
+  baseline) is job 3107045, submitted 2026-08-17, `--configs baseline` only.
+  Remaining steps and their dependency order in `RERELEASE_PLAN.md`.
 - **B4: ship the corrected artifacts, retire polybox** — `waiting on dependency`
   (B2 for the calibrated model; the uncalibrated model is ready now).
 - **DeepSeek3.2 and Qwen3 rows (24 cells of `lid_main.tex`)** — `waiting on

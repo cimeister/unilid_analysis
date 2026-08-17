@@ -27,6 +27,29 @@ for the infrastructure record.
 `EXPERIMENTAL_SETUP.md` (hierarchical pooling). Full plan:
 `~/.claude/plans/yes-do-both-then-giggly-sprout.md`.
 
+### 2026-08-17: corrected-model unseen-token constant sweep submitted (job 3107082)
+
+- **Purpose / hypothesis:** re-derive c for the corrected model. The probe showed
+  c is consistent with carrying across by addition of log 5, but that was a
+  60,000-line subsample on a flat optimum; the published protocol has to be run.
+  Plan item: `EXPERIMENTS_PLAN.md` B2.
+- **Protocol, unchanged from Exp 20:** sweep c, select on the validation half of
+  the seed-42 500k draw under the all-strata guard, score the test half once.
+- **Grid:** the published {-17, -19, -21, -23} shifted by log 5, that is
+  {-15.3906, -17.3906, -19.3906, -21.3906}
+  (`analysis/floor_equalization.FLOORS_CORRECTED`, `--corrected-grid`). The clamp
+  sets an absolute target in log space and the correction raised every real token
+  by exactly that amount, so the shifted grid asks the published question of a
+  corrected model. The unshifted grid would ask a different one: at c = -21 a
+  corrected row's unseen tokens sit 1.609 nats further below its seen tokens than
+  the released model's did.
+- **Expected:** near -19.3906, which would reproduce the released clamped
+  structure up to the uniform shift. **A result far from that is a finding, not a
+  tuning problem, and must be recorded as one.**
+- **Artifacts:** `outputs_corrected/tables/`; submission script
+  `slurm_floor_sweep_corrected.sh` (8h walltime, 64 cpus, 400G); logs
+  `/capstor/scratch/.../logs/csweep_corrected_%j.{out,err}`.
+
 ### 2026-08-17: corrected-model full-pool baseline pass submitted (job 3107045)
 
 - **Purpose:** the new base predictions for every regenerated GlotLID-C number.
