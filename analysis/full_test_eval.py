@@ -93,7 +93,8 @@ def _fingerprint(biases: dict, langs: list, model_path: str) -> dict:
 
 def run(out_dir: str = OUT_DIR, model_path: str = None,
         scratch_dir: str = SCRATCH_DIR,
-        allow_stale_learned_bias: bool = False):
+        allow_stale_learned_bias: bool = False,
+        configs: list = None):
     """Score the full test pool.
 
     ``scratch_dir`` defaults to the directory holding the released model's
@@ -116,24 +117,43 @@ def run(out_dir: str = OUT_DIR, model_path: str = None,
     os.makedirs(SCRATCH, exist_ok=True)
     os.makedirs(os.path.join(out_dir, "tables"), exist_ok=True)
 
-    weights, langs, lang_to_idx = _load_model_data()
+    # From the model being scored, not the default one: langs indexes every
+    # prediction written below, so taking it from elsewhere would mislabel them.
+    weights, langs, lang_to_idx = _load_model_data(model_path)
     del weights
     train_counts = _load_train_counts()
     n_lang = len(langs)
     N = np.array([train_counts.get(l, 0) for l in langs], dtype=np.float64)
 
-    biases = {
-        "baseline": np.zeros(n_lang, dtype=np.float32),
-        "freq_prior": (FREQ_GAMMA * np.log(N + 1.0)).astype(np.float32),
-        "learned_bias": np.load(LEARNED_BIAS_NPY).astype(np.float32),
-    }
-    if biases["learned_bias"].shape != (n_lang,):
-        raise RuntimeError(f"learned bias shape {biases['learned_bias'].shape} != ({n_lang},)")
+    # Which configurations this invocation scores. One full pool pass each, so
+    # dropping the two prior-side configurations is a 3x saving; neither appears
+    # in the paper (they are the internal Exp 14/16 record). "baseline" is
+    # required: the alignment bookkeeping below is defined on it.
+    # Normalized to CONFIGS order, so 'baseline' is first and the
+    # delta-against-baseline slice below is correct whatever order came in.
+    requested = set(configs) if configs else set(CONFIGS)
+    configs = [c for c in CONFIGS if c in requested]
+    unknown = sorted(requested - set(CONFIGS))
+    if unknown:
+        raise RuntimeError(f"unknown config(s) {unknown}; known: {CONFIGS}")
+    if "baseline" not in configs:
+        raise RuntimeError("'baseline' must be among the configs; the alignment "
+                           "and agreement checks are defined on it")
+
+    biases = {"baseline": np.zeros(n_lang, dtype=np.float32)}
+    if "freq_prior" in configs:
+        biases["freq_prior"] = (FREQ_GAMMA * np.log(N + 1.0)).astype(np.float32)
+    if "learned_bias" in configs:
+        biases["learned_bias"] = np.load(LEARNED_BIAS_NPY).astype(np.float32)
+        if biases["learned_bias"].shape != (n_lang,):
+            raise RuntimeError(
+                f"learned bias shape {biases['learned_bias'].shape} != ({n_lang},)")
     # The learned bias is a per-language fit to the released model's scores
     # (reg=5.0, job 2731802). Nothing in the file records which model it was fit
     # against, so applying it to a different one silently reports a config that
     # was never fitted for that model.
-    if os.path.abspath(model_path) != os.path.abspath(UNILID_MODEL_PATH) \
+    if "learned_bias" in configs \
+            and os.path.abspath(model_path) != os.path.abspath(UNILID_MODEL_PATH) \
             and not allow_stale_learned_bias:
         raise RuntimeError(
             f"{LEARNED_BIAS_NPY} was fit against {UNILID_MODEL_PATH} and carries "
@@ -172,7 +192,7 @@ def run(out_dir: str = OUT_DIR, model_path: str = None,
     expect_pred = dict(zip(sample_test_lines.tolist(), pickle_pred.tolist()))
 
     # --- resumable memmaps keyed by absolute line index ---
-    paths = {c: os.path.join(SCRATCH, f"pred_{c}.npy") for c in CONFIGS}
+    paths = {c: os.path.join(SCRATCH, f"pred_{c}.npy") for c in configs}
     paths["y_true"] = os.path.join(SCRATCH, "y_true.npy")
     mm = {}
     for name, p in paths.items():
@@ -235,7 +255,7 @@ def run(out_dir: str = OUT_DIR, model_path: str = None,
             keep_pos = np.asarray(keep_pos, dtype=np.int64)
             mm["y_true"][keep_pos] = np.asarray(yt, dtype=np.int16)
             outs = {}
-            for c in CONFIGS:
+            for c in configs:
                 out = np.full(len(texts), EMPTY, dtype=np.int16)
                 if pre:
                     batch = model.model.best_of_cached_weight_sets_biased_batch(
@@ -262,13 +282,26 @@ def run(out_dir: str = OUT_DIR, model_path: str = None,
             os.replace(progress_path + ".tmp", progress_path)
             print(f"chunk {chunk + 1}/{n_chunks} done ({hi - lo} lines)", flush=True)
 
+    is_default_model = os.path.abspath(model_path) == os.path.abspath(UNILID_MODEL_PATH)
     if agree_total >= 1000:
         agreement = agree_hit / agree_total
         print(f"baseline agreement with recorded UniLID preds: {agreement:.4f} "
               f"({agree_total:,} sampled lines)", flush=True)
-        if agreement < 0.99:
-            raise RuntimeError(f"baseline scorer agreement {agreement:.4f} < 0.99 with "
-                               f"the recorded UniLID predictions; model/scorer changed")
+        # The reference is pred_UniLID from the seed-42 sample pickle, recorded
+        # from the released weights. For the released model this is a wiring gate
+        # and must hold. For any other model the predictions are SUPPOSED to
+        # differ, so gating on 0.99 would be measuring the wrong thing: the
+        # special-token correction lands near 0.9928 and would squeak past the
+        # threshold by luck rather than by being checked.
+        if is_default_model:
+            if agreement < 0.99:
+                raise RuntimeError(f"baseline scorer agreement {agreement:.4f} < 0.99 "
+                                   f"with the recorded UniLID predictions; "
+                                   f"model/scorer changed")
+        else:
+            print(f"  reported only: {model_path} is not the model those "
+                  f"predictions were recorded from, so disagreement is expected "
+                  f"and no threshold is applied", flush=True)
     elif agree_total > 0:
         print(f"baseline agreement checked on only {agree_total} lines (resume run); "
               f"earlier chunks were validated by the run that computed them", flush=True)
@@ -293,7 +326,7 @@ def run(out_dir: str = OUT_DIR, model_path: str = None,
         "head": N >= 18_000,
     }
     yk = y[kept]
-    preds = {c: np.asarray(mm[c])[kept] for c in CONFIGS}
+    preds = {c: np.asarray(mm[c])[kept] for c in configs}
 
     lines_out = ["# Full-test-set evaluation (test set minus the 250k val lines)\n",
                  f"Lines evaluated: {n_kept:,} of {TOTAL_LINES:,}. Configurations fixed on "
@@ -314,7 +347,7 @@ def run(out_dir: str = OUT_DIR, model_path: str = None,
         base_m = compute_metrics(yk[m], preds["baseline"][m])
         rows = [f"| config | macroF1 | delta | 95% CI | accuracy |", "|---|---|---|---|---|",
                 f"| baseline | {base_m['macro_f1']:.4f} | | | {base_m['accuracy']:.4f} |"]
-        for c in CONFIGS[1:]:
+        for c in configs[1:]:
             cm = compute_metrics(yk[m], preds[c][m])
             d = cm["macro_f1"] - base_m["macro_f1"]
             if 0 < n_st <= BOOTSTRAP_MAX_N:
@@ -335,7 +368,7 @@ def run(out_dir: str = OUT_DIR, model_path: str = None,
     per_lang = {"lang": langs, "N": N.astype(int),
                 "category": [cat.get(l, "mid") for l in langs],
                 "test_support": np.bincount(yk, minlength=n_lang)}
-    for c in CONFIGS:
+    for c in configs:
         pc = compute_per_class_metrics(yk, preds[c])
         per_lang[f"f1_{c}"] = [pc.get(i, {}).get("f1", 0.0) for i in range(n_lang)]
     csv_path = os.path.join(out_dir, "diagnostic", "full_test_per_lang_f1.csv")
@@ -344,5 +377,21 @@ def run(out_dir: str = OUT_DIR, model_path: str = None,
     print(f"\nWrote {md_path} and {csv_path}")
 
 
+def main(argv=None):
+    import argparse
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--out-dir", default=OUT_DIR)
+    ap.add_argument("--model", dest="model_path", default=None)
+    ap.add_argument("--scratch-dir", dest="scratch_dir", default=SCRATCH_DIR)
+    ap.add_argument("--configs", default=None,
+                    help="comma-separated subset of " + ",".join(CONFIGS) +
+                         " (default: all three). One full pool pass each.")
+    ap.add_argument("--allow-stale-learned-bias", action="store_true")
+    a = ap.parse_args(argv)
+    run(out_dir=a.out_dir, model_path=a.model_path, scratch_dir=a.scratch_dir,
+        allow_stale_learned_bias=a.allow_stale_learned_bias,
+        configs=[c.strip() for c in a.configs.split(",")] if a.configs else None)
+
+
 if __name__ == "__main__":
-    run()
+    main()

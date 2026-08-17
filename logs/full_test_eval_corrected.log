@@ -1,0 +1,6 @@
+  Loaded 1940 languages, vocab size 100000
+Loading model + caching weight sets...
+Loaded 1940 languages, vocab size 100000
+Pushing weights to Rust cache...
+Model ready
+chunk 1/92 done (500000 lines)
