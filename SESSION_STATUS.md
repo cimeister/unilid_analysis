@@ -51,7 +51,15 @@ Pool accuracy on 3,000 labelled test-pool lines is 0.9477 in every case. The rel
 
 Released artifact is untouched and both golden gates re-passed. Separately measured, for the author's decision only: renormalizing the released model's own rows would move base-mode accuracy on 20,000 labelled pool lines from 0.9494 to 0.9509 (63 predictions fixed, 32 broken, 0.70% changed), so re-releasing is a real but small gain that would invalidate the gates and the paper's exact numbers.
 
-Scripts: scratchpad repro_sp_vs_em.py, released_sp_vs_em.py, measure_correction.py.
+Scripts: scratchpad repro_sp_vs_em.py, released_sp_vs_em.py, measure_correction.py, matched_released.py, toy_matched.py, ddd_matched.py.
+
+Shipped into PR #3 (folded per author decision): branch pushed at 9f7c1cf, PR retitled "Special tokens hold no probability mass, plus the out-of-box setup fixes", description rewritten to lead with the training fix.
+
+## Re-release of the corrected model: PLAN WRITTEN, NOTHING EXECUTED
+
+RERELEASE_PLAN.md. The load-bearing finding is that the corrected artifact is a deterministic transformation of the released weights, not a retrain: real tokens += log(5), specials to the floor. Verified by retraining aai_Latn (24,580 lines) with the 0.3.0 code and comparing against (released row + log 5) over 99,996 real tokens: correlation 1.00000000, median absolute difference 1.7e-5, 99.69% within 1e-4. All four stored GlotLID-scale models carry the same 0.800000 special mass and take the same transformation.
+
+What still has to be re-derived rather than transformed: the unseen-token constant c (sweep on the new scale; -21 + log 5 = -19.3906 would preserve the old behaviour up to the uniform shift, so the sweep should land near it), the per-language taus (margins move with segmentation), and the four-member high-entropy group (identified from predictions that change). Paper tables are split in the plan into re-runnable here (GlotLID-C family), needing the co-author's WiLI and DSL-ML models, and unaffected (latency, training time, all fastText/GlotLID/CLD3 rows).
 
 ## Open decisions
 - Whether the Mistral-Nemo variant ships in a v1.1 release (handoff open item, unresolved; artifacts ready on store, recipe in OPEN_SOURCE_STATUS.md open item 2).
