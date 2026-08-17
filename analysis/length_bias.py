@@ -106,13 +106,13 @@ def build_tokenizer_cache(needed_langs: set[str], model_path: str = UNILID_MODEL
 # Streaming misclassified text extraction
 # ---------------------------------------------------------------------------
 
-def stream_misclassified_texts():
+def stream_misclassified_texts(pred_path: str = None):
     """Stream through test file and UniLID predictions, collecting only misclassified samples.
 
     Returns list of dicts with keys: text, true_label, pred_label, text_length
     """
     test_path = os.path.join(DATA_DIR, "glotlid_correct_test.txt")
-    pred_path = PRED_FILES["UniLID"]
+    pred_path = pred_path or PRED_FILES["UniLID"]
 
     misclassified = []
     n_total = 0
@@ -277,10 +277,27 @@ def _counterfactual_row(flipped, label="All"):
     return [label, f"{n:,}", f"{n_flipped:,}", f"{pct:.1f}"]
 
 
-def generate_length_bias_analysis(output_dir: str = "outputs", model_path: str = UNILID_MODEL_PATH):
-    """Run the full length bias + normalization counterfactual analysis."""
+def generate_length_bias_analysis(output_dir: str = "outputs",
+                                  model_path: str = UNILID_MODEL_PATH,
+                                  pred_path: str = None):
+    """Run the full length bias + normalization counterfactual analysis.
+
+    The misclassified set comes from a recorded prediction file and the token
+    deltas are computed from ``model_path``. Those two have to describe the same
+    model: pairing a different model with the default prediction file produces an
+    analysis of one model's errors scored under another's weights, and it runs to
+    completion without complaining. The guard below makes that combination an
+    error instead.
+    """
+    if os.path.abspath(model_path) != os.path.abspath(UNILID_MODEL_PATH) \
+            and pred_path is None:
+        raise RuntimeError(
+            f"model_path is {model_path}, but the misclassified set would come "
+            f"from {PRED_FILES['UniLID']}, which records the released model's "
+            f"predictions. Pass pred_path for the same model, or the analysis "
+            f"would attribute one model's errors to another's weights")
     print("  Streaming misclassified texts from disk...")
-    misclassified = stream_misclassified_texts()
+    misclassified = stream_misclassified_texts(pred_path)
 
     results = compute_token_deltas_and_scores(misclassified, model_path)
 
