@@ -92,7 +92,8 @@ def _fingerprint(biases: dict, langs: list, model_path: str) -> dict:
 
 
 def run(out_dir: str = OUT_DIR, model_path: str = None,
-        scratch_dir: str = SCRATCH_DIR):
+        scratch_dir: str = SCRATCH_DIR,
+        allow_stale_learned_bias: bool = False):
     """Score the full test pool.
 
     ``scratch_dir`` defaults to the directory holding the released model's
@@ -128,6 +129,17 @@ def run(out_dir: str = OUT_DIR, model_path: str = None,
     }
     if biases["learned_bias"].shape != (n_lang,):
         raise RuntimeError(f"learned bias shape {biases['learned_bias'].shape} != ({n_lang},)")
+    # The learned bias is a per-language fit to the released model's scores
+    # (reg=5.0, job 2731802). Nothing in the file records which model it was fit
+    # against, so applying it to a different one silently reports a config that
+    # was never fitted for that model.
+    if os.path.abspath(model_path) != os.path.abspath(UNILID_MODEL_PATH) \
+            and not allow_stale_learned_bias:
+        raise RuntimeError(
+            f"{LEARNED_BIAS_NPY} was fit against {UNILID_MODEL_PATH} and carries "
+            f"no record of it. Refit it for {model_path}, drop 'learned_bias' "
+            f"from CONFIGS, or pass allow_stale_learned_bias=True to state that "
+            f"reporting the old fit against new weights is intended")
 
     fp = _fingerprint(biases, langs, model_path)
     fp_path = os.path.join(SCRATCH, "fingerprint.json")
