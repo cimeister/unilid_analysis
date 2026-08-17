@@ -5,7 +5,18 @@ package (UNILID commit 9f7c1cf, version 0.3.0, folded into PR #3). This plan
 covers the released artifact and the paper, neither of which the code fix
 touches.
 
-Status: PROPOSED. Nothing here has been executed.
+Status: APPROVED and IN EXECUTION.
+
+## Decisions taken by the author (2026-08-17)
+
+1. Re-release goes ahead. Every released model's weights are corrected and
+   re-released, not just the calibrated one.
+2. The paper is updated IN PLACE, not issued as an erratum.
+3. The experiments that can be run on this machine are re-run here. The WiLI and
+   DSL-ML evaluations stay with the co-author, whose models are not on this
+   filesystem.
+4. The polybox mirror of the original uncalibrated model is taken down.
+   HuggingFace Hub carries both the calibrated and the uncalibrated model.
 
 ## What is wrong with the released weights
 
@@ -174,16 +185,15 @@ Within 3, run the golden-subset gates first as a smoke test, then the full pool.
 Nothing ships before the paper numbers are regenerated, since the artifact and
 the paper have to agree.
 
-## Open decisions
+## Open items
 
-- Whether to re-release at all. The measured base-mode gain is +0.0015 accuracy
-  on a 20,000-line sample and 0.70% of predictions change. The stronger argument
-  is correctness rather than accuracy: the shipped artifact spends 80% of its
-  probability mass on tokens that cannot be scored, and the documented rationale
-  for the unseen-token constant is entangled with that defect.
-- Whether the paper is updated in place or the correction is reported as an
-  erratum plus a v2 artifact.
-- Whether the Apertus 200k and 131k variants are re-released too, or corrected
-  only where the paper cites them.
-- Who re-runs the WiLI and DSL-ML evaluations, and whether those models still
-  exist.
+- Whether the Apertus 200k and 131k variants are published, or only corrected
+  locally so the numbers the paper cites can be regenerated. They are corrected
+  either way; only publication is open.
+- Whether the co-author's WiLI and DSL-ML models still exist, and when those
+  evaluations can be re-run. Everything in this repository can proceed without
+  them, but the paper cannot be finished until they are done.
+- Whether the package should offer users a migration for their own pre-0.3.0
+  models. The transformation here is a research-repo script; a
+  `unilid-calibrate migrate` subcommand would give the same thing to anyone who
+  trained their own model with an affected version.
