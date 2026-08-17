@@ -67,6 +67,16 @@ Needs measurement before the paper is touched: the paper's stated cause of the a
 
 Not started: calibration re-derivation, full-pool runs, paper edits, HF uploads.
 
+## Calibration probe (2026-08-17): found a regression I shipped, not a shifted optimum
+
+Probing how far c moves under the correction (`analysis/probe_calibration_shift.py`, 60,000 lines from the validation half, sweep over nine values with the recipe of record) returned `modified 0` of 1,940 rows at every c for the corrected model, against 1,940 for the released one.
+
+Cause: the 0.3.0 fix parks the special tokens at the training floor, and `apply_unseen_token_constant` defines a row's unseen tokens as its exact minimum-value plateau. With the specials at -27.631 the minimum is them, the plateau of unseen real tokens is never found, and the clamp does nothing. So every model trained by 0.3.0 as shipped in PR #3 has the calibration's first correction silently disabled. This also explains the "row minimum -27.631 is at or below c=-21.0; the row is left unchanged" lines in the post-fix add_language runs, which I read at the time as the trainer floor on real tokens.
+
+Fixed in `unilid/calibration.py` and `analysis/floor_equalization.py`: the clamp now takes the special columns and leaves them out of the minimum. Pre-0.3.0 files are unaffected because their specials sit at -1.6094, never the minimum, which is asserted in a test alongside one for the broken case. Package commit 2d5f62d. Both release gates re-run because this is an inference-path change.
+
+The c sweep on the released model is still informative: macro F1 peaks at c = -19.5 (0.9569) against -21 (0.9567) and -19.0 (0.9568), so the published constant sits just off a flat optimum on this subsample. The corrected model's sweep has to be repeated now that the clamp works.
+
 ## Superseded plan note
 
 RERELEASE_PLAN.md. The load-bearing finding is that the corrected artifact is a deterministic transformation of the released weights, not a retrain: real tokens += log(5), specials to the floor. Verified by retraining aai_Latn (24,580 lines) with the 0.3.0 code and comparing against (released row + log 5) over 99,996 real tokens: correlation 1.00000000, median absolute difference 1.7e-5, 99.69% within 1e-4. All four stored GlotLID-scale models carry the same 0.800000 special mass and take the same transformation.
