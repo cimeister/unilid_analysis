@@ -27,6 +27,122 @@ for the infrastructure record.
 `EXPERIMENTAL_SETUP.md` (hierarchical pooling). Full plan:
 `~/.claude/plans/yes-do-both-then-giggly-sprout.md`.
 
+### 2026-08-17: special-token defect found, fixed in the package, and the four stored models corrected (login node, no SLURM)
+
+- **Purpose / hypothesis:** a setup report of large `--method sp` vs `--method em`
+  score differences in `add_language`, initially assumed to be the reporter's
+  configuration error. Plan item: `EXPERIMENTS_PLAN.md` "Special-token correction
+  and re-release".
+- **Defect:** `unilid/trainers/language_specific_trainer.py` gave each special
+  token the base tokenizer's score; HF Unigram stores specials at `0.0`, read as a
+  log-probability that is probability 1.0. Four of them dominate the
+  normalization, each lands at 1/5, every real token is depressed by
+  log 5 = 1.6094 nats. All four stored GlotLID-scale models carry exactly 0.800000
+  special mass per row. No special token's weight is ever read when scoring
+  (verified by perturbation: all four set to -500 changes scores by 0.000000), so
+  the mass is unusable, not inert.
+- **Package fix, version 0.3.0:** one enforcement point in
+  `LanguageSpecificUnigramLMTokenizer.train` renormalizes over real tokens and
+  parks the specials at the floor, whichever method produced the row
+  (`unilid/vocab_io.py::renormalize_over_real_tokens`); `add_language` puts a new
+  row on the model's own scale (`_match_real_token_scale`; new named constant
+  `SCALE_SPREAD_REPORT_RATIO = 2.0`, diagnostic only). Branch
+  `calibration-release`, PR #3, commits 9f7c1cf then 56e7fd4.
+- **Correction of the stored models:** `analysis/correct_special_token_mass.py`
+  (guard `MAX_REAL_MASS_SPREAD = 1.01`), a closed-form transformation rather than a
+  retrain. Outputs on scratch under `corrected/`: glotlidc, apertus200k,
+  apertus131k, mistralnemo.
+- **Gate:** `analysis/gate_correction.py`, eight languages N_L 85 to 100,000
+  retrained under the fixed code, 8/8 pass
+  (`outputs/rerelease/gate_correction.json`). Criterion bounds the signed mean
+  (0.01), mass-weighted difference (0.02) and correlation (0.9999); it does not
+  require exact row reproduction, because languages above the 100,000-line cap
+  were subsampled and the store corpus is the Apertus draw. The threshold was
+  chosen after `zul_Latn` failed an exact-reproduction criterion; recorded here
+  because that is the kind of change that has to stay visible.
+- **Released artifact untouched by the code fix; both golden gates re-passed.**
+
+### 2026-08-17: effect of the correction measured on the golden subset (login node, no SLURM)
+
+- **Purpose:** decide whether the re-release is justified by metrics or only by
+  correctness.
+- **Outcome:** base mode, 250,000-line golden subset against recorded gold labels.
+  Macro F1 0.9454 to 0.9460, macro FPR 2.083e-05 to 2.081e-05, accuracy 0.9603 to
+  0.9604; 1,807 of 250,000 predictions change (0.72%), 699 fixed and 669 broken.
+  A wash. **The case for re-releasing is correctness, not metrics.** Supersedes an
+  earlier 0.9494 to 0.9509 estimate, which was accuracy on a 20,000-line
+  every-149th-line sample and under-powered.
+- **Artifacts:** `analysis/correction_effect.py`,
+  `outputs/rerelease/correction_effect.json`.
+
+### 2026-08-17: the correction is not a constant offset; segmentation moves (login node, no SLURM)
+
+- **Purpose:** test the standing record's claim that the special-token mass is
+  "uniform across languages so argmax-neutral".
+- **Outcome:** false on both counts. Each language scores under its own Viterbi
+  segmentation, so the per-token depression applies a different number of times per
+  candidate; and the correction moves the segmentation, since the max-plus DP
+  maximizes `sum(log p_i) + n * log 5` and a positive per-token constant favors
+  more tokens. On 3,000 pool lines: 1,140 re-segment, all toward more tokens, mean
+  token count 39.369 to 39.920, 14 predictions change. On the 1,860 lines with both
+  prediction and segmentation unchanged, the score delta equals `n * log 5` to
+  within 5.5e-4.
+- **Artifacts:** `analysis/segmentation_shift.py`,
+  `outputs/rerelease/segmentation_shift.json`. Three record sites corrected in
+  place (this file's 2026-07-18 token-tying entry, `EXPERIMENTAL_SETUP.md:217`,
+  `EXPERIMENTS_PLAN.md:950`).
+
+### 2026-08-17: the 0.3.0 fix silently disabled the unseen-token constant; found and fixed (login node, no SLURM)
+
+- **Purpose:** probe how far c moves under the correction. It surfaced a
+  regression first.
+- **Regression:** `analysis/probe_calibration_shift.py` returned `modified 0` of
+  1,940 rows at every c for the corrected model against 1,940 for the released
+  one. Parking the specials at `MIN_TOKEN_LOG_PROB` makes them each row's minimum,
+  and `apply_unseen_token_constant` defines the unseen tokens as the exact
+  minimum-value plateau, so the plateau is never located and the clamp does
+  nothing. Every model trained by 0.3.0 as first shipped had the calibration's
+  first correction disabled with no message.
+- **Fix:** the clamp takes the special columns and excludes them from the minimum
+  (`unilid/calibration.py`, `analysis/floor_equalization.py`); both callers find
+  the columns by name from the vocabulary, and the old `SPECIAL_P = 0.2` detector
+  was deleted because it cannot work on a corrected model. Pre-0.3.0 files
+  unaffected (specials at -1.6094, never the minimum), asserted in a test
+  alongside one for the broken case. Package commit 2d5f62d. Both release gates
+  re-run because this is an inference-path change.
+
+### 2026-08-17: calibration probes; c carries by addition, the thresholds do not (login node, no SLURM)
+
+- **Purpose:** decide whether the calibration constants can be carried to the
+  corrected model or must be re-derived, before paying for a full re-derivation.
+  Both probes select on the validation half of the seed-42 draw and never touch
+  the golden subset.
+- **c:** 60,000 validation lines (seed 20260817), nine-value grid. Released optimum
+  -19.5 (macro F1 0.95686) against -21 (0.95671); corrected optimum -17.5
+  (0.95726). Shift +2.0 against log 5 = 1.609, and the optimum is flat enough here
+  that the two are not distinguishable. `outputs/rerelease/probe_c.json`.
+- **tau:** six group-A languages, released clamped at -21 and corrected at
+  -19.3906. Two excluded in both (`kdr_Latn`, `chq_Latn`, `low_calibration`). The
+  other four move `tul_Latn` -12.5%, `bkv_Latn` -5.5%, `mpm_Latn` -71.8%,
+  `cmo_Latn` +123.3%; mean delta -0.40 nats. Both directions, two orders of
+  magnitude apart in relative size, so no shift or scaling carries them: **all
+  1,084 must be re-estimated.** `outputs/rerelease/probe_tau.json`.
+
+### 2026-08-17: analysis-chain safety fixes so a second model cannot be scored through the first model's paths (login node, no SLURM)
+
+- **Purpose:** the regeneration points existing scripts at a different model, and
+  several of them write through scratch directories that are symlinks into the
+  durable store, or assert against the released model's artifacts.
+- **Done and each verified by triggering the guard, not by reading it:**
+  `full_test_eval.py` (model sha256 in the fingerprint; refuses to write a
+  non-default model into the store-symlinked root; refuses a stale
+  `learned_bias.npy`), `length_bias.py` (refuses a model that does not match the
+  recorded prediction file), `floor_equalization.py` (model parameter; special
+  columns found by name).
+- **Still to do:** eight further scripts, listed in `EXPERIMENTS_PLAN.md` and
+  `RERELEASE_PLAN.md`, plus two paper tables with no reproducible generator at all
+  (`viterbi_vs_marginal`, `lenbias-norm`).
+
 ### 2026-08-11: Open-source release SHIPPED and merged upstream
 
 - **Outcome:** calibrated UniLID merged into github.com/Ahmetcanyvz/UNILID
@@ -920,8 +1036,12 @@ Code changes before these runs, both reviewed pre-launch by an adversarial agent
   confusers, conflating mechanisms; pure tying leaves untied columns bit-identical
   (unit-verified). Special tokens (each exactly p=0.2 per row, the peak-probability
   artifact investigated 2026-07-18: HF Unigram score-0 specials normalized into every
-  row, 0.8 of all mass, uniform across languages so argmax-neutral) are asserted and
-  never touched.
+  row, 0.8 of all mass) are asserted and never touched.
+  **Correction 2026-08-17:** "uniform across languages so argmax-neutral" was the
+  original wording and is measured false. It is a training defect, not a property
+  of the model; the mass is never read when scoring, and the resulting per-token
+  depression is applied a different number of times per candidate because each
+  language segments the text itself. See the 2026-08-17 entries above.
 
 - **2794210** `unilid-bal-sweeps` — COMPLETED 00:08:52 (2026-07-19). Outcomes
   (`EXPERIMENTS_RESULTS.md` Exp 23): floor equalization rejected at selection (tail

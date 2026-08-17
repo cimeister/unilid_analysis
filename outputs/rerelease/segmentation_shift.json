@@ -1,0 +1,13 @@
+{
+  "n_lines": 3000,
+  "seed": 7,
+  "log5": 1.6094379124341003,
+  "predictions_changed": 14,
+  "segmentation_changed": 1140,
+  "segmentation_finer": 1140,
+  "segmentation_coarser": 0,
+  "mean_tokens_released": 39.36866666666667,
+  "mean_tokens_corrected": 39.92,
+  "n_same_lang_and_segmentation": 1860,
+  "max_abs_score_delta_minus_n_log5": 0.0005541277314478066
+}

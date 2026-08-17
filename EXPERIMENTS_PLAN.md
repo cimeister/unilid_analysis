@@ -897,6 +897,63 @@ Apertus models retrained (Exp 41, 42); the carried-set comparison under the
 primary quantity (Exp 38); the CommonLID out-of-domain check including the
 objective-consistent per-tag metric (Exp 39); the oracle bound (Exp 40).
 
+## Special-token correction and re-release (2026-08-17)
+
+Full execution detail is in `RERELEASE_PLAN.md`; this section carries the status
+of record. Context: per-language training gave four never-read special tokens 0.8
+of every row's mass, depressing every real token by log 5 = 1.6094 nats. Fixed in
+package version 0.3.0 and applied to all four stored models as a closed-form
+transformation.
+
+**Author decisions taken 2026-08-17, not to be silently revisited:**
+1. Regenerate what this machine can. Table 1 carries corrected UniLID, calibrated
+   and Mistral-Nemo rows next to DeepSeek3.2 and Qwen3 rows computed on
+   pre-correction weights, with the mixture stated in the caption. Same for the
+   co-author's WiLI and DSL-ML tables.
+2. Ship the corrected artifacts once their own gates pass, without waiting for the
+   paper. The model card states which paper version its numbers match.
+3. Special tokens must not contribute to a score under any training method.
+4. Both a calibrated and an uncalibrated model go on HuggingFace; the polybox
+   copy of the original uncalibrated model is retired.
+
+- **Defect found, root cause proven, package fixed (0.3.0)** — `finished`.
+  Results: the 2026-08-17 entries at the top of `EXPERIMENTS_RESULTS.md`.
+- **Four stored models corrected and gated 8/8** — `finished`.
+  `analysis/correct_special_token_mass.py`, `analysis/gate_correction.py`.
+- **Effect measured on the golden subset** — `finished`. Macro F1 0.9454 to
+  0.9460, a wash; the re-release is justified by correctness, not metrics.
+- **0.3.0 clamp regression found and fixed** — `finished`. Package commit 2d5f62d.
+- **Calibration probes (c, tau)** — `finished`. c is consistent with carrying by
+  addition; the thresholds are not carryable and all 1,084 must be re-estimated.
+- **B0: separate corpus size from language identity in the unseen-token plateau**
+  — `not started`. One language, four subsample sizes (about 1k / 10k / 100k /
+  full), retrained against the same unmodified base tokenizer; record the plateau
+  value, plateau size and `real_missing` count. Passes if the single-language
+  slope matches the roughly -2.04 nats/decade found across 1,940 languages and
+  `real_missing` stays near zero. This is what lets the paper's appendix sentence
+  be rewritten accurately rather than replaced with another guess. Four
+  `spm_train` runs; the only new code is persisting the `real_missing` count,
+  which is currently a log line only.
+- **B1: make the analysis chain safe to point at a second model** — `ongoing`.
+  Done and verified by triggering the guard: `full_test_eval.py`,
+  `length_bias.py`, `floor_equalization.py`. Remaining: `full_test_floor21.py`,
+  `solo_gates.py`, `gate_variants.py`, `mistralnemo_eval.py`, `release_gates.py`,
+  `build_release_calibration.py`, `commonlid_calibrated.py`,
+  `commonlid_carried.py`. Two paper tables have no reproducible generator at all
+  and need new code: `viterbi_vs_marginal` and `lenbias-norm`.
+- **B2: re-derive the calibration** — `waiting on dependency` (B1). c by the
+  guarded sweep; all 1,084 group-A thresholds; the high-entropy group re-identified
+  under the published criterion (`build_release_calibration.py` asserts the current
+  four and will abort until updated). Group A membership cannot change, being
+  defined by N_L.
+- **B3: regenerate the paper numbers** — `waiting on dependency` (B1, B2).
+  Dependency order in `RERELEASE_PLAN.md`.
+- **B4: ship the corrected artifacts, retire polybox** — `waiting on dependency`
+  (B2 for the calibrated model; the uncalibrated model is ready now).
+- **DeepSeek3.2 and Qwen3 rows (24 cells of `lid_main.tex`)** — `waiting on
+  dependency`: no artifact on this machine and no identified owner. Per decision 1
+  they stay on pre-correction weights with the caption stating it.
+
 ## Notes for whoever resumes this (updated 2026-07-27; pointer corrected 2026-08-06)
 
 Read `EXPERIMENTS_RESULTS.md` "Current state (2026-08-06)" first; it is the
@@ -948,7 +1005,9 @@ to get wrong.
   from the margin family (Exp 31, 33, 34); the Good-Turing finding that the floor
   overstates unseen mass for all 1,940 languages (Exp 27); the macrolanguage
   ceiling measurement (Exp 21); the special-token structure (four tokens at
-  exactly 0.2 per row, argmax-neutral).
+  exactly 0.2 per row). **Correction 2026-08-17:** this read "argmax-neutral",
+  which is measured false. It is a training defect, corrected in version 0.3.0 and
+  in all four stored models; see the re-release section below.
 - **Everything is committed and pushed** to `origin/main`; artifacts of record are
   in `outputs/tables/` and `outputs/diagnostic/`, prediction memmaps and models on
   scratch under `/capstor/scratch/cscs/cmeister747/unilid_analysis/`. Scratch is

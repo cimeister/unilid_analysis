@@ -215,9 +215,17 @@ tying, no renormalization: the scorer sums unnormalized log-weights, and renorma
 would apply `-log Z_L` to every untied token (up to 0.36 nats/token spread, concentrated
 on flat confusers), conflating tying with a per-token bias. Special tokens
 (`<s> </s> <pad> <unk>`, each exactly p=0.2 in every row: HF score-0 specials normalized
-into the rows, 0.8 of all mass, uniform across languages so argmax-neutral) are asserted
-and never tied. Selection: all-strata guard over the three sets, val half; test half
-once.
+into the rows, 0.8 of all mass) are asserted and never tied. Selection: all-strata guard
+over the three sets, val half; test half once.
+
+> **Correction 2026-08-17.** The measurement above is right and the conclusion
+> "uniform across languages so argmax-neutral" (the original wording) is wrong on
+> both counts. It is a training defect, not a property of the model: see
+> "The special-token defect and the corrected artifact" below. The mass is not
+> usable, because no special token's stored weight is ever read when scoring, and
+> the resulting per-token depression of log 5 = 1.6094 nats is not argmax-neutral,
+> because each language scores under its own Viterbi segmentation and so takes the
+> penalty a different number of times.
 
 ## Balanced validation protocol (2026-07-19, plan item 10)
 
@@ -452,7 +460,7 @@ exactly one candidate per track is confirmed there per round.
 
 ## Standing design constraints (why the methods look the way they do)
 
-Every method in this project is designed against four constraints that were set by
+Every method in this project is designed against five constraints that were set by
 the user and are not negotiable per experiment. They explain choices that would
 otherwise look arbitrary.
 
@@ -501,7 +509,17 @@ document count is -0.966, so small languages penalize unseen tokens far less tha
 large ones and attract text they should not. `floor21` clamps each row's minimum
 block to `min(row_minimum, -21)`, one shared constant, nothing raised, observed
 tokens and the four special tokens bit-identical
-(`analysis/floor_equalization.py`). Motivation: it is the subtractive direction,
+(`analysis/floor_equalization.py`).
+
+> **Correction 2026-08-17.** "The four special tokens bit-identical" holds for
+> pre-0.3.0 matrices only, and by accident rather than by construction: their
+> specials sit at -1.6094, far above the row minimum, so the clamp never selected
+> them. From 0.3.0 the specials are parked at the training floor, which makes them
+> the row minimum, so the clamp has to be told which columns to exclude. Both
+> `analysis/floor_equalization.build_equalized_weights` and
+> `unilid/calibration.apply_unseen_token_constant` now take the special columns
+> explicitly, found by name from the vocabulary. See "The 0.3.0 clamp regression"
+> below. Motivation: it is the subtractive direction,
 chosen after every mass-adding variant failed (Exp 9, 13, 18, 19), and it is fully
 modular because the constant is shared and nothing is fitted. The constant was
 selected from the grid {-17, -19, -21, -23} on validation data. Status: carried,
@@ -520,6 +538,22 @@ mass, so the seen-plus-unseen budget is exactly 0.2 and the target unseen mass i
 entries rescaled by `(0.2 - target)/(0.2 - current)` so the row stays normalized.
 No tuned constant exists anywhere in this method: n1 and T come from the
 language's own data and 0.2 is a structural property of the model.
+
+> **Correction 2026-08-17.** The last clause is false. The 0.2 budget is the
+> special-token training defect, not a structural property, and the corrected
+> matrix gives every row a real-token budget of 1.0. The arithmetic above is
+> therefore mis-scaled by a factor of 5 against the corrected model: the target
+> becomes `n1/T`, and the rescaling `(1 - target)/(1 - current)`. Exp 27's finding
+> that the emergent unseen mass overstates the Good-Turing estimate for all 1,940
+> languages (tail median 9x, head median 12x) is a ratio, and the factor of 5
+> cancels between its two sides, but that is not enough to carry it over: n1 and T
+> are counts under each language's own Viterbi segmentation, and the correction
+> shifts segmentation finer (`analysis/segmentation_shift.py`: 1,140 of 3,000 pool
+> lines re-segment, all 1,140 toward more tokens, mean token count 39.369 to
+> 39.920).
+> Both counts must be recounted before the ratio can be quoted against a corrected
+> model. Exp 50's `bgfloor` construction inherits the same 0.2 budget and would
+> need re-deriving before it could be run against a corrected model.
 
 Pre-registered decision (fixed before the judging run, since every mass-adding
 edit had failed): the one-sided variant `target = min(current, 0.2 * n1/T)`, which
@@ -798,6 +832,137 @@ contain lines above the upstream cap, and the 200k model's Azerbaijani row was
 partially collapsed without ever crossing the degeneracy threshold. Both Apertus
 models were retrained in full rather than repaired per language, so each model has
 single-provenance weights.
+
+## The special-token defect and the corrected artifact (2026-08-17)
+
+**The defect.** `UNILID/unilid/trainers/language_specific_trainer.py` gave every
+special token the base tokenizer's own stored score. HuggingFace's Unigram model
+stores special tokens with score `0.0`, which this code path read as a
+log-probability, that is, probability 1.0. Four such tokens dominate the
+subsequent `_log_normalize`, so each lands at exactly 1/5 and every real token is
+depressed by log 5 = 1.6094 nats. Every one of the four stored GlotLID-scale
+models carries exactly 0.800000 special-token mass in every row, independent of
+the language's corpus.
+
+**Why the mass is unusable rather than merely inert.** No special token's stored
+weight is ever read when scoring. The Rust scorer takes the unknown-token score
+from a single model-wide constant (`model.rs`: `min_score - K_UNK_PENALTY`,
+computed from the base tokenizer's vocabulary, never from a per-language row),
+and `<s>`, `</s>`, `<pad>` are reachable only by text containing those literal
+substrings. Verified by perturbation rather than by reading the Rust: setting all
+four entries of every row to -500 changes predicted scores by exactly 0.000000.
+
+**Why it is not argmax-neutral.** Each language scores under its own Viterbi
+segmentation, so a language that segments a text into n_L tokens takes the
+1.6094-nat depression n_L times. Correcting it adds `n_L * log 5`, which differs
+across languages for the same text, and it also shifts the segmentation itself:
+the max-plus DP maximizes `sum(log p_i) + n * log 5`, so a positive per-token
+constant favors finer segmentations. Measured on 3,000 pool lines
+(`analysis/segmentation_shift.py`, `outputs/rerelease/segmentation_shift.json`):
+1,140 of 3,000 lines re-segment, all 1,140 toward more tokens; mean token count
+39.369 to 39.920; predictions change on 14 of 3,000. On the 1,860 lines where both
+the prediction and the segmentation are unchanged, the score delta equals
+`n * log 5` to within 5.5e-4.
+
+**The corrected artifact is a transformation, not a retrain.** Real tokens are
+renormalized over themselves (equivalently, `+ log 5`) and the specials are parked
+at `MIN_TOKEN_LOG_PROB`. `analysis/correct_special_token_mass.py`, guarded by
+`MAX_REAL_MASS_SPREAD = 1.01`. Corroborated by retraining `aai_Latn` (24,580
+lines) under the fixed 0.3.0 code and comparing against (released row + log 5)
+over 99,996 real tokens: correlation 1.00000000, median absolute difference
+1.7e-5, 99.69% within 1e-4. Four files produced, on scratch under `corrected/`:
+`glotlidc_corrected.unilid`, plus corrected apertus200k, apertus131k and
+mistralnemo.
+
+**Gate (`analysis/gate_correction.py`).** Eight languages spanning N_L 85 to
+100,000 are retrained from their own corpus under the fixed code and compared
+against the transformed row. The criterion bounds the *signed* mean difference
+(`MAX_ABS_SIGNED_MEAN = 0.01`; a wrong constant would show about 1.6), the
+mass-weighted difference (`MAX_MASS_WEIGHTED_DIFF = 0.02`), and the correlation
+(`MIN_CORRELATION = 0.9999`). It deliberately does not require exact row
+reproduction: two retrains of `zul_Latn` proved bit-identical to each other but
+not to the released row, because languages above the 100,000-line cap were
+subsampled and the corpus on store is the Apertus draw rather than the original
+one. The threshold was chosen after seeing that exact-reproduction failure, which
+is recorded here because changing a criterion after seeing a failure is exactly
+the move that needs to be visible. Result: 8/8 pass
+(`outputs/rerelease/gate_correction.json`).
+
+## The 0.3.0 clamp regression (found and fixed 2026-08-17)
+
+Parking the specials at `MIN_TOKEN_LOG_PROB` made them each row's minimum.
+`apply_unseen_token_constant` defines a row's unseen tokens as its exact
+minimum-value plateau, so with the specials at -27.631 the minimum is them, the
+plateau of unseen real tokens is never located, and the clamp silently does
+nothing. Every model trained by 0.3.0 as first shipped had the calibration's first
+correction disabled with no message. Found because
+`analysis/probe_calibration_shift.py` reported `modified 0` of 1,940 rows at every
+c for the corrected model against 1,940 for the released one.
+
+Fixed in `unilid/calibration.py` and `analysis/floor_equalization.py`: the clamp
+takes the special columns and excludes them from the minimum, and both callers
+find those columns by name from the vocabulary rather than by detecting the 0.2
+probability (the old `SPECIAL_P = 0.2` detector was deleted, since it cannot work
+on a corrected model). Pre-0.3.0 files are unaffected because their specials sit
+at -1.6094, never the minimum. Package commit 2d5f62d; both release gates re-run
+at 250,000/250,000 because this is an inference-path change.
+
+## The unseen-token plateau is set by corpus size, not by the training floor (2026-08-17)
+
+The paper attributes each row's above-c unseen-token plateau to the training-time
+probability floor. That is wrong. In the sp training path
+(`language_specific_trainer.py:198-232`) a real token takes the SentencePiece
+model's own trained score, and `MIN_TOKEN_LOG_PROB` is assigned explicitly to the
+special tokens and to nothing else. The separate safety clamp
+`max(new_log_probs[t], MIN_TOKEN_LOG_PROB)` in
+`_build_unigramlm_hf_tokenizer_with_new_lprobs` (line 56) does apply to every
+token, but it never binds: every observed plateau value (-19.94 to -13.22) sits
+7.6 to 14.4 nats above the floor's -27.631.
+
+What sets the value is the per-language fit, and it is close to deterministic in
+corpus size. Measured over all 1,940 rows: `corr(plateau, log10 N_L) = -0.9659`,
+with median plateau -13.914 below 1,000 training lines rising to -18.766 above
+50,000. Against Exp 27's own Viterbi token counts the fit is tighter:
+`corr = -0.9924`, `plateau = -5.539 - 2.039 * log10(T)`, R-squared 0.985. This
+reproduces the project's own Exp 10 figure of -0.966 and the precondition asserted
+in `analysis/floor_equalization.py`.
+
+Ruled out as explanations: the missing-token assembly fill (the base tokenizer's
+own scores are 99,997/100,000 distinct and cannot produce a 92,407-entry block of
+identical values), a fixed SentencePiece constant (the value varies by 6.7 nats
+across languages), and the 1e-12 floor (never reached). The special-token defect
+is real but contributes a uniform 1.609 nats, so it explains none of the spread:
+removing it moves the median plateau only from -17.66 to -16.05.
+
+## Probe protocols for the re-release (2026-08-17)
+
+Both probes select on the **validation** half of the seed-42 500k draw
+(`analysis/hierarchical_pool.VAL_MASK`) and never touch the 250,000-line test
+half, which is the golden subset the release gates use.
+
+- **Unseen-token constant (`analysis/probe_calibration_shift.py`).** 60,000 lines
+  drawn from the validation half with seed `PROBE_SEED = 20260817`, swept over
+  `C_GRID = [-27, -25, -23, -21, -19.5, -19, -17.5, -16, -14]` on both the
+  released and the corrected weights, scored by macro F1.
+- **Per-language thresholds (`analysis/probe_tau_shift.py`).** Six group-A
+  languages sampled evenly across the N_L range, thresholds estimated by the
+  recipe of record (top-k over the language's own training lines, keep the lines
+  it is top-scoring on, take the size-adaptive percentile of those margins). The
+  released model is clamped at its own c = -21 and the corrected model at
+  `-21 + log 5 = -19.3906`, which is the like-for-like comparison because it
+  reproduces the old clamped matrix up to the uniform shift.
+
+## Release packaging (`analysis/build_release_calibration.py`)
+
+Not previously covered in this document. The script assembles the shipped
+version-2 `.unilid` container: it takes the base weights, the group-A threshold
+table, the group-B (high-entropy) threshold table, and the training counts, and
+writes the calibration JSON described by `unilid/calibration.Calibration` into the
+container after the weight block. Its constants are hardcoded module-level values,
+including `EXPECTED_GROUP_B_LANGS`, which the script asserts against; a re-release
+whose high-entropy identification returns a different set will abort there until
+that constant is updated. That assertion is deliberate and should not be relaxed
+into a warning.
 
 ## Reproducibility limitations of this record
 

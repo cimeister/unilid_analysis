@@ -92,6 +92,16 @@ edge. The gap between the lowest real token and that edge widens from 9.194 to
 for identical input. This is a behavioural change in its own right and belongs in
 the appendix mechanism section.
 
+**Both predictions above are now measured, not only derived**
+(`analysis/segmentation_shift.py`, `outputs/rerelease/segmentation_shift.json`,
+3,000 pool lines). Segmentation changes on 1,140 of 3,000 lines and the change is
+one-directional: 1,140 finer, 0 coarser, mean token count 39.369 to 39.920,
+exactly as a positive per-token constant in a max-plus DP predicts. On the 1,860
+lines where both prediction and segmentation are unchanged, the score delta equals
+`n * log 5` to within 5.5e-4, which confirms the transformation is what it claims
+to be. 14 of 3,000 predictions change, consistent with the 0.72% on the golden
+subset.
+
 Measured on the 250,000-line golden subset against the recorded gold labels, in
 base mode (`analysis/correction_effect.py`,
 `outputs/rerelease/correction_effect.json`):
@@ -125,15 +135,37 @@ and passes 8 of 8 languages.
 [R] BLOCKING. Nothing may be scored until these are fixed. Each guard below was
 verified by triggering it, not by reading it.
 
-DONE so far: `full_test_eval.py` hashes the model into its resume fingerprint,
-refuses to write a non-default model's results into the store-symlinked scratch
-directory, and refuses to apply the released model's `learned_bias.npy` to a
-different model. `length_bias.py` refuses to pair a non-default model with the
-recorded prediction file. Remaining: `floor_equalization.run()`,
-`solo_gates.run()`, `release_gates.py`, `build_release_calibration.py`,
-`commonlid_calibrated.py`. Those four abort loudly against corrected weights
-rather than producing wrong numbers, so they are lower risk than the two silent
-paths above, but each still needs a model parameter before step 4.
+DONE so far, each verified by triggering the guard: `full_test_eval.py` hashes the
+model into its resume fingerprint, refuses to write a non-default model's results
+into the store-symlinked scratch directory, and refuses to apply the released
+model's `learned_bias.npy` to a different model. `length_bias.py` refuses to pair
+a non-default model with the recorded prediction file. `floor_equalization.py`
+takes a model parameter and finds the special columns by name rather than by
+detecting the 0.2 probability (the old `SPECIAL_P = 0.2` detector is deleted, as
+it cannot work on a corrected model).
+
+REMAINING, each needing a model parameter and a fresh output root. This list is
+wider than the original five; the additions were found by re-walking the chain.
+
+| Script | Why it blocks |
+|---|---|
+| `full_test_floor21.py` | writes `pred_floor21.npy` and `fingerprint_floor21.json` into the store-symlinked directory, unguarded |
+| `solo_gates.py` | sha256 check pinned to the old weights; writes `pred_*_gate.npy` through store symlinks; calls `build_equalized_weights` without special columns |
+| `gate_variants.py` | builds `pred_gate_flat4_prox21.npy` and `tau_flat4.csv`, writes several arrays through store symlinks |
+| `mistralnemo_eval.py` | its entire scratch root is a directory symlink into store |
+| `release_gates.py` | module constants for both models and both reference arrays |
+| `build_release_calibration.py` | hardcoded constants plus `EXPECTED_GROUP_B_LANGS`, which the re-identification may change |
+| `commonlid_calibrated.py` | asserts exact reproduction of old-model predictions and four literal metric values |
+| `commonlid_carried.py` | produces the npz the above asserts against; needs regenerating first |
+
+Two paper tables have no reproducible generator at all and need new code, so they
+are their own work items rather than falling out of the regeneration:
+`viterbi_vs_marginal` (a full-pool pass with `forward=True` and `False`, modelled
+on `full_test_eval.py`) and `lenbias-norm` (the single-alpha comparison in
+`normalized_predict.py` was replaced by an alpha sweep).
+
+`run_all.py` does not orchestrate any of the eleven paper tables; each is its own
+invocation.
 
 - `analysis/full_test_eval.py:63-72` computes its resume fingerprint from the
   bias vectors, the language list, `CHUNK_LINES` and `TOTAL_LINES`. It does not
@@ -265,9 +297,24 @@ returns is an editorial choice.
   path applies the floor only to special tokens, never to real ones, so the value
   is whatever SentencePiece assigns its low-count pieces. My earlier plan said to
   replace it by naming the special-token defect; that would also be wrong, since
-  the defect accounts for 1.609 of an 11.58-nat gap. **Measure the actual origin
-  before editing this sentence.** Replacing one wrong explanation with another is
-  worse than leaving it.
+  the defect accounts for 1.609 of an 11.58-nat gap.
+
+  **MEASURED 2026-08-17, so this sentence can now be rewritten.** The plateau is
+  set by the per-language fit and is near-deterministic in corpus size:
+  `corr(plateau, log10 N_L) = -0.9659` over all 1,940 rows, and against Exp 27's
+  Viterbi token counts `corr = -0.9924` with
+  `plateau = -5.539 - 2.039 * log10(T)`, R-squared 0.985. Median plateau -13.914
+  below 1,000 training lines rising to -18.766 above 50,000. The floor is never
+  reached: every plateau (-19.94 to -13.22) sits 7.6 to 14.4 nats above -27.631.
+  Ruled out: the missing-token assembly fill, a fixed SentencePiece constant, and
+  the 1e-12 floor. This reproduces the project's own Exp 10 figure of -0.966.
+
+  **One caveat gates the wording.** The correlation is measured across 1,940
+  different languages, so corpus size is confounded with language identity. Item
+  B0 (`EXPERIMENTS_PLAN.md`) subsamples one language to four sizes and retrains;
+  if the single-language slope matches the roughly -2.04 nats/decade cross-language
+  slope, the appendix can attribute the plateau to corpus size directly. If it does
+  not, the sentence must be weakened to the correlation without the causal claim.
 
 ### 6. Ship
 
@@ -290,9 +337,26 @@ returns is an editorial choice.
 Step 2 before any scoring. Steps 1 and 3 before step 4. Nothing ships before the
 paper numbers are regenerated.
 
+## A regression this plan's own fix introduced (2026-08-17)
+
+Recorded here because it changes step 3 and step 6. Parking the specials at
+`MIN_TOKEN_LOG_PROB` made them each row's minimum, and
+`apply_unseen_token_constant` defines a row's unseen tokens as its exact
+minimum-value plateau, so for any model trained by 0.3.0 as first shipped the
+plateau was never located and **the calibration's first correction was silently
+disabled**. Found by `analysis/probe_calibration_shift.py` reporting `modified 0`
+of 1,940 rows at every c. Fixed in `unilid/calibration.py` and
+`analysis/floor_equalization.py` (the clamp takes the special columns and excludes
+them from the minimum); pre-0.3.0 files unaffected because their specials sit at
+-1.6094. Package commit 2d5f62d, both release gates re-run.
+
 ## Open items
 
-- Who holds the DeepSeek3.2 and Qwen3 models.
+- Who holds the DeepSeek3.2 and Qwen3 models. Per author decision, the 24 cells
+  stay on pre-correction weights with the caption stating the mixture, so this no
+  longer blocks step 4.
 - Whether the Apertus variants are published or only corrected locally.
 - Whether the package offers users a migration for their own pre-0.3.0 models.
-- Where the rest of the unseen-token gap comes from, which step 5 needs.
+- ~~Where the rest of the unseen-token gap comes from~~ ANSWERED 2026-08-17: the
+  per-language fit's dependence on corpus size, not the floor. See step 5. The
+  remaining sub-question is whether corpus size alone explains it (item B0).

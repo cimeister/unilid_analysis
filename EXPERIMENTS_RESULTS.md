@@ -25,6 +25,180 @@ uniform sample (`seed=42`, without replacement).
 
 ---
 
+## Special-token defect: per-language training gave four unusable tokens 0.8 of every row's mass (2026-08-17, login node, no SLURM job)
+
+**Hypothesis under test:** a setup report of large score differences between
+`--method sp` and `--method em` in `add_language` was assumed to be a
+configuration error on the reporter's side.
+
+**Finding, and it is a defect in this project's own trained models.**
+`unilid/trainers/language_specific_trainer.py` gave each special token the base
+tokenizer's stored score. HuggingFace's Unigram stores specials with score `0.0`,
+read there as a log-probability, that is probability 1.0. Four of them dominate
+the normalization, each lands at exactly 1/5, and every real token is depressed by
+log 5 = 1.6094 nats. All four stored GlotLID-scale models carry exactly 0.800000
+special-token mass in every one of their 1,940 rows, independent of the language's
+corpus size.
+
+The mass is unusable, not merely inert: no special token's stored weight is ever
+read when scoring. Confirmed by perturbation rather than by reading the Rust, so
+the conclusion does not depend on my reading of `model.rs`: setting all four
+entries of every row to -500 changes predicted scores by exactly 0.000000.
+
+**Reproduction of the reported symptom.** On a toy base model whose rows come from
+the pure-Python soft EM (specials at the 1e-12 floor), adding a real-text language
+with the default `sp` mixes two scales. Held-out accuracy 0.24 (sp) against 0.90
+(em) on identical data. Causal test: repairing only the three unemittable specials
+in the sp row and renormalizing, changing nothing else, moves 0.24 to 0.74. So the
+user-visible failure is scale mixing, not a broken estimator.
+
+**Artifacts:** `EXPERIMENTAL_SETUP.md` "The special-token defect and the corrected
+artifact"; package fix in version 0.3.0 (PR #3, commits 9f7c1cf, 56e7fd4, 2d5f62d).
+
+## The correction changes predictions because it is not a constant offset (2026-08-17, login node, no SLURM job)
+
+**Hypothesis under test:** the recorded claim that the special-token mass is
+"uniform across languages so argmax-neutral" (`EXPERIMENTAL_SETUP.md:217`,
+`EXPERIMENTS_CHRONOLOGICAL.md:921`, `EXPERIMENTS_PLAN.md:950`).
+
+**Finding: false, for two compounding reasons.** A language scores under its own
+Viterbi segmentation, so a language segmenting a text into n_L tokens takes the
+1.6094-nat depression n_L times, and n_L differs across candidates for the same
+text. The correction also moves the segmentation itself, because the max-plus DP
+maximizes `sum(log p_i) + n * log 5` and a positive per-token constant favors more
+tokens. Measured on 3,000 pool lines: 1,140 of 3,000 re-segment, all 1,140 toward
+more tokens, mean token count 39.369 to 39.920, predictions change on 14 of 3,000.
+On the 1,860 lines where prediction and segmentation are both unchanged the score
+delta equals `n * log 5` to within 5.5e-4, which is the check that the
+transformation is what it claims to be.
+
+**Artifacts:** `analysis/segmentation_shift.py`,
+`outputs/rerelease/segmentation_shift.json`.
+
+## The corrected artifact is a transformation of the released weights, and it gates 8/8 (2026-08-17, login node, no SLURM job)
+
+**Hypothesis under test:** whether correcting the released model requires
+retraining all 1,940 languages or can be done in closed form.
+
+**Finding: closed form.** Renormalizing each row over its real tokens is exactly
+`+ log 5` on every real token, with the specials parked at the training floor.
+Corroborated by retraining `aai_Latn` (24,580 lines) under the fixed code and
+comparing against (released row + log 5) over 99,996 real tokens: correlation
+1.00000000, median absolute difference 1.7e-5, 99.69% within 1e-4.
+
+**Gate:** eight languages spanning N_L 85 to 100,000, retrained from their own
+corpus and compared against the transformed row. 8/8 pass. The criterion bounds
+the signed mean difference (max 0.01; a wrong constant would show about 1.6), the
+mass-weighted difference (max 0.02) and the correlation (min 0.9999). It does not
+require exact row reproduction: two retrains of `zul_Latn` proved bit-identical to
+each other but not to the released row, because languages above the 100,000-line
+cap were subsampled and the corpus on store is the Apertus draw. **The threshold
+was chosen after seeing that failure**, which is recorded explicitly because
+changing a criterion after seeing a failure is the move that most needs to be
+visible.
+
+**Artifacts:** `analysis/correct_special_token_mass.py`,
+`analysis/gate_correction.py`, `outputs/rerelease/gate_correction.json`, four
+corrected files on scratch under `corrected/`.
+
+## Effect of the correction on the released model: a wash on metrics (2026-08-17, login node, no SLURM job)
+
+**Hypothesis under test:** whether correcting the released weights improves
+accuracy, which would make the re-release a metrics story rather than a
+correctness one.
+
+**Finding: it does not.** On the 250,000-line golden subset (the test half of the
+seed-42 500k draw) against the recorded gold labels, base mode: macro F1 0.9454 to
+0.9460, macro FPR 2.083e-05 to 2.081e-05, accuracy 0.9603 to 0.9604. 1,807 of
+250,000 predictions change (0.72%), 699 fixed and 669 broken. **The case for
+re-releasing is correctness, not metrics.**
+
+This supersedes an earlier estimate of 0.9494 to 0.9509 with 63 fixed and 32
+broken, which was accuracy on a 20,000-line every-149th-line sample rather than
+macro F1 on the golden subset, and was not adequately powered.
+
+**Artifacts:** `analysis/correction_effect.py`,
+`outputs/rerelease/correction_effect.json`.
+
+## The 0.3.0 fix silently disabled the unseen-token constant (regression found and fixed, 2026-08-17)
+
+**Hypothesis under test:** how far the unseen-token constant c moves under the
+correction. The probe answered a different question first.
+
+**Finding: a regression I had shipped.** The probe returned `modified 0` of 1,940
+rows at every c for the corrected model, against 1,940 for the released one.
+Parking the specials at `MIN_TOKEN_LOG_PROB` makes them each row's minimum, and
+`apply_unseen_token_constant` defines a row's unseen tokens as its exact
+minimum-value plateau, so the plateau of unseen real tokens is never located and
+the clamp does nothing. Every model trained by 0.3.0 as first shipped had the
+calibration's first correction disabled with no message. It also re-explains the
+"row minimum -27.631 is at or below c=-21.0; the row is left unchanged" lines in
+the post-fix `add_language` runs, which I had read at the time as the training
+floor acting on real tokens.
+
+**Fix:** the clamp takes the special columns and excludes them from the minimum
+(`unilid/calibration.py`, `analysis/floor_equalization.py`), with both callers
+finding those columns by name from the vocabulary. Pre-0.3.0 files are unaffected,
+their specials sitting at -1.6094 and never being the minimum, which is asserted
+in a test alongside one for the broken case. Both release gates re-run at
+250,000/250,000 because this is an inference-path change.
+
+**Artifacts:** package commit 2d5f62d; `EXPERIMENTAL_SETUP.md` "The 0.3.0 clamp
+regression".
+
+## Probe: c is carryable by addition, the thresholds are not (2026-08-17, login node, no SLURM job)
+
+**Hypothesis under test:** whether the calibration's fixed numbers can be carried
+to the corrected model by adding log 5, or must be re-derived. Both probes select
+on the validation half of the seed-42 draw and never touch the golden subset.
+
+**c: consistent with carrying.** 60,000 validation lines, nine-value sweep, macro
+F1. Released optimum at c = -19.5 (0.95686) against -21 (0.95671); corrected
+optimum at c = -17.5 (0.95726). The shift is +2.0 against log 5 = 1.609, and the
+optimum is flat enough on this subsample that the two are not distinguishable
+here. Note the published c = -21 already sits just off the optimum on the released
+model.
+
+**tau: not carryable, all 1,084 must be re-estimated.** Six group-A languages,
+released clamped at c = -21 and corrected at -21 + log 5 = -19.3906, which is the
+like-for-like comparison. Of the six, two are excluded in both models
+(`kdr_Latn`, `chq_Latn`, both `low_calibration`). The four with thresholds move
+`tul_Latn` 6.7418 to 5.8984 (-12.5%), `bkv_Latn` 12.0420 to 11.3768 (-5.5%),
+`mpm_Latn` 0.15009 to 0.04226 (-71.8%), `cmo_Latn` 0.011712 to 0.026153
+(+123.3%); mean delta -0.40 nats. **The moves go in both directions and differ by
+two orders of magnitude in relative size, so no shift or scaling carries them.**
+The own-won counts move too (for example `mpm_Latn` 1,485 to 1,383), which is the
+mechanism: the margin is a difference between two languages that segment the line
+into different numbers of tokens, so log 5 does not cancel in it.
+
+**Artifacts:** `analysis/probe_calibration_shift.py`, `analysis/probe_tau_shift.py`,
+`outputs/rerelease/probe_c.json`, `outputs/rerelease/probe_tau.json`.
+
+## The unseen-token plateau is set by corpus size, not by the training floor (2026-08-17)
+
+**Hypothesis under test:** the paper's stated cause for each row's unseen-token
+plateau sitting above c, namely the training-time probability floor.
+
+**Finding: the stated cause is wrong, and the floor is never reached.** Every
+observed plateau (-19.94 to -13.22) sits 7.6 to 14.4 nats above the floor's
+-27.631. What sets the value is the per-language fit, near-deterministic in corpus
+size: `corr(plateau, log10 N_L) = -0.9659` over all 1,940 rows, median plateau
+-13.914 below 1,000 training lines rising to -18.766 above 50,000. Against
+Exp 27's Viterbi token counts, `corr = -0.9924`,
+`plateau = -5.539 - 2.039 * log10(T)`, R-squared 0.985. This reproduces the
+project's own Exp 10 figure of -0.966.
+
+**Ruled out:** the missing-token assembly fill (the base tokenizer's scores are
+99,997/100,000 distinct and cannot produce a 92,407-entry block of identical
+values), a fixed SentencePiece constant (the value varies by 6.7 nats across
+languages), and the 1e-12 floor. The special-token defect is real but uniform at
+1.609 nats and explains none of the spread: removing it moves the median plateau
+only from -17.66 to -16.05.
+
+**Still open:** the correlation is across 1,940 different languages, so corpus size
+and language identity are confounded. The single-language subsample experiment
+that separates them is planned and not yet run (`EXPERIMENTS_PLAN.md`, B0).
+
 ## Camera-ready E1: common reporting set (2026-08-07, login node, no SLURM job)
 
 **Question:** on one reporting instrument per role (amendment 9), what are the
@@ -2488,6 +2662,49 @@ errors (vs ~86% on GlotLID test). Top confusions are the same closely-related pa
   the frequency prior is rejected there. The sweep table remains valid as a sweep record.
 
 No results were invalidated during the 2026-05-27 reconstruction.
+
+### Premise now false: the 0.2 special-token budget (2026-08-17)
+
+These entries treat the four special tokens' 0.8 share of every row as a property
+of the model. It is a training defect (see the 2026-08-17 entries at the top of
+this file). **The measurements stand; the derivations built on top of them do
+not.**
+
+- **Exp 27, the Good-Turing target `0.2 * n1/T` and the rescaling
+  `(0.2 - target)/(0.2 - current)`.** The 0.2 budget is the defect. Against a
+  corrected model the target is `n1/T` and the rescaling `(1 - target)/(1 - current)`.
+  The headline finding, that the emergent unseen mass overstates the Good-Turing
+  estimate for all 1,940 languages (tail median 9x, head median 12x), is a ratio in
+  which the factor of 5 cancels, but n1 and T are counts under each language's own
+  Viterbi segmentation and the correction shifts segmentation finer, so both counts
+  must be recounted before the ratio can be quoted against a corrected model.
+- **Exp 50, the `bgfloor` construction.** Inherits the same 0.2 budget and would
+  need re-deriving before it could be run against a corrected model.
+- **The "argmax-neutral" reading of the special-token structure**, recorded in
+  `EXPERIMENTAL_SETUP.md:217`, `EXPERIMENTS_CHRONOLOGICAL.md:921` and
+  `EXPERIMENTS_PLAN.md:950`. Measured false on both counts; all three sites are
+  corrected in place.
+
+### Valid for the shipped artifact, superseded pending regeneration (2026-08-17)
+
+These are correct measurements **of the model as released**, which carries the
+defect. They are not wrong and must not be deleted. Every one of them has to be
+regenerated against the corrected weights before it can be quoted again, because
+the correction changes 0.72% of predictions and moves the thresholds by up to
+123%.
+
+- **Exp 20, the c = -21 sweep over {-17, -19, -21, -23}.** The probe already shows
+  the released optimum sits at -19.5 on validation data, and the corrected optimum
+  further up.
+- **The threshold families: Exp 26, 31, 33, 34, 36, 47, 48.** All 1,084 group-A
+  thresholds must be re-estimated; measured, they move in both directions.
+- **Exp 48, the four-member high-entropy group** (`sco_Latn`, `bjn_Latn`,
+  `arg_Latn`, `vls_Latn`). Identified from predictions, 0.72% of which change, so
+  the membership may change. `analysis/build_release_calibration.py` asserts this
+  exact set and will abort until it is re-derived.
+- **Camera-ready E1 through E5, and every UniLID cell in the paper's tables.**
+  Tracked in `RERELEASE_PLAN.md` and in the `EXPERIMENTS_PLAN.md` re-release
+  section.
 
 **Uncommitted-results caution.** The committed `EXPERIMENTS.md` (commit `b7508fd`, the only
 commit) contains only Experiments 1–6. The working-tree copy adds Experiments 7, 8a, and 9

@@ -87,7 +87,12 @@ what it was measured against:
 - Open item 3 (packaging extras: CI) is thereby DONE for CI; a published wheel
   for the Rust parts is still unstarted.
 - PR #3 open: github.com/Ahmetcanyvz/UNILID/pull/3, carrying 8dd90ec, 3427640,
-  6ab2201.
+  6ab2201, and (folded in per author decision 2026-08-17) the special-token
+  training fix 9f7c1cf, the over-attribution correction 56e7fd4, and the clamp
+  regression fix 2d5f62d. Branch `calibration-release` pushed at 2d5f62d. PR
+  retitled "Special tokens hold no probability mass, plus the out-of-box setup
+  fixes"; description rewritten to lead with the training fix. Package version
+  0.3.0.
 
 ## Special tokens hold no probability mass (2026-08-17, version 0.3.0)
 
@@ -100,8 +105,17 @@ base tokenizer's score, and HuggingFace stores specials with score 0.0, read
 here as a log-probability, i.e. probability 1.0. Four of them then dominated the
 normalization: each landed at exactly 1/5 and every real token was depressed by
 log(5) = 1.6094 nats. All 1,940 rows of the released model carry exactly 0.8 on
-specials, which is why their unseen-token plateau sits near -19 instead of at
-the -27.63 training floor, the phenomenon the unseen-token constant corrects.
+specials.
+
+> **Correction 2026-08-17.** This paragraph originally continued "which is why
+> their unseen-token plateau sits near -19 instead of at the -27.63 training
+> floor". That attribution is measured false and was itself an over-correction of
+> the paper's wrong explanation. The defect contributes a uniform 1.609 nats:
+> removing it moves the median plateau only from -17.66 to -16.05, nowhere near
+> -27.63, and the floor is never reached under the sp path at all. The plateau is
+> set by the per-language fit and tracks corpus size,
+> `corr(plateau, log10 N_L) = -0.9659` over all 1,940 rows. Full record in
+> `EXPERIMENTAL_SETUP.md`, "The unseen-token plateau is set by corpus size".
 
 Why it matters mechanically: no special token's stored weight is ever read when
 scoring. `model.rs` takes the unknown-token score from a single model-wide
@@ -121,6 +135,40 @@ are recorded in SESSION_STATUS.md.
 
 The released artifact is unchanged and both golden gates re-passed at
 250,000/250,000 after the change.
+
+### The 0.3.0 fix introduced a regression, found and fixed the same day
+
+Parking the specials at the training floor made them each row's minimum, and
+`apply_unseen_token_constant` defines a row's unseen tokens as its exact
+minimum-value plateau. So for **any model trained by 0.3.0 as first shipped, the
+unseen-token constant was silently a no-op**: the plateau of unseen real tokens
+was never located and the calibration's first correction disappeared without a
+message. Found by a probe reporting `modified 0` of 1,940 rows at every candidate
+c.
+
+Fixed in `unilid/calibration.py`: the clamp takes the special columns and excludes
+them from the minimum, with callers finding those columns by name from the
+vocabulary. Pre-0.3.0 files are unaffected, their specials sitting at -1.6094 and
+never being the minimum; a test asserts both the working and the broken case.
+Package commit 2d5f62d. Both release gates were re-run because this is an
+inference-path change.
+
+This is the reason `analysis/floor_equalization.py` no longer detects special
+columns by looking for the 0.2 probability: that detector cannot work on a
+corrected model, where the specials hold no mass at all.
+
+### Re-release of the corrected weights
+
+The four stored models are corrected and gated; the corrected calibrated and
+uncalibrated models both go to the Hub and the polybox mirror of the original
+uncalibrated model is retired (author decision 2026-08-17). Note for the model
+card and for any reader of a `.unilid` file: **the container cannot distinguish a
+corrected file from an uncorrected one.** The header encodes only version 1
+against 2, and `FORMAT_VERSION_MAX = 2` means every already-published reader
+rejects a version-3 file, so a version bump is not free. The agreed substitute is
+a load-time report of each row's real-token mass, which is 0.2 for a pre-0.3.0
+file and 1.0 for a corrected one, and needs no format change. Full plan:
+`RERELEASE_PLAN.md`.
 
 ### Found, not fixed (out of scope, flagged for a later decision)
 
