@@ -38,7 +38,6 @@ from analysis.hierarchical_pool import (
 # Global target floors (log-prob). Row minimums span -19.9 to -13.2; -17/-19 lower the
 # low-resource floors toward head levels, -21/-23 probe over-penalization past them.
 FLOORS = [-17.0, -19.0, -21.0, -23.0]
-SPECIAL_P = 0.2
 OUT_DIR = "outputs"
 
 
@@ -72,27 +71,54 @@ def build_equalized_weights(W: np.ndarray, target: float,
     return out, n_mod
 
 
-def run(sample_size: int = DEFAULT_SAMPLE_SIZE, out_dir: str = OUT_DIR):
+def _special_columns(model_path: str) -> list[int]:
+    """Special-token column indices, read from the model's own vocabulary.
+
+    Detecting them by their probability instead only worked while that
+    probability was the 0.2 the defect produced. A corrected model, or anything
+    trained by 0.3.0, parks them at the training floor.
+    """
+    import json as _json
+    import sys as _sys
+    unilid_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "UNILID")
+    if unilid_dir not in _sys.path:
+        _sys.path.insert(0, unilid_dir)
+    from unilid.constants import SPECIAL_TOKENS
+    from unilid.model_io import load_unilid_raw
+
+    tok_json, weights, _langs = load_unilid_raw(model_path)
+    del weights
+    text = tok_json if isinstance(tok_json, str) else tok_json.decode("utf-8")
+    vocab = [t for t, _ in _json.loads(text)["model"]["vocab"]]
+    return [vocab.index(t) for t in SPECIAL_TOKENS.values() if t in vocab]
+
+
+def run(sample_size: int = DEFAULT_SAMPLE_SIZE, out_dir: str = OUT_DIR,
+        model_path: str = None):
     import pandas as pd
+    from analysis.transfer_sweep import UNILID_MODEL_PATH
+
+    model_path = model_path or UNILID_MODEL_PATH
     os.makedirs(os.path.join(out_dir, "tables"), exist_ok=True)
-    weights, langs, lang_to_idx = _load_model_data()
+    weights, langs, lang_to_idx = _load_model_data(model_path)
     train_counts = _load_train_counts()
     N = np.array([train_counts.get(l, 0) for l in langs], dtype=np.float64)
     W = np.array(weights, dtype=np.float32)
     diag = pd.read_csv(DIAG_CSV)
 
-    floors = W.min(axis=1)
+    special_cols = np.array(_special_columns(model_path), dtype=np.int64)
+    if len(special_cols) != 4:
+        raise RuntimeError(f"expected 4 special columns from the vocabulary, "
+                           f"found {len(special_cols)}")
+    real_cols = np.setdiff1d(np.arange(W.shape[1]), special_cols)
+    floors = W[:, real_cols].min(axis=1)
     corr = float(np.corrcoef(floors, np.log10(N + 1.0))[0, 1])
     print(f"row floors: min={floors.min():.3f} max={floors.max():.3f}; "
           f"corr(floor, log10 N) = {corr:.3f}")
     if corr > -0.5:
         raise RuntimeError(f"floor-resource correlation {corr:.3f} is not strongly "
                            f"negative; the premise of this experiment does not hold")
-    special_cols = np.where(np.all(np.abs(np.exp(W.astype(np.float64))
-                                          - SPECIAL_P) < 1e-4, axis=0))[0]
-    if len(special_cols) != 4:
-        raise RuntimeError(f"expected 4 special columns at p={SPECIAL_P}, "
-                           f"found {len(special_cols)}")
 
     texts = _stream_sampled_texts(sample_size)
     data = load_sample(sample_size)
@@ -103,7 +129,7 @@ def run(sample_size: int = DEFAULT_SAMPLE_SIZE, out_dir: str = OUT_DIR):
     test = ~val
     strata = _strata(y_true, langs, lang_to_idx, N, diag)
 
-    model = _load_unilid_model()
+    model = _load_unilid_model(model_path)
     print("Baseline prediction...")
     base_pred = np.array(predict_all(texts, model))
     agree = (base_pred == np.array(data["pred_UniLID"])).mean()
@@ -122,7 +148,7 @@ def run(sample_size: int = DEFAULT_SAMPLE_SIZE, out_dir: str = OUT_DIR):
     for F in FLOORS:
         cfg = f"floor{F:g}"
         print(f"Config {cfg}...")
-        w_new, n_mod = build_equalized_weights(W, F)
+        w_new, n_mod = build_equalized_weights(W, F, special_cols)
         if not np.array_equal(w_new[:, special_cols], W[:, special_cols]):
             raise RuntimeError("special-token columns were modified")
         model.model.set_weight_sets(w_new.tolist())
