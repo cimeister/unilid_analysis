@@ -195,9 +195,60 @@ languages), and the 1e-12 floor. The special-token defect is real but uniform at
 1.609 nats and explains none of the spread: removing it moves the median plateau
 only from -17.66 to -16.05.
 
-**Still open:** the correlation is across 1,940 different languages, so corpus size
-and language identity are confounded. The single-language subsample experiment
-that separates them is planned and not yet run (`EXPERIMENTS_PLAN.md`, B0).
+**Artifacts:** `analysis/plateau_reference_fit.py`,
+`outputs/rerelease/plateau_reference_fit.json`, derived from the committed
+`outputs/diagnostic/gt_counts.csv`.
+
+## B0: corpus size alone sets the plateau, with language identity held fixed (2026-08-17, login node, no SLURM job)
+
+**Hypothesis under test:** the cross-language relation above is confounded, since
+each of its 1,940 points is a different language, so corpus size and language
+identity vary together. Does corpus size account for it on its own?
+
+**Design.** One language's corpus is shuffled once (seed 20260817) and nested
+prefixes of 1,000 / 3,000 / 10,000 / 30,000 / 100,000 lines are retrained against
+the same unmodified base tokenizer, so the only quantity that changes between runs
+is how much text the estimator saw. Nested prefixes rather than independent draws,
+so the smaller corpora are subsets of the larger ones. Three languages chosen
+deterministically from the 282 that reach the 100,000-line cap: `abk_Cyrl`,
+`mam_Latn`, `zul_Latn`. Pre-registered pass criterion: the within-language slope
+lands within 50% of the cross-language slope and `real_missing` stays near zero.
+
+**Finding: PASS, 3/3, and far more tightly than the criterion required.**
+
+| language | slope, nats per decade of tokens | R-squared |
+|---|---|---|
+| `abk_Cyrl` | -2.196 | 0.999 |
+| `mam_Latn` | -2.196 | 0.999 |
+| `zul_Latn` | -2.184 | 0.999 |
+| across 1,940 languages | -2.039 | 0.985 |
+
+Three languages across two scripts agree on the slope to three significant
+figures, at R-squared 0.999. On a common scale (retrained rows are normalized over
+real tokens and sit log 5 above released rows) the within-language fit is
+`plateau = -4.628 - 2.192 * log10(T)` against the cross-language
+`-5.539 - 2.039 * log10(T)`; the two agree to 0.006 nats at log10 T = 6, near the
+median, and to within 0.30 nats across the whole observed range log10 T = 4 to 7.
+
+**The mechanism as a scaling law.** -2.192 nats per decade is an exponent of -0.95
+in natural log, so the plateau probability scales as `T^-0.95`, approximately one
+count in T. That is what an EM fit assigns a token type it never effectively
+observed: a property of the estimator, not of any floor or fallback.
+
+**The one mechanism that could have faked this is ruled out.** `real_missing`, the
+count of base-vocabulary tokens absent from the SentencePiece model and filled
+from the base tokenizer's score, is **0 in all 15 runs**. The plateau block also
+shrinks as the corpus grows (`zul_Latn`: 92,261 entries at 1,000 lines to 82,264
+at 100,000), consistent with more token types being observed rather than with a
+constant being written in.
+
+**Consequence for the paper.** `submission.tex:629-631` currently attributes the
+above-c values to "the training-time probability floor of 10^{-12} and
+renormalization". That can now be replaced with a measured causal statement rather
+than another guess.
+
+**Artifacts:** `analysis/plateau_vs_corpus_size.py`,
+`outputs/rerelease/plateau_vs_corpus_size.json`.
 
 ## Camera-ready E1: common reporting set (2026-08-07, login node, no SLURM job)
 

@@ -926,14 +926,16 @@ transformation.
 - **Calibration probes (c, tau)** — `finished`. c is consistent with carrying by
   addition; the thresholds are not carryable and all 1,084 must be re-estimated.
 - **B0: separate corpus size from language identity in the unseen-token plateau**
-  — `not started`. One language, four subsample sizes (about 1k / 10k / 100k /
-  full), retrained against the same unmodified base tokenizer; record the plateau
-  value, plateau size and `real_missing` count. Passes if the single-language
-  slope matches the roughly -2.04 nats/decade found across 1,940 languages and
-  `real_missing` stays near zero. This is what lets the paper's appendix sentence
-  be rewritten accurately rather than replaced with another guess. Four
-  `spm_train` runs; the only new code is persisting the `real_missing` count,
-  which is currently a log line only.
+  — `finished` 2026-08-17, PASS 3/3. Three languages at the 100,000-line cap
+  (`abk_Cyrl`, `mam_Latn`, `zul_Latn`), five nested subsample sizes each.
+  Within-language slope -2.196 / -2.196 / -2.184 nats per decade of tokens at
+  R-squared 0.999, against -2.039 across 1,940 languages; the two fits agree to
+  0.006 nats near the median T. The plateau probability scales as `T^-0.95`, about
+  one count in T, which is estimator behaviour rather than a floor.
+  `real_missing` is 0 in all 15 runs, ruling out the base-tokenizer fallback.
+  Results: `EXPERIMENTS_RESULTS.md` "B0: corpus size alone sets the plateau".
+  Artifacts: `analysis/plateau_vs_corpus_size.py`,
+  `analysis/plateau_reference_fit.py`, `outputs/rerelease/`.
 - **B1: make the analysis chain safe to point at a second model** — `ongoing`.
   Done and verified by triggering the guard: `full_test_eval.py`,
   `length_bias.py`, `floor_equalization.py`. Remaining: `full_test_floor21.py`,

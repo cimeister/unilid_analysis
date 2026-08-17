@@ -1,0 +1,39 @@
+{
+  "n_languages": 1940,
+  "training_floor": -27.631021115928547,
+  "plateau_min": -19.938652,
+  "plateau_max": -13.215727,
+  "plateau_median": -17.658082999999998,
+  "vs_log10_tokens": {
+    "slope": -2.0393033654698103,
+    "intercept": -5.538945399327118,
+    "corr": -0.9924273115214457,
+    "r_squared": 0.984911968653684
+  },
+  "vs_log10_lines": {
+    "slope": -2.0740855918425596,
+    "intercept": -8.692993630496188,
+    "corr": -0.9658560096911285,
+    "r_squared": 0.9328778314564691
+  },
+  "median_by_band": [
+    {
+      "lines_from": 0,
+      "lines_to": 1000,
+      "n": 96,
+      "median_plateau": -13.9140245
+    },
+    {
+      "lines_from": 1000,
+      "lines_to": 50000,
+      "n": 1462,
+      "median_plateau": -17.515522
+    },
+    {
+      "lines_from": 50000,
+      "lines_to": null,
+      "n": 382,
+      "median_plateau": -18.765684999999998
+    }
+  ]
+}

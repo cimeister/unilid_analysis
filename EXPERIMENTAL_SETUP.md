@@ -934,6 +934,43 @@ across languages), and the 1e-12 floor (never reached). The special-token defect
 is real but contributes a uniform 1.609 nats, so it explains none of the spread:
 removing it moves the median plateau only from -17.66 to -16.05.
 
+The cross-language fit is re-derivable from a committed artifact and is persisted:
+`analysis/plateau_reference_fit.py` reads `outputs/diagnostic/gt_counts.csv` (the
+Exp 27 counting pass) and writes `outputs/rerelease/plateau_reference_fit.json`.
+
+**Corpus size alone accounts for it, with language identity held fixed
+(2026-08-17).** The cross-language fit above confounds corpus size with language
+identity, since each point is a different language.
+`analysis/plateau_vs_corpus_size.py` removes the confound: one language's corpus
+is shuffled once with seed 20260817 and nested prefixes of 1,000 / 3,000 / 10,000
+/ 30,000 / 100,000 lines are retrained against the same unmodified base
+tokenizer, so the only quantity that changes is how much text the estimator saw.
+Three languages chosen deterministically from the 282 that reach the
+100,000-line cap: `abk_Cyrl`, `mam_Latn`, `zul_Latn`.
+
+| language | slope, nats per decade of tokens | R-squared |
+|---|---|---|
+| `abk_Cyrl` | -2.196 | 0.999 |
+| `mam_Latn` | -2.196 | 0.999 |
+| `zul_Latn` | -2.184 | 0.999 |
+| across 1,940 languages | -2.039 | 0.985 |
+
+Put on a common scale (retrained rows are normalized over real tokens and so sit
+log 5 above released rows), the within-language fit is
+`plateau = -4.628 - 2.192 * log10(T)` against the cross-language
+`-5.539 - 2.039 * log10(T)`. The two agree to 0.006 nats at log10 T = 6, near the
+median, and to within 0.30 nats across the whole observed range log10 T = 4 to 7.
+
+**The mechanism, stated as a scaling law.** A slope of -2.192 nats per decade is
+an exponent of -0.95 in natural log, so the plateau probability scales as
+`T^-0.95`: approximately one count in T. That is what an EM fit assigns a token
+type it never effectively observed, and it is a property of the estimator, not of
+any floor or fallback. `real_missing`, the count of base-vocabulary tokens absent
+from the SentencePiece model and filled from the base tokenizer, is **0 in all 15
+runs**, which rules out the fallback as a source of the plateau. The plateau block
+also shrinks as the corpus grows (for `zul_Latn`, 92,261 entries at 1,000 lines to
+82,264 at 100,000), as more token types are observed at least once.
+
 ## Probe protocols for the re-release (2026-08-17)
 
 Both probes select on the **validation** half of the seed-42 500k draw

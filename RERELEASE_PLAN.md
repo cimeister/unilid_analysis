@@ -309,12 +309,21 @@ returns is an editorial choice.
   Ruled out: the missing-token assembly fill, a fixed SentencePiece constant, and
   the 1e-12 floor. This reproduces the project's own Exp 10 figure of -0.966.
 
-  **One caveat gates the wording.** The correlation is measured across 1,940
-  different languages, so corpus size is confounded with language identity. Item
-  B0 (`EXPERIMENTS_PLAN.md`) subsamples one language to four sizes and retrains;
-  if the single-language slope matches the roughly -2.04 nats/decade cross-language
-  slope, the appendix can attribute the plateau to corpus size directly. If it does
-  not, the sentence must be weakened to the correlation without the causal claim.
+  **The confound is now removed (B0, 2026-08-17, PASS 3/3).** Holding language
+  identity fixed and varying only corpus size, three languages give slopes
+  -2.196 / -2.196 / -2.184 nats per decade of tokens at R-squared 0.999, against
+  -2.039 across 1,940 languages; the two fits agree to 0.006 nats near the median
+  T. `real_missing` is 0 in all 15 runs. So the appendix can make the causal
+  statement, not just the correlation.
+
+  **Replacement wording for the appendix, in terms the paper already defines.**
+  The plateau is the smallest probability the per-language fit assigns, and it
+  scales as `T^-0.95` in that language's training-token count T: approximately one
+  count in T. It is estimator behaviour, not the training-time probability floor,
+  which is never reached (every plateau sits 7.7 to 14.4 nats above
+  log(1e-12) = -27.631). Artifacts:
+  `outputs/rerelease/plateau_vs_corpus_size.json`,
+  `outputs/rerelease/plateau_reference_fit.json`.
 
 ### 6. Ship
 

@@ -1,0 +1,286 @@
+{
+  "reference": {
+    "n_languages": 1940,
+    "training_floor": -27.631021115928547,
+    "plateau_min": -19.938652,
+    "plateau_max": -13.215727,
+    "plateau_median": -17.658082999999998,
+    "vs_log10_tokens": {
+      "slope": -2.0393033654698103,
+      "intercept": -5.538945399327118,
+      "corr": -0.9924273115214457,
+      "r_squared": 0.984911968653684
+    },
+    "vs_log10_lines": {
+      "slope": -2.0740855918425596,
+      "intercept": -8.692993630496188,
+      "corr": -0.9658560096911285,
+      "r_squared": 0.9328778314564691
+    },
+    "median_by_band": [
+      {
+        "lines_from": 0,
+        "lines_to": 1000,
+        "n": 96,
+        "median_plateau": -13.9140245
+      },
+      {
+        "lines_from": 1000,
+        "lines_to": 50000,
+        "n": 1462,
+        "median_plateau": -17.515522
+      },
+      {
+        "lines_from": 50000,
+        "lines_to": null,
+        "n": 382,
+        "median_plateau": -18.765684999999998
+      }
+    ]
+  },
+  "sizes": [
+    1000,
+    3000,
+    10000,
+    30000,
+    100000
+  ],
+  "shuffle_seed": 20260817,
+  "log5": 1.6094379124341003,
+  "languages": {
+    "abk_Cyrl": {
+      "n_l": 100000,
+      "points": [
+        {
+          "lines": 1000,
+          "tokens": 34449,
+          "plateau": -13.031220489897198,
+          "plateau_pre_0_3_0_scale": -14.640658402331297,
+          "plateau_size": 98291,
+          "real_missing": 0,
+          "seconds": 5.1
+        },
+        {
+          "lines": 3000,
+          "tokens": 104604,
+          "plateau": -13.989368483758732,
+          "plateau_pre_0_3_0_scale": -15.598806396192831,
+          "plateau_size": 97925,
+          "real_missing": 0,
+          "seconds": 5.2
+        },
+        {
+          "lines": 10000,
+          "tokens": 347826,
+          "plateau": -15.133806223160231,
+          "plateau_pre_0_3_0_scale": -16.74324413559433,
+          "plateau_size": 97651,
+          "real_missing": 0,
+          "seconds": 5.4
+        },
+        {
+          "lines": 30000,
+          "tokens": 1052201,
+          "plateau": -16.22438431088063,
+          "plateau_pre_0_3_0_scale": -17.83382222331473,
+          "plateau_size": 97479,
+          "real_missing": 0,
+          "seconds": 6.1
+        },
+        {
+          "lines": 100000,
+          "tokens": 3494790,
+          "plateau": -17.419010157372334,
+          "plateau_pre_0_3_0_scale": -19.028448069806434,
+          "plateau_size": 97298,
+          "real_missing": 0,
+          "seconds": 9.3
+        }
+      ],
+      "vs_log10_lines": {
+        "slope": -2.202529877275494,
+        "intercept": -6.369594871925663,
+        "corr": -0.9996739440343638,
+        "r_squared": 0.9993479943812202
+      },
+      "vs_log10_tokens": {
+        "slope": -2.1959037050088277,
+        "intercept": -3.01023462240914,
+        "corr": -0.9996327071607435,
+        "r_squared": 0.9992655492255168
+      },
+      "matches_reference": true,
+      "max_real_missing": 0
+    },
+    "mam_Latn": {
+      "n_l": 100000,
+      "points": [
+        {
+          "lines": 1000,
+          "tokens": 36428,
+          "plateau": -13.062467597944623,
+          "plateau_pre_0_3_0_scale": -14.671905510378723,
+          "plateau_size": 93792,
+          "real_missing": 0,
+          "seconds": 4.3
+        },
+        {
+          "lines": 3000,
+          "tokens": 111187,
+          "plateau": -14.02690219593116,
+          "plateau_pre_0_3_0_scale": -15.63634010836526,
+          "plateau_size": 91525,
+          "real_missing": 0,
+          "seconds": 4.8
+        },
+        {
+          "lines": 10000,
+          "tokens": 369196,
+          "plateau": -15.171672822907173,
+          "plateau_pre_0_3_0_scale": -16.781110735341272,
+          "plateau_size": 89049,
+          "real_missing": 0,
+          "seconds": 5.3
+        },
+        {
+          "lines": 30000,
+          "tokens": 1105625,
+          "plateau": -16.251031881577042,
+          "plateau_pre_0_3_0_scale": -17.86046979401114,
+          "plateau_size": 86843,
+          "real_missing": 0,
+          "seconds": 6.6
+        },
+        {
+          "lines": 100000,
+          "tokens": 3713179,
+          "plateau": -17.456218732006565,
+          "plateau_pre_0_3_0_scale": -19.065656644440665,
+          "plateau_size": 84479,
+          "real_missing": 0,
+          "seconds": 10.6
+        }
+      ],
+      "vs_log10_lines": {
+        "slope": -2.202773964621491,
+        "intercept": -6.4027214693660515,
+        "corr": -0.9996945857268517,
+        "r_squared": 0.9993892647315811
+      },
+      "vs_log10_tokens": {
+        "slope": -2.196467297289782,
+        "intercept": -2.98652803750226,
+        "corr": -0.9996450562368194,
+        "r_squared": 0.999290238458714
+      },
+      "matches_reference": true,
+      "max_real_missing": 0
+    },
+    "zul_Latn": {
+      "n_l": 100000,
+      "points": [
+        {
+          "lines": 1000,
+          "tokens": 32245,
+          "plateau": -12.967045798461466,
+          "plateau_pre_0_3_0_scale": -14.576483710895566,
+          "plateau_size": 92261,
+          "real_missing": 0,
+          "seconds": 4.8
+        },
+        {
+          "lines": 3000,
+          "tokens": 98770,
+          "plateau": -13.919466007912728,
+          "plateau_pre_0_3_0_scale": -15.528903920346828,
+          "plateau_size": 90007,
+          "real_missing": 0,
+          "seconds": 4.7
+        },
+        {
+          "lines": 10000,
+          "tokens": 329190,
+          "plateau": -15.059395799688884,
+          "plateau_pre_0_3_0_scale": -16.668833712122986,
+          "plateau_size": 87409,
+          "real_missing": 0,
+          "seconds": 5.1
+        },
+        {
+          "lines": 30000,
+          "tokens": 993091,
+          "plateau": -16.14389229410626,
+          "plateau_pre_0_3_0_scale": -17.753330206540358,
+          "plateau_size": 84957,
+          "real_missing": 0,
+          "seconds": 6.8
+        },
+        {
+          "lines": 100000,
+          "tokens": 3322153,
+          "plateau": -17.344627381425873,
+          "plateau_pre_0_3_0_scale": -18.954065293859973,
+          "plateau_size": 82264,
+          "real_missing": 0,
+          "seconds": 10.5
+        }
+      ],
+      "vs_log10_lines": {
+        "slope": -2.196376492170757,
+        "intercept": -6.321479622957661,
+        "corr": -0.999635382431705,
+        "r_squared": 0.999270897809381
+      },
+      "vs_log10_tokens": {
+        "slope": -2.183930623046672,
+        "intercept": -3.0582573789770793,
+        "corr": -0.9995636927408884,
+        "r_squared": 0.9991275758458015
+      },
+      "matches_reference": true,
+      "max_real_missing": 0
+    }
+  },
+  "passed": true,
+  "within_language_on_released_scale": {
+    "slope": -2.1921005417817607,
+    "intercept": -4.627777925396926,
+    "exponent_on_tokens": -0.9520171690729473
+  },
+  "agreement_across_range": [
+    {
+      "log10_tokens": 4.0,
+      "within": -13.39618009252397,
+      "cross": -13.69615886120636,
+      "difference": 0.29997876868239004
+    },
+    {
+      "log10_tokens": 5.0,
+      "within": -15.588280634305729,
+      "cross": -15.73546222667617,
+      "difference": 0.14718159237044048
+    },
+    {
+      "log10_tokens": 6.0,
+      "within": -17.78038117608749,
+      "cross": -17.77476559214598,
+      "difference": -0.005615583941512625
+    },
+    {
+      "log10_tokens": 6.5,
+      "within": -18.876431446978373,
+      "cross": -18.794417274880885,
+      "difference": -0.0820141720974874
+    },
+    {
+      "log10_tokens": 7.0,
+      "within": -19.97248171786925,
+      "cross": -19.814068957615792,
+      "difference": -0.15841276025345863
+    }
+  ],
+  "thresholds": {
+    "slope_match_tolerance": 0.5,
+    "max_real_missing_fraction": 0.01
+  }
+}

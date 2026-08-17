@@ -25,14 +25,9 @@ PR #3.
 
 ## Next work, in order
 
-- B0 (`not started`): subsample one language to about 1k / 10k / 100k / full and
-  retrain each against the same unmodified base tokenizer, to separate corpus size
-  from language identity in the unseen-token plateau. Four `spm_train` runs. It
-  passes if the single-language slope matches the roughly -2.04 nats/decade
-  cross-language slope and `real_missing` stays near zero; that is what lets the
-  paper's appendix sentence be rewritten with a causal claim instead of a
-  correlation. The only new code is persisting the `real_missing` count, which is
-  currently a log line only.
+- B0: `finished` 2026-08-17, PASS 3/3. The unseen-token plateau is set by corpus
+  size, scaling as `T^-0.95`, and the paper's appendix sentence can now be
+  rewritten with a causal statement.
 - B1 (`ongoing`, gates all scoring): eight scripts still need a model parameter
   and a fresh output root, and two paper tables (`viterbi_vs_marginal`,
   `lenbias-norm`) have no reproducible generator at all. Table in

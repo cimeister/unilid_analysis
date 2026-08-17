@@ -27,6 +27,32 @@ for the infrastructure record.
 `EXPERIMENTAL_SETUP.md` (hierarchical pooling). Full plan:
 `~/.claude/plans/yes-do-both-then-giggly-sprout.md`.
 
+### 2026-08-17: B0, the unseen-token plateau is set by corpus size (login node, no SLURM, 15 spm_train runs)
+
+- **Purpose / hypothesis:** the cross-language plateau relation is confounded,
+  each of its 1,940 points being a different language. Does corpus size account
+  for it with language identity held fixed? Plan item: `EXPERIMENTS_PLAN.md` B0.
+- **Design:** one corpus shuffled once (seed 20260817), nested prefixes of 1,000 /
+  3,000 / 10,000 / 30,000 / 100,000 lines retrained against the same unmodified
+  base tokenizer. Three languages chosen deterministically from the 282 at the
+  100,000-line cap: `abk_Cyrl`, `mam_Latn`, `zul_Latn`. Pass criterion registered
+  in the script before the run: within-language slope inside 50% of the
+  cross-language slope, `real_missing` near zero.
+- **Outcome: PASS 3/3.** Slopes -2.196 / -2.196 / -2.184 nats per decade of
+  tokens, R-squared 0.999, against -2.039 across 1,940 languages. On a common
+  scale the within-language fit is `-4.628 - 2.192 * log10(T)` against
+  `-5.539 - 2.039 * log10(T)`, agreeing to 0.006 nats at log10 T = 6 and to within
+  0.30 nats over log10 T = 4 to 7. The plateau probability scales as `T^-0.95`,
+  about one count in T. `real_missing` is 0 in all 15 runs, ruling out the
+  base-tokenizer fallback as a source of the plateau.
+- **Consequence:** `submission.tex:629-631` can be rewritten with a measured
+  causal statement instead of the current floor attribution.
+- **Artifacts:** `analysis/plateau_vs_corpus_size.py`,
+  `analysis/plateau_reference_fit.py` (the reference fit, re-derived from the
+  committed `outputs/diagnostic/gt_counts.csv` because it had never been
+  persisted), `outputs/rerelease/plateau_vs_corpus_size.json`,
+  `outputs/rerelease/plateau_reference_fit.json`.
+
 ### 2026-08-17: special-token defect found, fixed in the package, and the four stored models corrected (login node, no SLURM)
 
 - **Purpose / hypothesis:** a setup report of large `--method sp` vs `--method em`
