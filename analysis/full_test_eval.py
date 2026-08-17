@@ -60,21 +60,59 @@ def _parse_line(line: str):
     return label, text
 
 
-def _fingerprint(biases: dict, langs: list) -> dict:
+def _model_sha256(model_path: str) -> str:
+    """Hash of the model file the memmaps were produced from.
+
+    The weights are the primary determinant of every stored prediction, and they
+    were absent from this fingerprint until 2026-08-17. Because a completed run
+    marks every chunk done, pointing this script at a different model rescored
+    nothing and recomputed the metrics from the previous model's memmaps, with no
+    error: the silent substitution the project's rules forbid. Found while
+    planning the special-token re-release, where exactly that would have happened.
+    """
+    h = hashlib.sha256()
+    with open(model_path, "rb") as f:
+        for block in iter(lambda: f.read(1 << 22), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
+def _fingerprint(biases: dict, langs: list, model_path: str) -> dict:
     """Identity of everything that determines the memmap contents. A resume with ANY
-    mismatch (edited bias, refit learned_bias.npy, changed chunking, different language
-    set) must abort rather than mix configurations across chunks."""
+    mismatch (different model, edited bias, refit learned_bias.npy, changed chunking,
+    different language set) must abort rather than mix configurations across chunks."""
     fp = {f"sha256_{c}": hashlib.sha256(np.ascontiguousarray(b).tobytes()).hexdigest()
           for c, b in biases.items()}
     fp["langs_sha256"] = hashlib.sha256("|".join(langs).encode()).hexdigest()
+    fp["model_path"] = os.path.abspath(model_path)
+    fp["model_sha256"] = _model_sha256(model_path)
     fp["chunk_lines"] = CHUNK_LINES
     fp["total_lines"] = TOTAL_LINES
     return fp
 
 
-def run(out_dir: str = OUT_DIR):
+def run(out_dir: str = OUT_DIR, model_path: str = None,
+        scratch_dir: str = SCRATCH_DIR):
+    """Score the full test pool.
+
+    ``scratch_dir`` defaults to the directory holding the released model's
+    memmaps, whose entries are symlinks into the store copies that back every
+    published number. Any run against a different model must pass a fresh root,
+    which the guard below enforces rather than trusts.
+    """
     import pandas as pd
-    os.makedirs(SCRATCH_DIR, exist_ok=True)
+    from analysis.transfer_sweep import UNILID_MODEL_PATH
+
+    model_path = model_path or UNILID_MODEL_PATH
+    if os.path.abspath(model_path) != os.path.abspath(UNILID_MODEL_PATH) \
+            and os.path.abspath(scratch_dir) == os.path.abspath(SCRATCH_DIR):
+        raise RuntimeError(
+            f"refusing to write results for {model_path} into {SCRATCH_DIR}: its "
+            f"entries are symlinks into the store copies of y_true.npy, "
+            f"pred_baseline.npy and pred_gate_flat4_prox21.npy, which back the "
+            f"published numbers. Pass scratch_dir=<fresh directory>")
+    SCRATCH = scratch_dir
+    os.makedirs(SCRATCH, exist_ok=True)
     os.makedirs(os.path.join(out_dir, "tables"), exist_ok=True)
 
     weights, langs, lang_to_idx = _load_model_data()
@@ -91,15 +129,15 @@ def run(out_dir: str = OUT_DIR):
     if biases["learned_bias"].shape != (n_lang,):
         raise RuntimeError(f"learned bias shape {biases['learned_bias'].shape} != ({n_lang},)")
 
-    fp = _fingerprint(biases, langs)
-    fp_path = os.path.join(SCRATCH_DIR, "fingerprint.json")
+    fp = _fingerprint(biases, langs, model_path)
+    fp_path = os.path.join(SCRATCH, "fingerprint.json")
     if os.path.exists(fp_path):
         with open(fp_path) as f:
             prev = json.load(f)
         if prev != fp:
             bad = sorted(k for k in fp if prev.get(k) != fp[k])
             raise RuntimeError(
-                f"scratch state in {SCRATCH_DIR} was produced under a different "
+                f"scratch state in {SCRATCH} was produced under a different "
                 f"configuration (mismatched: {bad}); clear the directory or restore "
                 f"the original inputs before resuming")
     else:
@@ -122,8 +160,8 @@ def run(out_dir: str = OUT_DIR):
     expect_pred = dict(zip(sample_test_lines.tolist(), pickle_pred.tolist()))
 
     # --- resumable memmaps keyed by absolute line index ---
-    paths = {c: os.path.join(SCRATCH_DIR, f"pred_{c}.npy") for c in CONFIGS}
-    paths["y_true"] = os.path.join(SCRATCH_DIR, "y_true.npy")
+    paths = {c: os.path.join(SCRATCH, f"pred_{c}.npy") for c in CONFIGS}
+    paths["y_true"] = os.path.join(SCRATCH, "y_true.npy")
     mm = {}
     for name, p in paths.items():
         if os.path.exists(p):
@@ -135,7 +173,7 @@ def run(out_dir: str = OUT_DIR):
                                                  shape=(TOTAL_LINES,))
             mm[name][:] = UNSEEN
             mm[name].flush()
-    progress_path = os.path.join(SCRATCH_DIR, "progress.json")
+    progress_path = os.path.join(SCRATCH, "progress.json")
     done_chunks = set()
     if os.path.exists(progress_path):
         with open(progress_path) as f:
@@ -154,7 +192,7 @@ def run(out_dir: str = OUT_DIR):
                 continue
             if model is None:
                 print("Loading model + caching weight sets...", flush=True)
-                model = _load_unilid_model()
+                model = _load_unilid_model(model_path)
             lines = [fh.readline() for _ in range(hi - lo)]
 
             keep_pos, texts, yt = [], [], []
