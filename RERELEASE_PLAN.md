@@ -103,9 +103,14 @@ correctness rather than a metric gain.
 The existing calibration cannot be carried over: its thresholds are percentiles
 of score margins, and margins move with the segmentation changes above.
 
-- **Unseen-token constant c.** The plateau moves from about -19 to about -17.4,
-  so the current c = -21 still clamps, but the value was chosen by a sweep on the
-  old scale. Re-run the sweep (`analysis/floor_sweep.py`,
+- **Unseen-token constant c.** Measured on both files: the released rows'
+  unseen-token plateau runs from -19.94 to -13.22 with median -17.66, and the
+  corrected rows' from -18.33 to -11.61 with median -16.05, the whole
+  distribution shifted by 1.609 as expected. All 1,940 rows still sit above
+  c = -21 after the correction, so the constant still clamps every row, but it
+  now clamps 1.609 nats harder in relative terms, which is a different correction
+  strength rather than the same one. The value was chosen by a sweep on the old
+  scale, so re-run the sweep (`analysis/floor_sweep.py`,
   `analysis/floor_equalization.py`). Note for interpretation, not as a shortcut:
   c = -21 + log(5) = -19.3906 would reproduce the old calibrated behaviour up to
   the same uniform per-token shift, so the sweep should be expected to land near
