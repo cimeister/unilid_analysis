@@ -27,6 +27,29 @@ for the infrastructure record.
 `EXPERIMENTAL_SETUP.md` (hierarchical pooling). Full plan:
 `~/.claude/plans/yes-do-both-then-giggly-sprout.md`.
 
+### 2026-08-17: corrected-model full-pool baseline pass submitted (job 3107045)
+
+- **Purpose:** the new base predictions for every regenerated GlotLID-C number.
+  Plan item: `EXPERIMENTS_PLAN.md` B3 step 1.
+- **Init-from:** not a training run. Model:
+  `/capstor/scratch/.../corrected/glotlidc_corrected.unilid`, the
+  special-token-corrected transformation of `glotlidc.unilid`.
+- **Data:** the GlotLID test file, all 45,627,279 lines minus the 250,000
+  validation lines, the same pool definition as the released run.
+- **Configuration:** `--configs baseline` only. One full pool pass instead of
+  three; neither `freq_prior` nor `learned_bias` appears in `submission.tex` and
+  `learned_bias.npy` was fit against the released weights (author decision
+  2026-08-17). Setup: `EXPERIMENTAL_SETUP.md`; submission script
+  `slurm_full_test_eval_corrected.sh` (12h walltime, 64 cpus, 400G).
+- **Artifacts:** scratch root
+  `/capstor/scratch/.../full_test_eval_corrected/` (fresh, NOT the released
+  model's store-symlinked directory; `analysis/model_context.py` enforces this
+  rather than leaving it to be remembered). Tables under `outputs_corrected/`.
+  Logs `/capstor/scratch/.../logs/fulltest_corrected_%j.{out,err}`.
+- **Expected:** about 2h14m of scoring by the recorded rate for a full base pass.
+  Resumable; 3 of 92 chunks were already banked by two login-node attempts before
+  submission, both of which were killed along with the session that started them.
+
 ### 2026-08-17: B0, the unseen-token plateau is set by corpus size (login node, no SLURM, 15 spm_train runs)
 
 - **Purpose / hypothesis:** the cross-language plateau relation is confounded,

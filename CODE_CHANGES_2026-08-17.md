@@ -205,13 +205,50 @@ because the delta-against-baseline reporting slices `configs[1:]`.
 
 ---
 
+## Commit `01828c6`: the two tables that had no generator, and a sweepable c grid
+
+**New code.**
+
+- `analysis/viterbi_vs_marginal.py` (new). Nothing in the chain called the
+  forward (marginalizing) scorer over the pool, so `tab:viterbi_vs_marginal`
+  could not be regenerated at all. Chunked and resumable in the manner of
+  `full_test_eval.py`, fingerprinted on the model, and it refuses the released
+  model's memmap directory outright because it writes new arrays there.
+- `analysis/lenbias_norm_table.py` (new). `normalized_predict.py` was extended
+  into an eleven-value alpha sweep whose tables carry neither the Original column
+  nor the agreement check that gives the Raw rescore column its meaning. The
+  agreement check is kept as a hard gate at exact agreement. For a non-default
+  model the Original column is omitted rather than filled from another model's
+  recorded predictions.
+
+**Changed.** `analysis/floor_equalization.py` gained a `floor_grid` parameter, a
+CLI, and `FLOORS_CORRECTED` (the published grid shifted by log 5). The clamp sets
+an absolute target in log space and the correction moved every real token up by
+that amount, so the shifted grid asks the published question of a corrected
+model; the unshifted grid would ask a different one.
+
+**A bug I introduced and caught in the same change.** The new parameter was first
+called `floors`, which collided with the per-row minimum array of the same name
+computed thirteen lines later. The sweep would have iterated over 1,940 row
+minima instead of the four grid values. Renamed to `floor_grid` before running
+anything.
+
+---
+
 ## Runs launched
 
-| Run | Command | Started | Expected |
+| Run | Job | Started | Expected |
 |---|---|---|---|
-| Corrected-model full-pool baseline | `python -m analysis.full_test_eval --model .../glotlidc_corrected.unilid --scratch-dir .../full_test_eval_corrected --configs baseline --out-dir outputs_corrected` | 2026-08-17 | 92 chunks, about 2h14m |
+| Corrected-model full-pool baseline, `--configs baseline` | SLURM 3107045 | 2026-08-17 | 92 chunks, about 2h14m of scoring |
 
-Log: `logs/full_test_eval_corrected.log`.
+Submission script: `slurm_full_test_eval_corrected.sh`. Scratch root
+`/capstor/scratch/.../full_test_eval_corrected/`, tables to `outputs_corrected/`.
+
+**Note on how it was launched.** Two attempts to run this detached from the
+session (`nohup ... &`, then `setsid nohup ... &`) were both killed along with
+the session, after 1 and 3 chunks respectively. The run is resumable and the
+banked chunks were kept, but a multi-hour job belongs in the queue, not on a
+login-node process tied to an interactive session.
 
 ---
 
