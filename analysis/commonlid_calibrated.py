@@ -94,7 +94,8 @@ from analysis.external_bench_eval import (_gate_walk_and_merge, _git_commit,
                                           _score_top5, _sha256_file)
 from analysis.floor_equalization import build_equalized_weights
 from analysis.format_utils import to_markdown
-from analysis.full_test_eval import EMPTY, SCRATCH_DIR as FT_SCRATCH
+from analysis.full_test_eval import EMPTY
+from analysis.model_context import resolve
 from analysis.full_test_floor21 import FLOOR_TARGET
 from analysis.full_test_margin import HEAD_N
 from analysis.gate_variants import D3_PROX, TAU_FLAT4_CSV, TAU_FLOOR21_GATE_CSV
@@ -171,7 +172,7 @@ OUT_PER_TAG_CSV = "outputs/diagnostic/commonlid_calibrated_per_tag.csv"
 # STAGE "score" (SLURM only: loads the full model)
 # ---------------------------------------------------------------------------
 
-def run_score() -> str:
+def run_score(model_path: str = None, scratch_dir: str = None) -> str:
     """STAGE "score". Must run on SLURM (loads the full ~1,940-language model);
     this function makes no host assertion, the requirement is documentation
     only (module docstring, and slurm_commonlid_calibrated.sh)."""
@@ -190,7 +191,9 @@ def run_score() -> str:
             f"{EXPECTED_TAGS} (EXPERIMENTS_PLAN.md, \"Camera-ready evaluation "
             "program\", E5 pre-registration)")
 
-    weights, langs, _unused_lang_to_idx = _load_model_data()
+    ctx = resolve(model_path, scratch_dir,
+                  purpose="CommonLID calibrated scoring")
+    weights, langs, _unused_lang_to_idx = _load_model_data(ctx.model_path)
     n_lang = len(langs)
     W = np.array(weights, dtype=np.float32)
     del weights
@@ -199,8 +202,8 @@ def run_score() -> str:
     macro_tab_sha = _sha256_file(MACRO_TAB)
     git_commit = _git_commit()
 
-    print(f"Loading model ({UNILID_MODEL_PATH})...", flush=True)
-    model = _load_unilid_model()
+    print(f"Loading model ({ctx.model_path})...", flush=True)
+    model = _load_unilid_model(ctx.model_path)
     if model.langs != langs:
         raise RuntimeError("_load_unilid_model's language list differs from "
                            "_load_model_data's; the two loaders read the "
@@ -229,7 +232,7 @@ def run_score() -> str:
     if n_mod != n_lang:
         raise RuntimeError(f"floor {FLOOR_TARGET} modified {n_mod} of "
                            f"{n_lang} languages, expected all of them")
-    fp_path = os.path.join(FT_SCRATCH, "fingerprint_floor21.json")
+    fp_path = os.path.join(ctx.scratch_dir, "fingerprint_floor21.json")
     with open(fp_path) as f:
         fp = json.load(f)
     if fp["floor_target"] != FLOOR_TARGET:
@@ -338,7 +341,9 @@ def run_score() -> str:
         "n_rows": n_rows,
         "n_tags": n_tags,
         "n_empty": n_empty,
-        "model_path": UNILID_MODEL_PATH,
+        "model_path": ctx.model_path,
+        "model_sha256": ctx.sha256(),
+        "is_default_model": ctx.is_default_model,
         "matrix_shas": {
             "sha256_W_loaded": sha_w,
             "sha256_w21_computed": sha_w21,
@@ -543,6 +548,23 @@ def run_eval() -> str:
     # --- WIRING GATES: must reproduce the Exp 12/39 recorded values before
     # the gated configuration's numbers are computed (the E2 sibling's
     # ordering standard) ---
+    #
+    # Those recorded values came from the released (pre-0.3.0) weights. A model
+    # from a different generation misses them by construction, so the four
+    # comparisons below would fire as an opaque numeric mismatch and read as a
+    # wiring bug. Refuse the comparison outright and say what has to be
+    # re-recorded instead.
+    if not meta.get("is_default_model", True):
+        raise RuntimeError(
+            f"the score stage ran against {meta.get('model_path')}, which is "
+            f"not the released model, so the Exp 12/39 reproduction gates below "
+            f"cannot apply: EXPECTED_BASELINE_ACC ({EXPECTED_BASELINE_ACC}), "
+            f"EXPECTED_BASELINE_TAG_F1 ({EXPECTED_BASELINE_TAG_F1}), "
+            f"EVAL_FLOOR21_TAG_F1 ({EVAL_FLOOR21_TAG_F1}) and EVAL_FLOOR21_ACC "
+            f"({EVAL_FLOOR21_ACC}) were all recorded from the released weights.\n"
+            f"Re-record them for this model with analysis/commonlid_carried.py "
+            f"and update the constants, citing the run, before evaluating a "
+            f"gated configuration against it.")
     if abs(acc_baseline - EXPECTED_BASELINE_ACC) > EVAL_GATE_TOL:
         raise RuntimeError(
             f"recomputed baseline macro-aware accuracy {acc_baseline:.4f} "
@@ -706,10 +728,16 @@ def main() -> None:
                     "loads the full model and must run on SLURM; stage "
                     "'eval' reads the scored .npz and runs on the login node.")
     parser.add_argument("--stage", required=True, choices=["score", "eval"])
+    from analysis.model_context import add_arguments
+    add_arguments(parser)
     args = parser.parse_args()
     if args.stage == "score":
-        run_score()
+        run_score(model_path=args.model_path, scratch_dir=args.scratch_dir)
     else:
+        if args.model_path or args.scratch_dir:
+            raise SystemExit(
+                "--model/--scratch-dir apply to --stage score; the eval stage "
+                "reads the model identity from the scored .npz sidecar")
         run_eval()
 
 

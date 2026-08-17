@@ -76,8 +76,44 @@ def main(argv=None) -> int:
                                 model_path="/nonexistent/model.unilid"),
             ]
 
-    print(f"\n{sum(results)}/{len(results)} guard cases behaved as specified")
+    print(f"\n{sum(results)}/{len(results)} resolver cases behaved as specified")
+
+    print("\nevery wired entry point refuses the corrected model on its default "
+          "root:")
+    results += _check_entry_points()
+    print(f"\n{sum(results)}/{len(results)} total cases behaved as specified")
     return 0 if all(results) else 1
+
+
+# Each entry point, with the argv that must be refused. The point of listing them
+# here is that adding a script to the chain without a guard shows up as a failure
+# rather than as an absence.
+ENTRY_POINTS = [
+    ("analysis.full_test_floor21", ["--model", CORRECTED]),
+    ("analysis.solo_gates", ["floor21", "--model", CORRECTED]),
+    ("analysis.gate_variants", ["topk", "--model", CORRECTED]),
+    ("analysis.commonlid_carried", ["--model", CORRECTED]),
+    ("analysis.commonlid_calibrated", ["--stage", "score", "--model", CORRECTED]),
+    ("analysis.mistralnemo_eval", ["--stage", "eval", "--model", CORRECTED]),
+    ("analysis.release_gates", ["--mode", "base", "--model", CORRECTED]),
+]
+
+
+def _check_entry_points():
+    import subprocess
+    import sys as _sys
+    out = []
+    for module, argv in ENTRY_POINTS:
+        proc = subprocess.run([_sys.executable, "-m", module] + argv,
+                              capture_output=True, text=True, timeout=900)
+        blob = proc.stdout + proc.stderr
+        refused = proc.returncode != 0 and (
+            "UnsafeModelContext" in blob or "refusing to gate" in blob)
+        out.append(refused)
+        print(f"  {'PASS' if refused else 'FAIL'}  {module}")
+        if not refused:
+            print(f"          exit {proc.returncode}: {blob.strip()[-300:]}")
+    return out
 
 
 if __name__ == "__main__":

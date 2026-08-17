@@ -44,6 +44,13 @@ CAL_MODEL = f"{STORE}/release/unilid-1940-calibrated.unilid"
 REF = {"base": f"{STORE}/full_test_eval/pred_baseline.npy",
        "calibrated": f"{STORE}/full_test_eval/pred_gate_flat4_prox21.npy"}
 OUT_DIR = "outputs/release"
+# Model generations are not comparable. The reference arrays above were recorded
+# from the released (pre-0.3.0) weights, and the special-token correction changes
+# 0.72% of predictions by design, so a corrected model fails the base gate's exact
+# equality by construction and the calibrated gate's 0.999 agreement too. Running
+# a corrected model against these references measures nothing; it has to be gated
+# against references recorded from itself. _resolve_paths below refuses the
+# mismatch instead of letting an hour of scoring produce a meaningless FAIL.
 EMPTY = -1                    # reference sentinel: empty after preprocess
 CHUNK = 10_000
 EPS = 1e-3                    # nats; the recorded boundary epsilon
@@ -138,12 +145,34 @@ def _forensics(model, texts, indices, pkg, ref, langs):
     return rows, n_unexplained
 
 
-def run(mode: str):
+def _resolve_paths(mode: str, model_path: str | None, ref_path: str | None):
+    """The (model, reference) pair for this gate, refusing a cross-generation
+    comparison. Returns (model_path, ref_path)."""
+    default_model = BASE_MODEL if mode == "base" else CAL_MODEL
+    model_path = os.path.abspath(model_path or default_model)
+    is_default = model_path == os.path.abspath(default_model)
+    if ref_path is None:
+        if not is_default:
+            raise SystemExit(
+                f"refusing to gate {model_path} against {REF[mode]}.\n"
+                f"That reference was recorded from {default_model}, and a model "
+                f"from a different generation disagrees with it by construction, "
+                f"so the comparison measures nothing. Record a reference from "
+                f"this model first and pass it with --ref.")
+        ref_path = REF[mode]
+    return model_path, os.path.abspath(ref_path)
+
+
+def run(mode: str, model_path: str = None, ref_path: str = None,
+        out_dir: str = OUT_DIR, label: str = None):
     from unilid.model_io import UnilidModel
 
-    os.makedirs(OUT_DIR, exist_ok=True)
+    model_path, ref_path = _resolve_paths(mode, model_path, ref_path)
+    os.makedirs(out_dir, exist_ok=True)
+    print(f"gate {mode}: model {model_path}\n          reference {ref_path}",
+          flush=True)
     indices = _golden_indices()
-    ref_all = np.load(REF[mode], mmap_mode="r")
+    ref_all = np.load(ref_path, mmap_mode="r")
     ref = np.asarray(ref_all[indices])
     if (ref == -3).any() or (ref == -2).any():
         raise RuntimeError(
@@ -153,10 +182,7 @@ def run(mode: str):
     print(f"Collecting {len(indices):,} golden lines from the test pool...")
     texts = _collect_texts(indices)
 
-    if mode == "base":
-        model = UnilidModel(BASE_MODEL, calibrated=False)
-    else:
-        model = UnilidModel(CAL_MODEL, calibrated=True)
+    model = UnilidModel(model_path, calibrated=(mode != "base"))
     lang_to_idx = {lang: i for i, lang in enumerate(model.langs)}
 
     print(f"Scoring ({mode})...")
@@ -167,8 +193,7 @@ def run(mode: str):
     agreement = n_agree / n
     result = {"mode": mode, "n_lines": n, "n_agree": n_agree,
               "agreement": agreement, "eps_nats": EPS,
-              "model": BASE_MODEL if mode == "base" else CAL_MODEL,
-              "reference": REF[mode]}
+              "model": model_path, "reference": ref_path}
 
     if mode == "base":
         result["gate"] = "exact_equality"
@@ -189,7 +214,8 @@ def run(mode: str):
         passed = agreement >= CAL_AGREEMENT_MIN and n_unexplained == 0
 
     result["passed"] = passed
-    out_path = os.path.join(OUT_DIR, f"gate_{mode}.json")
+    suffix = f"_{label}" if label else ""
+    out_path = os.path.join(out_dir, f"gate_{mode}{suffix}.json")
     with open(out_path, "w") as f:
         json.dump(result, f, indent=1)
     print(f"{mode} gate: agreement {agreement:.6f} ({n_agree:,}/{n:,}) -> "
@@ -199,10 +225,20 @@ def run(mode: str):
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mode", choices=["base", "calibrated"], required=True)
+    parser.add_argument("--model", dest="model_path", default=None,
+                        help="model to gate (default: the released one for this mode)")
+    parser.add_argument("--ref", dest="ref_path", default=None,
+                        help="reference prediction array; required when --model "
+                             "is not the released model")
+    parser.add_argument("--out-dir", default=OUT_DIR)
+    parser.add_argument("--label", default=None,
+                        help="suffix for the output filename, so generations do "
+                             "not overwrite each other")
     args = parser.parse_args()
-    run(args.mode)
+    run(args.mode, model_path=args.model_path, ref_path=args.ref_path,
+        out_dir=args.out_dir, label=args.label)
 
 
 if __name__ == "__main__":

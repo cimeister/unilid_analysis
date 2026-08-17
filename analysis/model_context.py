@@ -104,7 +104,8 @@ class ModelContext:
         return model_sha256(self.model_path)
 
     def describe(self) -> str:
-        which = "the released model" if self.is_default_model else "a NON-DEFAULT model"
+        which = ("this chain's default model" if self.is_default_model
+                 else "a NON-DEFAULT model")
         return (f"{which}\n  model   {self.model_path}\n"
                 f"  outputs {self.scratch_dir}")
 
@@ -112,14 +113,19 @@ class ModelContext:
 def resolve(model_path: Optional[str] = None,
             scratch_dir: Optional[str] = None,
             *,
+            default_model: Optional[str] = None,
             default_scratch: Optional[str] = None,
             purpose: str = "") -> ModelContext:
     """Resolve the model and output root, refusing the unsafe combinations.
 
-    ``default_scratch`` lets a script that owns a different output root (the
-    Mistral-Nemo chain) keep its own default while getting the same guard.
+    ``default_model``/``default_scratch`` let a chain that owns a different pair
+    keep its own defaults while getting the same guard. The Mistral-Nemo chain
+    is the case that needs them: its model is the packed variant, not the base
+    model, and its output root is itself a symlink into the store, so without an
+    explicit default it would be refused on its own normal path.
     """
-    default_model, module_default_scratch = _defaults()
+    module_default_model, module_default_scratch = _defaults()
+    default_model = default_model or module_default_model
     default_scratch = default_scratch or module_default_scratch
 
     model_path = os.path.abspath(model_path or default_model)

@@ -276,6 +276,58 @@ GATE_TOPK_FP_NEMO = os.path.join(SCRATCH_DIR_NEMO,
 PRED_NEMO_FLOOR21 = os.path.join(SCRATCH_DIR_NEMO, "pred_nemo_floor21.npy")
 PRED_NEMO_GATED = os.path.join(SCRATCH_DIR_NEMO, "pred_nemo_gated.npy")
 
+# ---------------------------------------------------------------------------
+# Model context
+#
+# SCRATCH_DIR_NEMO is itself a symlink into /capstor/store/cscs/swissai, and
+# every path above is derived from it at import time, so a run against corrected
+# Mistral-Nemo weights would have written through those symlinks and replaced the
+# E3 artifacts of record. configure() re-resolves the pair through
+# analysis.model_context (which refuses a non-default model paired with a
+# store-backed root) and re-derives the paths. The defaults are this chain's own
+# packed model and root, not the base model's, so the ordinary invocation is
+# unaffected.
+# ---------------------------------------------------------------------------
+DEFAULT_PACKED_MODEL_PATH = PACKED_MODEL_PATH
+DEFAULT_SCRATCH_DIR_NEMO = SCRATCH_DIR_NEMO
+
+
+def configure(model_path: str = None, scratch_dir: str = None):
+    """Resolve the (packed model, output root) pair and re-derive every path."""
+    from analysis.model_context import resolve
+    global PACKED_MODEL_PATH, SCRATCH_DIR_NEMO
+    global FP_BASELINE_PATH, PROGRESS_BASELINE_PATH, PRED_NEMO_BASELINE
+    global FP_CALIBVAL_PATH, CALIBVAL_IDX_PATH, PRED_NEMO_CALIBVAL
+    global FP_FLOOR21_NEMO_PATH, PROGRESS_TOPK_PATH, TOPK_CHUNKS_DIR
+    global CHUNKS_FP_PATH, GATE_TOPK_LINES_NEMO, GATE_TOPK_IDS_NEMO
+    global GATE_TOPK_SCORES_NEMO, GATE_TOPK_FP_NEMO
+    global PRED_NEMO_FLOOR21, PRED_NEMO_GATED
+
+    ctx = resolve(model_path, scratch_dir,
+                  default_model=DEFAULT_PACKED_MODEL_PATH,
+                  default_scratch=DEFAULT_SCRATCH_DIR_NEMO,
+                  purpose="Mistral-Nemo variant scoring")
+    PACKED_MODEL_PATH = ctx.model_path
+    SCRATCH_DIR_NEMO = d = ctx.scratch_dir
+    FP_BASELINE_PATH = os.path.join(d, "fingerprint_baseline.json")
+    PROGRESS_BASELINE_PATH = os.path.join(d, "progress_baseline.json")
+    PRED_NEMO_BASELINE = os.path.join(d, "pred_nemo_baseline.npy")
+    FP_CALIBVAL_PATH = os.path.join(d, "fingerprint_calibval.json")
+    CALIBVAL_IDX_PATH = os.path.join(d, "calibval_line_indices.npy")
+    PRED_NEMO_CALIBVAL = os.path.join(d, "pred_nemo_calibval.npy")
+    FP_FLOOR21_NEMO_PATH = os.path.join(d, "fingerprint_floor21_mistralnemo.json")
+    PROGRESS_TOPK_PATH = os.path.join(d, "progress_topk.json")
+    TOPK_CHUNKS_DIR = os.path.join(d, "topk_partial_nemo")
+    CHUNKS_FP_PATH = os.path.join(TOPK_CHUNKS_DIR, "chunks_fingerprint.json")
+    GATE_TOPK_LINES_NEMO = os.path.join(d, "gate_topk_lines_nemo.npy")
+    GATE_TOPK_IDS_NEMO = os.path.join(d, "gate_topk_ids_nemo.npy")
+    GATE_TOPK_SCORES_NEMO = os.path.join(d, "gate_topk_scores_nemo.npy")
+    GATE_TOPK_FP_NEMO = os.path.join(d, "gate_topk_fingerprint_nemo.json")
+    PRED_NEMO_FLOOR21 = os.path.join(d, "pred_nemo_floor21.npy")
+    PRED_NEMO_GATED = os.path.join(d, "pred_nemo_gated.npy")
+    print(f"Mistral-Nemo chain against {ctx.describe()}", flush=True)
+    return ctx
+
 # Repo-side artifact names (outputs/).
 FLAT_SET_CSV = "outputs/diagnostic/mistralnemo_flat_set.csv"
 FLAT_SET_MD = "outputs/tables/mistralnemo_flat_set.md"
@@ -2004,7 +2056,10 @@ def main() -> None:
                     "model), flatrule (login node), tau, topk (SLURM), eval "
                     "(login node).")
     parser.add_argument("--stage", required=True, choices=list(STAGES))
+    from analysis.model_context import add_arguments
+    add_arguments(parser)
     args = parser.parse_args()
+    configure(args.model_path, args.scratch_dir)
     STAGES[args.stage]()
 
 

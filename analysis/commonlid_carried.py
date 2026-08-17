@@ -24,7 +24,7 @@ import pandas as pd
 
 from analysis.commonlid_eval import (_read_commonlid, _load_macro_member_to_macro,
                                      _canonical_correct)
-from analysis.full_test_eval import SCRATCH_DIR as FT_SCRATCH
+from analysis.model_context import resolve
 from analysis.transfer_sweep import _load_model_data, _load_unilid_model
 from analysis.floor_equalization import build_equalized_weights
 from analysis.full_test_gt import build_gt_weights, GT_CSV
@@ -41,9 +41,12 @@ OUT_MD = "outputs/tables/commonlid_carried.md"
 SCORE_CHUNK = 20_000
 
 
-def run(out_md: str = OUT_MD) -> str:
+def run(out_md: str = OUT_MD, model_path: str = None,
+        scratch_dir: str = None) -> str:
     m2M = _load_macro_member_to_macro()
-    weights, langs, _m = _load_model_data()
+    ctx = resolve(model_path, scratch_dir, purpose="CommonLID carried scoring")
+    print(f"CommonLID (carried) against {ctx.describe()}", flush=True)
+    weights, langs, _m = _load_model_data(ctx.model_path)
     n_lang = len(langs)
     W = np.array(weights, dtype=np.float32)
     del weights
@@ -63,7 +66,7 @@ def run(out_md: str = OUT_MD) -> str:
     texts, tags = _read_commonlid()
     tags = np.array(tags)
     print(f"{len(texts):,} CommonLID lines")
-    model = _load_unilid_model()
+    model = _load_unilid_model(ctx.model_path)
     pre, vidx = [], []
     for i, t in enumerate(texts):
         p = model.preprocess(t)
@@ -116,7 +119,7 @@ def run(out_md: str = OUT_MD) -> str:
     if n_mod != n_lang:
         raise RuntimeError(f"floor {FLOOR_TARGET} modified {n_mod} rows, expected "
                            f"all {n_lang}")
-    scr = FT_SCRATCH
+    scr = ctx.scratch_dir
     with open(os.path.join(scr, "fingerprint_floor21.json")) as f:
         if hashlib.sha256(w21.tobytes()).hexdigest() != json.load(f)["sha256_w21"]:
             raise RuntimeError("rebuilt floor-21 matrix does not match the recorded "
@@ -189,5 +192,15 @@ def run(out_md: str = OUT_MD) -> str:
     return out_md
 
 
+def main(argv=None):
+    import argparse
+    from analysis.model_context import add_arguments
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--out-md", default=OUT_MD)
+    add_arguments(ap)
+    a = ap.parse_args(argv)
+    run(out_md=a.out_md, model_path=a.model_path, scratch_dir=a.scratch_dir)
+
+
 if __name__ == "__main__":
-    run()
+    main()
