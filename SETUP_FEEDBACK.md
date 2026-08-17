@@ -1,125 +1,211 @@
-# UNILID setup: friction points for new users
+# UNILID setup: second pass, on PR #3
 
-Context: followed the README's Installation and "Add your own language" sections
-on a clean macOS checkout (fresh clone, fresh Python venv, system-installed but
-old Rust toolchain) to get the package running and try `unilid-add-language`.
-The install ultimately succeeded and the add-language walkthrough and test
-suite both work, but five points cost significant back-and-forth versus what
-the README implies is a straight-line setup. Listed roughly in the order a new
-user would hit them, with a suggested fix for each.
+Context: a follow-up to an earlier onboarding pass on the `release` branch,
+this time against `cimeister/calibration-release` (PR
+[#3](https://github.com/Ahmetcanyvz/UNILID/pull/3)), which is a maintainer
+response to that earlier feedback. Same environment as before (clean macOS
+checkout, fresh venv), same task (install, add a language, test it), run
+independently rather than by trusting the PR description. All five prior
+issues were re-tested from scratch; four are fixed outright, one is fixed as
+documentation. One new, minor, cosmetic issue turned up.
 
-## 1. Submodules silently absent, and the failure downstream doesn't say why
+## Previously reported issues: verified status
 
-`git submodule status` on a fresh clone showed both `sentencepiece` and
-`tokenizers` prefixed with `-`, meaning uninitialized — even though the repo
-was cloned in a way that should have pulled them. Nothing at clone time warns
-about this; the first sign of trouble is `maturin develop --release` failing
-much later with a Cargo manifest parse error that has nothing to do with
-submodules on its face.
+1. **Submodules silently absent.** `doctor.py` (new in this PR) now checks
+   `sentencepiece`/`tokenizers` checkout state explicitly and prints
+   `git submodule update --init --recursive` as the fix before any build is
+   attempted, rather than letting a missing submodule surface later as an
+   unrelated Cargo error. Verified: running `python doctor.py` against a repo
+   with only the top-level clone (no `.venv`, submodules present since `gh pr
+   checkout` fetches them, but before Rust/maturin were on PATH) correctly
+   named each missing piece one at a time as it was resolved. **Fixed.**
 
-**Suggested fix:** have `pip install -e .` or the maturin build step check
-whether `tokenizers/tokenizers/Cargo.toml` (or similar) exists before
-attempting to build, and fail fast with "submodules not initialized — run
-`git submodule update --init --recursive`" instead of letting Cargo produce an
-unrelated-looking error.
+2. **No minimum Rust version / misleading nightly-flag error.**
+   `tokenizers/tokenizers/rust-toolchain` and
+   `tokenizers/bindings/python/rust-toolchain` now pin `1.93.1`, so `rustup`
+   fetches a known-good toolchain automatically instead of using whatever
+   `stable` happens to be installed (which is what produced the confusing
+   `-Z weak-dep-features` error last time). `doctor.py` also reports the
+   resolved `rustc` version directly. **Fixed.**
 
-## 2. No minimum Rust version stated, and the failure mode when it's too old is misleading
+3. **No upper bound on Python, tested only to 3.12.** `pyproject.toml`
+   classifiers now list 3.9 through 3.14. Installed directly onto the system
+   Python here (3.14.5, no venv pin needed this time) with
+   `pip install -e ".[dev]"`: no warnings, no errors. **Fixed** (confirmed by
+   actually using 3.14 rather than sidestepping it as before).
 
-The README says a Rust toolchain is required ("install via rustup") but gives
-no minimum version. With whatever `stable` a system happened to have installed
-previously (in this case rustc 1.51.0, from 2021), the build fails with:
+4. **`pytest` failing out of the box on the minimal `[dev]` install.** Ran
+   `python -m pytest tests/` right after `pip install -e ".[dev]"` and
+   `maturin develop --release`, no SentencePiece anywhere: **102 passed, 2
+   skipped**, zero errors. The two `spm_train`-dependent tests now skip with
+   an explicit reason instead of erroring. Also checked the specific failure
+   mode from before — running `unilid-add-language ... --method sp` without
+   `spm_train` on PATH now raises a `RuntimeError` naming the missing binary
+   and the fix (`method='sp' ... needs the spm_train executable ... build it
+   (see README) or pass method='em'`), rather than a bare
+   `FileNotFoundError: spm_train`. The PR description attributes this to two
+   underlying bugs (a `spm is None` check that couldn't distinguish "package
+   missing" from "package shadowed by the sentencepiece submodule directory
+   as a namespace package" at the repo root, and a base/per-language training
+   method conflation causing `spm_train` to be reached even under
+   `--method em`); I didn't inspect the diff, but the observable behavior
+   matches what the fix claims. **Fixed.**
+
+5. **Add-language toy vocabulary caveat undocumented.** Both `README.md`
+   ("Add your own language") and `examples/add_language/README.md` now state
+   up front that the 300-token toy vocabulary doesn't cover real-world text
+   and point at the released 1,940-language model as the realistic starting
+   point. **Fixed** (as a documentation caveat, which was the requested fix).
+
+## Re-running the concrete test: adding a real language
+
+Repeated the same experiment as before — extracting real Python source lines
+from this repository (300 train / 50 held-out test lines, deterministic
+split) and adding them to the toy calibrated model as a new language
+`python_Code` via `unilid-add-language ... --method em` — end to end on the
+PR #3 code, without reusing any prior artifacts.
+
+Result: **held-out accuracy 0.98** (up from 0.68 on the same experiment
+against the pre-PR code), with the three base toy languages unaffected
+(1.00). The EM trainer still reports a ~21.5% UNK rate against the 300-token
+vocabulary (consistent with the now-documented caveat that a toy vocabulary
+doesn't cover real text), but overall accuracy improved substantially. This
+is very likely a side effect of the PR's `base_em_mode`/`use_sp_seed_vocab`
+split: `run_example.sh` no longer trains the *base* vocabulary with the same
+narrow soft-EM path used for the toy per-language distributions, and now
+defaults to HuggingFace's `UnigramTrainer` for the base step (documented in
+the updated `examples/add_language/README.md`, step 2). One live sanity
+check still misfires as expected given the narrow vocabulary: a plain English
+sentence ("The quick brown fox...") is classified as `python_Code` rather
+than as any base language, which is consistent with the documented caveat
+that out-of-vocabulary text tends to fall toward whatever language's
+distribution is least peaked, not a new problem.
+
+## New finding: the default `--method sp` path degrades much further than documented when the base vocabulary is narrow and the new language is real text
+
+`unilid-add-language` defaults to `--method sp` (`unilid/add_language.py:299`,
+`default="sp"`), and the code's own error message calls it "the
+release-verified training path"; `--method em` is the explicitly-unverified
+fallback used only when `spm_train` is unavailable. Everything reported above
+used `--method em`, so it exercised the non-default, non-release-verified
+path only. Verifying the actual default required building the optional
+SentencePiece CLI, which needs `cmake` (not present in the base environment;
+only `g++`/`clang++` were). Exact steps, run from the repo root with the
+venv already active from the base install above:
+
+```bash
+brew install cmake
+git submodule update --init sentencepiece
+cd sentencepiece && mkdir -p build && cd build
+cmake ..
+make -j"$(sysctl -n hw.ncpu)"
+cd ../..
+export PATH="$(pwd)/sentencepiece/build/src:$PATH"   # spm_train on PATH, no sudo install
+pip install -e ".[train]"                             # sentencepiece pip package
+python doctor.py                                       # now reports "ready" fully green,
+                                                         # sentencepiece: "binary and Python
+                                                         # package both present"
+python -m pytest tests/ -q                             # 104 passed (the 2 that skip
+                                                         # without spm_train now run)
+```
+
+With that in place, the same `python_Code` addition (300 real Python source
+lines from this repository, same held-out 50-line test split) was re-run
+with the default method:
+
+```bash
+cd examples/add_language
+unilid-add-language work/toy_calibrated.unilid python_Code \
+    work/python_Code_train.txt -o work/toy_extended_python_sp.unilid
+    # no --method flag: this is the documented top-level usage from the
+    # README's "Add your own language" section, and resolves to sp
+```
+
+Result, compared to the `em` run already reported above:
+
+| method | held-out accuracy on `python_Code` | calibration outcome |
+|---|---|---|
+| `em` (non-default, "not verified against the release's end-to-end chain") | 0.98 | normal (281/300 own-won calibration lines) |
+| `sp` (**default**, "the release-verified training path") | **0.14** | **excluded**: only 39/300 own-won calibration lines, `cause=low_calibration`, printed as `'python_Code' will never be re-examined` |
+
+The three base toy languages (`aaa_Latn`, `bbb_Latn`, `ccc_Latn`) stayed at
+1.00 accuracy under both methods — existing languages are not put at risk
+either way. The gap is specific to the newly added language's own quality.
+
+`examples/add_language/README.md` already documents that `sp` and `em`
+diverge at toy data sizes (0.60 vs 0.98, for the constructed `ddd_Latn`
+case), and separately documents that the toy vocabulary doesn't generalize
+to real text. What isn't documented is that the two problems compound: with
+a real-text language over the same narrow toy vocabulary, the default `sp`
+method didn't just score lower (0.60-ish, as the existing caveat might
+imply) — it scored 0.14 and got permanently excluded from re-examination.
+That's a materially different failure mode than "somewhat less accurate,"
+and it's the one a user gets by default, silently, by following the
+README's own top-level example command (which passes no `--method` flag and
+therefore doesn't route through `em` at all). Because `sp` is also the
+release-verified path, this experiment doesn't validate whether the same
+compounding happens against the full 1,940-language released vocabulary
+(where real-world byte coverage should be much better) — the toy vocabulary
+here is a known confound, and I don't have the released model on hand to
+retest against it.
+
+**Suggested fix:** extend the existing "two training methods differ at toy
+data sizes" caveat in `examples/add_language/README.md` (and/or the
+`add_language()` docstring / README section) to explicitly call out that the
+combination of a narrow/mismatched vocabulary and the default `sp` method
+can produce a permanently-excluded (`low_calibration`) language rather than
+just lower accuracy, since that's a stronger and more surprising outcome
+than "flatter distribution." If practical, it would also be worth stating
+whether this compounding is toy-vocabulary-specific or something that can
+also occur against the released model with a poorly-matched new language,
+since that's the scenario an actual user of `unilid-add-language` is in.
+
+## One new issue found (minor, cosmetic)
+
+**`examples/add_language/run_example.sh` prints a repeated `RuntimeWarning`
+that doesn't appear when using the package normally.** The script sets
+`PYTHONPATH` to the repo root (with a comment noting this is "redundant"
+after `pip install -e .`) and then runs `python -m unilid.add_language`.
+When the package actually is pip-installed — i.e. exactly the state the
+README's install steps leave you in — this produces the following on every
+invocation, repeated many times over the run (once per EM iteration, so 5+
+times per language added):
 
 ```
-optional dependency features with `?` syntax are only allowed on the nightly
-channel and requires the `-Z weak-dep-features` flag on the command line
+<frozen runpy>:130: RuntimeWarning: 'unilid.add_language' found in
+sys.modules after import of package 'unilid', but prior to execution of
+'unilid.add_language'; this may result in unpredictable behaviour
 ```
 
-That error reads like it wants a nightly toolchain flag, not "your stable
-toolchain is four years old." The actual fix was `rustup update stable`
-(→ 1.97.1), which resolved it immediately.
+It's cosmetic — the run completes correctly and results are unaffected (I
+confirmed this by calling the installed `unilid-add-language` console script
+directly on the same inputs: zero warnings, identical output) — but it's
+noisy stderr output on the officially documented "run this to see the
+feature work" script, which could read as a red flag to a new user even
+though nothing is actually wrong.
 
-**Suggested fix:** state a minimum Rust version in the README (or better, ship
-a `rust-toolchain.toml` in `tokenizers/` pinning a known-good version so
-`rustup` fetches it automatically), and/or catch this class of Cargo error in
-the install instructions with a one-line "if you see a weak-dep-features
-error, run `rustup update stable`."
+**Suggested fix:** in `run_example.sh`, only set `PYTHONPATH` when `unilid`
+isn't already importable (e.g. `python -c "import unilid" 2>/dev/null ||
+export PYTHONPATH=...`), or switch the script to invoke the installed
+`unilid-add-language` console script directly instead of
+`python -m unilid.add_language`, consistent with the comment already present
+in the script noting the console-script form as the normal usage.
 
-## 3. No upper bound on supported Python, so pip installs happily onto untested versions
+## Summary
 
-`pyproject.toml` sets `requires-python = ">=3.9"` with no ceiling, but the
-`Programming Language :: Python :: 3.x` classifiers stop at 3.12. The system
-default Python here was 3.14.5; pip installed the package onto it without any
-warning. It's unclear whether 3.13/3.14 are actually supported — I sidestepped
-the question by installing into a 3.12 venv instead, but a user who doesn't
-think to check classifiers against their interpreter version has no signal
-that they're outside the tested range until something breaks non-obviously.
+Four of five previously reported issues are fixed in code; the fifth is
+fixed as a documentation caveat, which was the appropriate fix for that one.
+The new `doctor.py` script and the CI workflow (`.github/workflows/ci.yml`,
+which deliberately runs the documented minimal install across Python 3.9–3.14
+without building SentencePiece) look like they should prevent regressions on
+all of these going forward.
 
-**Suggested fix:** either extend CI/testing to current Python versions and
-update the classifiers, or cap `requires-python` (e.g. `>=3.9,<3.13`) so an
-unsupported interpreter fails at install time with a clear message rather than
-silently.
-
-## 4. `pytest` fails out of the box on the documented minimal dev install
-
-Following the README exactly — `pip install -e ".[dev]"` (no `[train]`, no
-SentencePiece CLI build, since both are documented as optional) — and then
-running `python -m pytest tests/` produces two failures:
-
-```
-tests/test_add_language_integration.py::test_add_language_em_end_to_end
-tests/test_add_language_integration.py::test_add_language_em_provenance_and_input_untouched
-FileNotFoundError: [Errno 2] No such file or directory: 'spm_train'
-```
-
-Both tests have `_em_` in their names, which reads as "tests the EM path" (the
-one that needs no SentencePiece binary per the README), but they apparently
-also exercise or depend on the `sp` path internally and error rather than
-skip. A new user running the test suite right after a stock install has no way
-to tell these are expected failures from missing an optional component versus
-real bugs — the README's "Optional extras" section doesn't mention that
-`pytest` needs the compiled `spm_train` binary for a clean pass.
-
-**Suggested fix:** mark the SentencePiece-dependent assertions/tests with
-`pytest.mark.skipif(not shutil.which("spm_train"), reason="needs the compiled "
-"SentencePiece CLI, see Installation")` so `pytest` passes cleanly on the
-documented minimal install, and note in the README that a full-green test run
-needs the `sp` binary built.
-
-## 5. The add-language worked example's toy vocabulary is too narrow to show realistic behavior on non-toy text
-
-Not a bug, but worth a documentation caveat: `examples/add_language/`'s base
-model has a vocabulary of only 300 byte-level tokens, learned from three
-constructed languages whose alphabets cover roughly two dozen byte values.
-That's fine for the example's own held-out data (0.98 accuracy adding a
-fourth constructed language), but if a user follows the same recipe to add a
-language built from real-world text (e.g. natural-language sentences or
-source code, both of which use a much wider byte range), EM training reports
-a large UNK rate (~23% in my test) and held-out accuracy drops sharply (0.68
-in my test), with some real text misclassified because neither it nor the toy
-alphabet is well represented in the tiny shared vocabulary.
-
-This is expected given the toy example's scale, but the README/example docs
-don't currently flag that the demo's accuracy numbers don't generalize to
-non-toy vocabularies — a user adapting the example to their own (non-toy)
-first language could reasonably read the 0.98 figure as representative and be
-surprised.
-
-**Suggested fix:** add a line to `examples/add_language/README.md` noting that
-the toy base vocabulary is intentionally tiny and narrow for speed, and that
-accuracy when adding a language built from real-world (non-toy-alphabet) text
-will be substantially lower unless the base model's vocabulary already covers
-that text's byte/character range — e.g. point users toward the released
-1,940-language model as the realistic starting point for real languages.
-
-## Summary of concrete asks
-
-- Fail fast (with a clear message) if submodules aren't initialized, rather
-  than surfacing a Cargo error later.
-- Document a minimum Rust version, or pin one via `rust-toolchain.toml`.
-- Either support and test current Python versions, or cap `requires-python`
-  so installing on an unsupported interpreter is an explicit, early error.
-- Make `pytest` pass cleanly on the documented minimal (`[dev]`-only) install
-  by skipping SentencePiece-dependent tests when `spm_train` isn't present.
-- Add a short caveat to the add-language example about its toy vocabulary not
-  generalizing to real-world text.
+Two new things turned up in this pass: one cosmetic (the `run_example.sh`
+warning spam), and one substantive — the default `--method sp` add-language
+path, run against a real-text language over a narrow vocabulary, produced a
+permanently-excluded, 0.14-accuracy result versus 0.98 for the non-default,
+non-release-verified `em` method on identical data. That's a documentation
+gap (the existing caveat undersells how bad the default path's failure mode
+can be) rather than a code defect, but it's the one a user hits by default
+and without any indication something went wrong beyond a quieter log line.
 

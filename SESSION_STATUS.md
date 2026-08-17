@@ -23,6 +23,36 @@ Everything experimental is FINISHED (E1-E5, results entries "Camera-ready E1".."
 - SETUP_FEEDBACK.md follow-up: DONE 2026-08-15. PR #3 open (Ahmetcanyvz/UNILID/pull/3) with 8dd90ec, 3427640, 6ab2201. 104 tests, version 0.2.1, Python 3.9/3.11/3.12/3.13/3.14 measured green, CI added, doctor.py added, tokenizers toolchain pinned; both gates re-passed at 250,000/250,000 after the pinned rebuild. Details and one found-not-fixed item (fork-in-multi-threaded-process warning on 3.12/3.13) in OPEN_SOURCE_STATUS.md.
 - E3 store migration: DONE 2026-08-10 (all three artifact sets on store, sha256-verified, scratch symlinks in place; chronological log entry).
 
+## sp-vs-em add-language gap (2026-08-17): FIXED in code (author decision: special tokens must not contribute to a score under any method)
+
+Root cause found and proven causal. `unilid/trainers/language_specific_trainer.py:203-204` gives every special token the base tokenizer's score; HF Unigram stores specials with score `0.0`, read here as a log-probability, i.e. probability 1.0. Four specials at 1.0 dominate `_log_normalize`, so each ends at exactly 1/5 and every real token is depressed by log(5) = 1.6094 nats. Measured, not inferred:
+
+- Released model: all 1,940 rows carry exactly 0.2 on each of `<s>`, `</s>`, `<pad>`, `<unk>` (0.8 total), independent of the language's data. This is why the released rows' unseen-token plateau sits at approximately -19 instead of the trainer floor -27.63, which is the phenomenon the unseen-token constant c = -21 corrects.
+- Toy model (base rows from the pure-Python soft EM, specials at the 1e-12 floor): adding a real-text language with the default `sp` mixes the two scales. Held-out accuracy 0.24 (sp) vs 0.90 (em) on identical data, reproducing the report.
+- Causal test: repairing only the three unemittable specials in the sp row and renormalizing, changing nothing else, moves 0.24 to 0.74. The residual gap to em is the already-documented flatter-at-small-N effect.
+- On the released model both methods are usable (sp 0.72, em 0.88 held out; pool accuracy 0.9477 unchanged for both; 0 and 1 of 3,000 pool lines captured), because there the two mismatches partly offset. So this is a scale-mixing failure, not "sp is broken".
+
+Mechanism, confirmed by perturbation rather than by reading the Rust: no special token's stored weight is ever read when scoring. `model.rs` takes the unknown-token score from a single model-wide constant (`min_score - K_UNK_PENALTY`), and `<s>`/`</s>`/`<pad>` are reachable only by text containing those literal substrings. Setting all four entries of every row to -500 changes predicted scores by exactly 0.000000. Mass on them is therefore mass removed from the tokens that do decide predictions.
+
+Fix, version 0.3.0:
+- One enforcement point in `LanguageSpecificUnigramLMTokenizer.train`: whichever method produced the row, it is renormalized over the real tokens and the specials are parked at the floor (`unilid/vocab_io.py::renormalize_over_real_tokens`). The sp path also stops copying the base tokenizer's 0.0 scores for specials, which was the source of probability 1.0.
+- `add_language` puts the new row on the model's own scale (`_match_real_token_scale`), so a corrected row does not outscore a pre-0.3.0 model's rows by a constant per token. New named constant `SCALE_SPREAD_REPORT_RATIO = 2.0`, diagnostic only, never fatal.
+
+Measured effect (held-out accuracy on the added language). Every row below is a matched pair: one frozen corpus, both code versions run in this session, the pre-fix side obtained by checking the three changed files out of HEAD~1 and rebuilding. An earlier set of numbers regenerated the Python corpus from this repository's own sources between runs, which I was editing, so those were not comparable across runs and are superseded by these.
+| case | pre-fix | post-fix |
+|---|---|---|
+| example ddd_Latn, sp | 0.60 (186/250 own-won) | 0.98 (250/250) |
+| example ddd_Latn, em | 0.98 (250/250) | 0.98 (250/250) |
+| toy + 300 lines of Python, sp | 0.26 (85/300) | 0.88 (282/300) |
+| toy + 300 lines of Python, em | 0.88 (284/300) | 0.98 (298/300) |
+| released 1,940 + same Python, sp | 0.84 | 0.84 |
+| released 1,940 + same Python, em | 0.90 | 0.86 |
+Pool accuracy on 3,000 labelled test-pool lines is 0.9477 in every case. The released-model em drop is the correction working: pre-fix that row kept its full mass against rows holding a fifth of theirs, a 1.6094-nat-per-token advantage over all 1,940 languages, and it captured a pool line that post-fix it does not.
+
+Released artifact is untouched and both golden gates re-passed. Separately measured, for the author's decision only: renormalizing the released model's own rows would move base-mode accuracy on 20,000 labelled pool lines from 0.9494 to 0.9509 (63 predictions fixed, 32 broken, 0.70% changed), so re-releasing is a real but small gain that would invalidate the gates and the paper's exact numbers.
+
+Scripts: scratchpad repro_sp_vs_em.py, released_sp_vs_em.py, measure_correction.py.
+
 ## Open decisions
 - Whether the Mistral-Nemo variant ships in a v1.1 release (handoff open item, unresolved; artifacts ready on store, recipe in OPEN_SOURCE_STATUS.md open item 2).
 - Camera-ready items above unchanged.

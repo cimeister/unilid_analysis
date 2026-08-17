@@ -89,6 +89,39 @@ what it was measured against:
 - PR #3 open: github.com/Ahmetcanyvz/UNILID/pull/3, carrying 8dd90ec, 3427640,
   6ab2201.
 
+## Special tokens hold no probability mass (2026-08-17, version 0.3.0)
+
+Author decision, taken after the second setup-feedback pass reported a default
+`--method sp` add-language scoring 0.14 against 0.98 for `--method em` on
+identical data: special tokens must not contribute to a score under any method.
+
+What was wrong. `train_with_sentencepiece_direct` gave every special token the
+base tokenizer's score, and HuggingFace stores specials with score 0.0, read
+here as a log-probability, i.e. probability 1.0. Four of them then dominated the
+normalization: each landed at exactly 1/5 and every real token was depressed by
+log(5) = 1.6094 nats. All 1,940 rows of the released model carry exactly 0.8 on
+specials, which is why their unseen-token plateau sits near -19 instead of at
+the -27.63 training floor, the phenomenon the unseen-token constant corrects.
+
+Why it matters mechanically: no special token's stored weight is ever read when
+scoring. `model.rs` takes the unknown-token score from a single model-wide
+constant (`min_score - K_UNK_PENALTY`), not from the per-language row, and
+`<s>`/`</s>`/`<pad>` are reachable only by text containing those literal
+substrings. Verified by perturbation, not by reading: setting all four entries
+of every row to -500 changes predicted scores by exactly 0.000000. So mass on
+them is purely mass taken from the tokens that decide predictions.
+
+The fix, all in the training and customization paths, none in the inference
+path: one enforcement point in `LanguageSpecificUnigramLMTokenizer.train`
+renormalizes whichever method produced the row over the real tokens and parks
+the specials at the floor; `add_language` puts the new row on the model's own
+scale so a corrected row cannot outscore a pre-0.3.0 model's rows by a constant
+per token. Measurements, released-model behaviour, and the re-release question
+are recorded in SESSION_STATUS.md.
+
+The released artifact is unchanged and both golden gates re-passed at
+250,000/250,000 after the change.
+
 ### Found, not fixed (out of scope, flagged for a later decision)
 
 `unilid/algorithms/accumulate.py:111` opens a `multiprocessing.Pool` per
