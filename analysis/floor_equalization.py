@@ -38,6 +38,14 @@ from analysis.hierarchical_pool import (
 # Global target floors (log-prob). Row minimums span -19.9 to -13.2; -17/-19 lower the
 # low-resource floors toward head levels, -21/-23 probe over-penalization past them.
 FLOORS = [-17.0, -19.0, -21.0, -23.0]
+# The same grid on the corrected scale. The clamp sets an ABSOLUTE target in log
+# space, and the special-token correction raised every real token by
+# log 5 = 1.6094 nats, so asking the published question of a corrected model
+# means sweeping the published grid shifted by the same amount. Sweeping the
+# unshifted grid would ask a different question: at -21 a corrected row's unseen
+# tokens are pushed 1.609 nats further below its seen ones than the released
+# model's were.
+FLOORS_CORRECTED = [f + float(np.log(5.0)) for f in FLOORS]
 OUT_DIR = "outputs"
 
 # The per-row probability of each of the four special tokens in a matrix trained
@@ -111,11 +119,13 @@ def _special_columns(model_path: str) -> list[int]:
 
 
 def run(sample_size: int = DEFAULT_SAMPLE_SIZE, out_dir: str = OUT_DIR,
-        model_path: str = None):
+        model_path: str = None, floor_grid: list = None):
     import pandas as pd
     from analysis.transfer_sweep import UNILID_MODEL_PATH
 
     model_path = model_path or UNILID_MODEL_PATH
+    floor_grid = list(floor_grid) if floor_grid else list(FLOORS)
+    print(f"model {model_path}\nsweeping c over {floor_grid}", flush=True)
     os.makedirs(os.path.join(out_dir, "tables"), exist_ok=True)
     weights, langs, lang_to_idx = _load_model_data(model_path)
     train_counts = _load_train_counts()
@@ -161,7 +171,7 @@ def run(sample_size: int = DEFAULT_SAMPLE_SIZE, out_dir: str = OUT_DIR,
     rows = [{"config": "baseline", "n_modified": 0,
              **{f"val_{k}": v for k, v in val_base.items()}}]
     preds_by_cfg = {"baseline": base_pred}
-    for F in FLOORS:
+    for F in floor_grid:
         cfg = f"floor{F:g}"
         print(f"Config {cfg}...")
         w_new, n_mod = build_equalized_weights(W, F, special_cols)
@@ -211,5 +221,26 @@ def run(sample_size: int = DEFAULT_SAMPLE_SIZE, out_dir: str = OUT_DIR,
     print(f"\nWrote {out_path}")
 
 
+def main(argv=None):
+    import argparse
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--model", dest="model_path", default=None)
+    ap.add_argument("--out-dir", default=OUT_DIR)
+    ap.add_argument("--sample-size", type=int, default=DEFAULT_SAMPLE_SIZE)
+    ap.add_argument("--floors", default=None,
+                    help="comma-separated grid for c. Default: the published "
+                         "grid. Use --corrected-grid for the same grid shifted "
+                         "by log 5, which is the published question asked of a "
+                         "special-token-corrected model.")
+    ap.add_argument("--corrected-grid", action="store_true")
+    a = ap.parse_args(argv)
+    if a.floors and a.corrected_grid:
+        raise SystemExit("pass --floors or --corrected-grid, not both")
+    grid = ([float(x) for x in a.floors.split(",")] if a.floors
+            else FLOORS_CORRECTED if a.corrected_grid else None)
+    run(sample_size=a.sample_size, out_dir=a.out_dir,
+        model_path=a.model_path, floor_grid=grid)
+
+
 if __name__ == "__main__":
-    run()
+    main()
