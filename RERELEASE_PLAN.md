@@ -177,7 +177,19 @@ paths above, but each still needs a model parameter before step 4.
   over a changed quantity, not merely a re-tuning. Clamping the corrected weights
   at -21 + log 5 = -19.3906 would reproduce the old clamped matrix plus a uniform
   log 5, since the clamp sets an absolute target.
-- **Per-language thresholds tau.** Re-estimate with the recipe of record. [R]
+- **Per-language thresholds tau. Measured: they cannot be carried or shifted, so
+  all 1,084 must be re-estimated.** Probing six group-A languages spanning N_L 85
+  to 17,989, with the released weights clamped at c = -21 and the corrected ones
+  at -21 + log 5 so the clamped structures differ only by the uniform shift:
+  tul_Latn 6.7418 to 5.8984 (-12.5%), bkv_Latn 12.0420 to 11.3768 (-5.5%),
+  mpm_Latn 0.1501 to 0.0423 (-71.8%), cmo_Latn 0.0117 to 0.0262 (+123.3%), and
+  two excluded under both. Mean change -0.40 nats, median -0.39, largest 0.84, in
+  both directions. The own-won counts move too (1,954 to 1,942; 1,485 to 1,383),
+  so the correction changes which lines a language wins and not only the
+  percentile of the margins it wins by. This is the segmentation-length channel
+  showing up directly in the quantity the thresholds are percentiles of.
+  Contrast with c, which moves by exactly log 5 and can be carried across by
+  addition. Re-estimate with the recipe of record. [R]
   Group A membership cannot change: `calibration.runtime_for` requires it to
   equal the languages with N_L < head_n, and N_L is a data property, so only the
   tau values move. Note in the protocol that the corpora on store are the Apertus

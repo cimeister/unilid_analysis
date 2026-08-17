@@ -1,0 +1,130 @@
+{
+  "c_released": -21.0,
+  "c_corrected": -19.3905620875659,
+  "results": {
+    "released": [
+      {
+        "lang": "kdr_Latn",
+        "n_l": 85,
+        "q": 4.976388888888889,
+        "n_scoreable": 85,
+        "n_self_won": 14,
+        "n_finite_gaps": 14,
+        "tau": null,
+        "cause": "low_calibration"
+      },
+      {
+        "lang": "tul_Latn",
+        "n_l": 4299,
+        "q": 3.805833333333333,
+        "n_scoreable": 2000,
+        "n_self_won": 1954,
+        "n_finite_gaps": 1954,
+        "tau": 6.741831510925293,
+        "cause": ""
+      },
+      {
+        "lang": "chq_Latn",
+        "n_l": 10965,
+        "q": 1.9541666666666668,
+        "n_scoreable": 2000,
+        "n_self_won": 69,
+        "n_finite_gaps": 69,
+        "tau": null,
+        "cause": "low_calibration"
+      },
+      {
+        "lang": "bkv_Latn",
+        "n_l": 13494,
+        "q": 1.2516666666666665,
+        "n_scoreable": 2000,
+        "n_self_won": 1994,
+        "n_finite_gaps": 1994,
+        "tau": 12.042047670491536,
+        "cause": ""
+      },
+      {
+        "lang": "mpm_Latn",
+        "n_l": 17709,
+        "q": 0.08083333333333331,
+        "n_scoreable": 2000,
+        "n_self_won": 1485,
+        "n_finite_gaps": 1485,
+        "tau": 0.1500869181315104,
+        "cause": ""
+      },
+      {
+        "lang": "cmo_Latn",
+        "n_l": 17989,
+        "q": 0.003055555555555589,
+        "n_scoreable": 2000,
+        "n_self_won": 1546,
+        "n_finite_gaps": 1546,
+        "tau": 0.011712432861328132,
+        "cause": ""
+      }
+    ],
+    "corrected": [
+      {
+        "lang": "kdr_Latn",
+        "n_l": 85,
+        "q": 4.976388888888889,
+        "n_scoreable": 85,
+        "n_self_won": 8,
+        "n_finite_gaps": 8,
+        "tau": null,
+        "cause": "low_calibration"
+      },
+      {
+        "lang": "tul_Latn",
+        "n_l": 4299,
+        "q": 3.805833333333333,
+        "n_scoreable": 2000,
+        "n_self_won": 1942,
+        "n_finite_gaps": 1942,
+        "tau": 5.898386898040772,
+        "cause": ""
+      },
+      {
+        "lang": "chq_Latn",
+        "n_l": 10965,
+        "q": 1.9541666666666668,
+        "n_scoreable": 2000,
+        "n_self_won": 32,
+        "n_finite_gaps": 32,
+        "tau": null,
+        "cause": "low_calibration"
+      },
+      {
+        "lang": "bkv_Latn",
+        "n_l": 13494,
+        "q": 1.2516666666666665,
+        "n_scoreable": 2000,
+        "n_self_won": 1993,
+        "n_finite_gaps": 1993,
+        "tau": 11.3768484375,
+        "cause": ""
+      },
+      {
+        "lang": "mpm_Latn",
+        "n_l": 17709,
+        "q": 0.08083333333333331,
+        "n_scoreable": 2000,
+        "n_self_won": 1383,
+        "n_finite_gaps": 1383,
+        "tau": 0.04226046956380204,
+        "cause": ""
+      },
+      {
+        "lang": "cmo_Latn",
+        "n_l": 17989,
+        "q": 0.003055555555555589,
+        "n_scoreable": 2000,
+        "n_self_won": 1471,
+        "n_finite_gaps": 1471,
+        "tau": 0.02615305582682292,
+        "cause": ""
+      }
+    ]
+  }
+}
