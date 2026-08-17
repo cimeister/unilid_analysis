@@ -1,0 +1,25 @@
+{
+  "released": {
+    "macro_f1": 0.9454361811089402,
+    "macro_fpr": 2.0833897928939267e-05,
+    "accuracy": 0.960256,
+    "n_labels": 1864,
+    "empty_predictions": 0
+  },
+  "corrected": {
+    "macro_f1": 0.945960997658721,
+    "macro_fpr": 2.081344688429614e-05,
+    "accuracy": 0.960376,
+    "n_labels": 1864,
+    "empty_predictions": 0
+  },
+  "comparison": {
+    "predictions_changed": 1807,
+    "fraction_changed": 0.007228,
+    "fixed_by_correction": 699,
+    "broken_by_correction": 669,
+    "delta_macro_f1": 0.00052481654978076,
+    "delta_macro_fpr": -2.0451044643125782e-08,
+    "delta_accuracy": 0.00012000000000000899
+  }
+}

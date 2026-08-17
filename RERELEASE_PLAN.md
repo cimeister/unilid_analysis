@@ -61,11 +61,28 @@ because scoring is a Viterbi over segmentations: a per-token bonus favours
 segmentations with more tokens, and cross-language comparisons then shift
 wherever two languages segment a text into different numbers of tokens.
 
-Measured, base mode, on 20,000 labelled lines sampled from the GlotLID-C test
-pool: accuracy 0.9494 as shipped, 0.9509 corrected. 140 of 20,000 predictions
-change (0.70%): 63 gold-correct predictions gained, 32 lost. This is a sample
-statistic on a subsample, not the paper's macro F1 over 1,940 labels, and it says
-nothing about the calibrated path, whose thresholds no longer apply.
+Measured on the 250,000-line golden subset against the recorded gold labels, in
+base mode (`analysis/correction_effect.py`, result in
+`outputs/rerelease/correction_effect.json`):
+
+| | released | corrected |
+|---|---|---|
+| macro F1 | 0.9454 | 0.9460 |
+| macro FPR | 2.083e-05 | 2.081e-05 |
+| accuracy | 0.9603 | 0.9604 |
+
+1,807 of 250,000 predictions change (0.72%): 699 gold-correct predictions gained,
+669 lost. The correction is a wash on quality. An earlier estimate of 0.9494 to
+0.9509 with 63 gained and 32 lost was accuracy on a 20,000-line every-149th-line
+sample rather than macro F1 on the golden subset, and was not well enough
+powered; it is superseded by the table above.
+
+This says nothing about the calibrated path, whose thresholds no longer apply
+until they are re-derived, and macro F1 over 1,940 labels on 250,000 lines is not
+the same statistic as the paper's over the full pool. The point it settles is the
+direction and the order of magnitude: the paper's numbers move in the third and
+fourth decimal, so no claim changes direction, and the case for re-releasing is
+correctness rather than a metric gain.
 
 ## Work
 
@@ -151,7 +168,23 @@ uniform 0.8, and for those the correction is not a single constant.
 **Unaffected**: `latency_glotlid`, `training_time`, and every fastText, GlotLID
 and CLD3 row and dataset-statistics table.
 
-### 4. Update the paper
+### 4. Update the paper (in place)
+
+Prose sites that quote UNILID numbers, located by grep, each to be replaced from
+the re-runs rather than edited by hand:
+
+| Line | What it quotes |
+|---|---|
+| `submission.tex:344` | intro: macro F1 .929 to .957 |
+| `submission.tex:824` | FPR against fastText, 2.03e-5 vs 2.71e-5 |
+| `submission.tex:833` | results: 0.929 to 0.957 |
+| `submission.tex:835` | macro FPR 2.03e-5 to 1.77e-5, and the held-out subset |
+| `submission.tex:850-851` | UDHR 0.859 to 0.838, FLORES 0.932 to 0.933 |
+
+The abstract previously carried the same calibration figures in a `\camrev`
+sentence; that sentence is currently removed in the working tree, so whether it
+returns with corrected numbers is an editorial choice to settle before the final
+pass.
 
 - Replace every UNILID number the re-runs change, in the tables above and in the
   prose that quotes them (the abstract's and results' headline figures, and the

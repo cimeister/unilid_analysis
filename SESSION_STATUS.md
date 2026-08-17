@@ -49,7 +49,9 @@ Measured effect (held-out accuracy on the added language). Every row below is a 
 | released 1,940 + same Python, em | 0.90 | 0.86 |
 Pool accuracy on 3,000 labelled test-pool lines is 0.9477 in every case. The released-model em drop is the correction working: pre-fix that row kept its full mass against rows holding a fifth of theirs, a 1.6094-nat-per-token advantage over all 1,940 languages, and it captured a pool line that post-fix it does not.
 
-Released artifact is untouched and both golden gates re-passed. Separately measured, for the author's decision only: renormalizing the released model's own rows would move base-mode accuracy on 20,000 labelled pool lines from 0.9494 to 0.9509 (63 predictions fixed, 32 broken, 0.70% changed), so re-releasing is a real but small gain that would invalidate the gates and the paper's exact numbers.
+Released artifact is untouched by the code fix and both golden gates re-passed.
+
+Effect of correcting the released weights, measured on the 250,000-line golden subset against the recorded gold labels, base mode: macro F1 0.9454 -> 0.9460, macro FPR 2.083e-05 -> 2.081e-05, accuracy 0.9603 -> 0.9604, with 1,807 of 250,000 predictions changed (0.72%), 699 fixed and 669 broken. Essentially a wash. This supersedes an earlier estimate of 0.9494 -> 0.9509 with 63 fixed and 32 broken, which was accuracy on a 20,000-line every-149th-line sample rather than macro F1 on the golden subset, and was not well enough powered. The case for re-releasing is correctness, not metrics.
 
 Scripts: scratchpad repro_sp_vs_em.py, released_sp_vs_em.py, measure_correction.py, matched_released.py, toy_matched.py, ddd_matched.py.
 
