@@ -974,9 +974,25 @@ transformation.
   Remaining steps and their dependency order in `RERELEASE_PLAN.md`.
 - **B4: ship the corrected artifacts, retire polybox** — `waiting on dependency`
   (B2 for the calibrated model; the uncalibrated model is ready now).
-- **DeepSeek3.2 and Qwen3 rows (24 cells of `lid_main.tex`)** — `waiting on
-  dependency`: no artifact on this machine and no identified owner. Per decision 1
-  they stay on pre-correction weights with the caption stating it.
+- **DeepSeek3.2 and Qwen3 rows (24 cells of `lid_main.tex`)** — both models were
+  located in the co-author's Drive folder on 2026-08-18 and downloaded, so this is
+  no longer blocked on artifacts. Both carry the special-token defect.
+  - **DeepSeek3.2** — `not started`. Correct, gate, re-evaluate. No sign of the
+    fp64 EM corruption (3 plateau outliers, all shared minority-script coverage
+    effects).
+  - **Qwen3** — `ongoing`. **Its azj_Latn row is corrupted independently of the
+    special-token defect** (plateau at the training floor, 20.1 sd below the
+    corpus-size expectation, flagged in no other model, and the documented fp64
+    EM bug trigger language). **Author decision 2026-08-18: retrain the variant
+    with the patched trainer** rather than report it with the defect stated or
+    drop the row. A 0.3.0 retrain fixes both defects at once, since the trainer
+    no longer gives the special tokens the base tokenizer's score-0 entries.
+    Submission script `slurm_qwen3_train_fp64.sh`.
+  - **`mya_Mymr` in the Qwen3 model** (-8.5 sd, also unique to it, also
+    N_L = 100,000) is unresolved: Burmese script coverage is the competing
+    explanation and has not been separated from a second EM casualty. The retrain
+    settles it either way, since a coverage effect survives a retrain and an EM
+    casualty does not.
 
 ## Notes for whoever resumes this (updated 2026-07-27; pointer corrected 2026-08-06)
 

@@ -27,6 +27,45 @@ for the infrastructure record.
 `EXPERIMENTAL_SETUP.md` (hierarchical pooling). Full plan:
 `~/.claude/plans/yes-do-both-then-giggly-sprout.md`.
 
+### 2026-08-18: Qwen3-8B variant retrain under the patched trainer submitted
+
+- **Purpose / hypothesis:** the Qwen3 model's `azj_Latn` row is corrupted in the
+  manner of the fixed-vocabulary EM bug (Exp 41/42), independently of the
+  special-token defect. Retraining with the patched fp64 trainer under UNILID
+  0.3.0 repairs both at once. Plan item: `EXPERIMENTS_PLAN.md`, the DeepSeek3.2
+  and Qwen3 rows. Author decision 2026-08-18.
+- **Init-from:** not a continuation. Base tokenizer **extracted from the existing
+  container** (`qwen3_8b_glotlid.unilid`) rather than re-converted from a
+  HuggingFace tokenizer.json, so the vocabulary is bit-identical to the model
+  being replaced and only the trainer and the special-token handling change.
+  Written to `results_qwen3_8b_fp64/tokenizers/langspec_base_tokenizer.json`;
+  `--reuse-base` loads it directly so `_convert_to_unigram_base` never runs.
+  Preflight: Unigram type, 151,670 entries, all four special tokens present at
+  indices 128245 / 128247 / 151669 / 128244, base scores uniform at
+  log(1/151667) = -11.9294 with the specials at 0.0 (the defect's source, which
+  0.3.0 no longer reads).
+- **Data:** `results_apertus200k/corpus`, 1,940 files, the shared draw every
+  retrain in this project has used. **Caveat to carry with the result:** for
+  languages above the 100,000-line cap this is not necessarily the sample the
+  original Qwen3 run saw, so the retrained rows are not expected to reproduce the
+  originals exactly even where the original was sound.
+- **Configuration:** `--vocab-size 151670 --byte-level --per-lang-counts-method
+  sp --max-base-samples-per-lang 10000 --lang-batch-size 20 --reuse-corpus
+  --skip-existing-langs --reuse-base`, patched `spm_train` from
+  `~/.local/bin` (fork commits d0208d9 + c5921a2). Mirrors
+  `slurm_mistralnemo_train_fp64.sh`.
+- **Expected completion:** roughly 5 to 6 hours by interpolation between the
+  recorded 131k retrain (4h36m, job 2903767) and the 200k retrain (7h28m, job
+  2903768); 12h walltime is headroom.
+- **Post-training gates, run in-job:** `analysis/inspect_variant_models.py` (real
+  token mass must be 1.0 per row, not 0.2) and
+  `analysis/variant_plateau_outliers.py` (`azj_Latn` must no longer appear;
+  nothing new may appear that is not a shared minority-script coverage effect).
+- **Artifacts:** `/capstor/scratch/.../glotlid_qwen3_8b_fp64.unilid`,
+  `results_qwen3_8b_fp64/`, `outputs/rerelease/qwen3_fp64_inspect.json`,
+  `outputs/rerelease/qwen3_fp64_plateau_outliers.json`. Logs
+  `/capstor/scratch/.../logs/qwen3_fp64_%j.{out,err}`.
+
 ### 2026-08-18: round-grid c sweep submitted (job 3111471); floor-c pass 3110918 CANCELLED
 
 - **Job 3111471** `unilid-cround-corr`, submitted after the pre-registration in
