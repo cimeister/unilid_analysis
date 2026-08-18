@@ -27,6 +27,29 @@ for the infrastructure record.
 `EXPERIMENTAL_SETUP.md` (hierarchical pooling). Full plan:
 `~/.claude/plans/yes-do-both-then-giggly-sprout.md`.
 
+### 2026-08-18: round-grid c sweep submitted (job 3111471); floor-c pass 3110918 CANCELLED
+
+- **Job 3111471** `unilid-cround-corr`, submitted after the pre-registration in
+  `EXPERIMENTS_RESULTS.md` was written and committed (`3a9c65c`), not after
+  seeing its result. Grid {-15, -17, -19, -21}, chosen by the rule the published
+  grid follows: two values inside the model's own unseen-token plateau range, two
+  below all of it. Selection procedure unchanged. Writes to
+  `outputs_corrected_round/` so the shifted-grid sweep's table is not
+  overwritten; both are reported. Script
+  `slurm_floor_sweep_round_corrected.sh`.
+- **Purpose:** the shifted grid {-15.3906, -17.3906, -19.3906, -21.3906} is the
+  correct like-for-like comparison against the released model, but with no
+  released predecessor for a reader to relate those values to, it prints as four
+  arbitrary decimals. Author decision 2026-08-18: re-sweep on round numbers and
+  take that as the constant of record for the paper.
+- **Job 3110918 CANCELLED while still PENDING, nothing lost.** It would have run
+  the floor-c full-pool pass at c = -17.3906 and written
+  `fingerprint_floor21.json` at that constant into the corrected scratch root.
+  `analysis/gate_variants.py` now reads its clamp target from that fingerprint by
+  design, so leaving it to complete would have had the entire downstream chain
+  build silently at a constant the round sweep is about to supersede. Verified no
+  floor21 artifacts were written. Resubmit once job 3111471 names the constant.
+
 ### 2026-08-18: both corrected-model jobs COMPLETED
 
 - **Job 3107045** `unilid-fulltest-corr` COMPLETED 01:42:36, MaxRSS 9.45G,
