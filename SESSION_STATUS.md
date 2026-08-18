@@ -20,30 +20,48 @@ PR #3.
 
 ## Ongoing experiments
 
-- **Job 3107045, corrected-model full-pool baseline** (`slurm_full_test_eval_corrected.sh`):
-  queued. `--configs baseline` only, fresh scratch root
-  `full_test_eval_corrected/`, tables to `outputs_corrected/`. 3 of 92 chunks
-  already banked, resumable. This is B3 step 1 and everything downstream needs it.
-- **Job 3107082, corrected-model c sweep** (`slurm_floor_sweep_corrected.sh`):
-  queued. Published Exp 20 protocol on the grid shifted by log 5. Expected to
-  land near -19.3906; **a result far from that is a finding, not a tuning
-  problem.** This is B2's first step and gates the floor-21 pass.
+All three queued as of 2026-08-18, none started (reason `Priority`; congestion is
+normal here, do not cancel and resubmit).
+
+- **Job 3110918, corrected floor-c full-pool pass** (`slurm_full_test_floor21_corrected.sh`):
+  at the selected c = -17.3906. Gates the group-A thresholds and everything after
+  them.
+- **Job 3110925, corrected decoder comparison** (`slurm_viterbi_vs_marginal_corrected.sh`):
+  `tab:viterbi_vs_marginal`. Base mode, so independent of c. Two full-pool passes
+  per chunk; budget about three times a single baseline pass.
+- **Job 3110926, corrected lenbias-norm** (`slurm_lenbias_norm_corrected.sh`):
+  `tab:lenbias-norm`, alpha 0 and 1 over the 500k sample. Base mode, independent
+  of c.
+
+## Finished 2026-08-18
+
+- **Job 3107045**, corrected full-pool baseline: overall macro F1 0.9292 to
+  0.9327 (+0.0035), accuracy +0.0001, **tail -0.0087, magnets -0.0071**. The
+  earlier "essentially a wash" was the golden-subset measurement and stays true
+  there; it must not be quoted as covering the full pool.
+- **Job 3107082**, c sweep: selected **c = -17.3906**. Aligned by grid position
+  the released and corrected sweeps clamp identical row counts and every step is
+  exactly log 5; positions 2 and 3 are tied in both models (0.0001 released,
+  0.0002 corrected). The constant did not move, a tie broke the other way.
 
 ## Next work, in order
 
-- B0: `finished` 2026-08-17, PASS 3/3. The unseen-token plateau is set by corpus
-  size, scaling as `T^-0.95`, and the paper's appendix sentence can now be
-  rewritten with a causal statement.
-- B1: `finished` 2026-08-17. Single resolver (`analysis/model_context.py`), eleven
-  scripts wired, two missing generators written, 13/13 guard cases verified by
-  triggering.
-- B2 remainder (`waiting on` job 3107082): all 1,084 group-A thresholds via
-  `solo_gates.py floor21`, then the high-entropy group re-identified.
-- B3 remainder (`waiting on` job 3107045): `full_test_floor21.py`, then
-  `solo_gates.py`, then `gate_variants.py`, then `build_release_calibration.py`;
-  fresh gate references; `paper_eval.py` and the breakdowns; the Mistral-Nemo
-  chain, which is independent and can run in parallel.
-- B4 (`waiting on dependency`): ship, retire polybox.
+- **Blocked on job 3110918**: `solo_gates.py floor21` for all 1,084 group-A
+  thresholds, then `gate_variants.py` (group B, then the gated predictions), then
+  `build_release_calibration.py`, then fresh gate references, then `paper_eval.py`
+  and the breakdowns.
+- **The Mistral-Nemo chain** is independent and not started. Its `configure()`
+  now takes `--model`, `--scratch-dir` and `--base-scratch`, but its stages after
+  `baseline` still read `FLOOR_TARGET` as a module constant, so it needs the same
+  `--floor-target` treatment before its clamped stages can run at the corrected
+  model's own c.
+- **Still importing `FLOOR_TARGET` as a module constant**, and needing the
+  `--floor-target` treatment before a corrected-weights run: `gate_variants.py`,
+  `commonlid_calibrated.py`, `external_bench_eval.py`, `mistralnemo_eval.py`,
+  `mixed_assign.py`, `mixed_matrix.py`, `full_test_bgfloor.py`.
+- **Paper**: `paper/appendix_revision_draft_2026-08-17.md` now has four items
+  ready for sign-off (1, 1b, 1c, 1d) and two blocked. Nothing has been edited into
+  `submission.tex`.
 
 ## Open decisions
 
