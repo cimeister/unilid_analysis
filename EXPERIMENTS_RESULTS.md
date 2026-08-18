@@ -25,6 +25,43 @@ uniform sample (`seed=42`, without replacement).
 
 ---
 
+## Pre-registration: round-grid c sweep for the corrected model (2026-08-18, recorded before the run)
+
+**Why a second sweep, stated plainly.** The first sweep (job 3107082) used the
+published grid shifted by log 5, `{-15.3906, -17.3906, -19.3906, -21.3906}`,
+because that is the like-for-like comparison against the released model, and it
+selected -17.3906. **That result is already in hand, so this second sweep is run
+after seeing an outcome, and it has to be justified as something other than grid
+shopping.**
+
+The justification is that the grid is fixed by a rule applied to this model, not
+chosen to move the answer. The published grid `{-17,-19,-21,-23}` stands in a
+specific relation to the released model's unseen-token plateau range (-19.939 to
+-13.216): two values inside the range, two below all of it. The corrected model's
+range is -18.329 to -11.606, and `{-15,-17,-19,-21}` stands in exactly the same
+relation to it: -15 and -17 inside, -19 and -21 below all of it. The shifted grid
+has that structure too, so both grids are defensible; the round one is chosen
+because the paper has no released predecessor for a reader to relate the shifted
+values to.
+
+**Fixed before the run:**
+
+- Grid: {-15, -17, -19, -21}.
+- Selection procedure: unchanged. All-strata guard on the validation half of the
+  seed-42 500k draw, test half scored once.
+- Predicted rows clamped, computed from the row minima before scoring:
+  **317 / 1,655 / 1,940 / 1,940**. (Released, for reference: 452 / 1,821 / 1,940
+  / 1,940.)
+- Expected selection: **-17**, since the shifted grid selected -17.3906 and -17
+  lies 0.39 nats from it. **If the guard selects something else, that is the
+  result and it is recorded as such.**
+- Both sweeps' full validation tables are reported. Neither is discarded.
+- This sweep, if it completes, supplies the constant of record for the paper. The
+  shifted-grid sweep remains the record of the like-for-like comparison against
+  the released model and the evidence that the correction is a uniform shift.
+
+**Artifacts to be written:** `outputs_corrected_round/tables/floor_equalization.md`.
+
 ## Corrected model, full-pool baseline: overall +0.0035, tail -0.0087 (2026-08-18, job 3107045)
 
 **Hypothesis under test:** the effect of the special-token correction, measured on
