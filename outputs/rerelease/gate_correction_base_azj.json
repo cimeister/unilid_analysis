@@ -1,0 +1,66 @@
+{
+  "corrected": "/capstor/scratch/cscs/cmeister747/unilid_analysis/corrected/glotlidc_corrected.unilid",
+  "languages": [
+    {
+      "lang": "kdr_Latn",
+      "n_l": 85,
+      "signed_mean": 2.5717744164920012e-06,
+      "mass_weighted_diff": 5.738704866896165e-06,
+      "median_abs_diff": 2.6729394662083905e-06,
+      "max_abs_diff": 0.0003187153051644742,
+      "correlation": 0.9999999999443345,
+      "seconds": 5.3,
+      "passed": true
+    },
+    {
+      "lang": "zul_Latn",
+      "n_l": 100000,
+      "signed_mean": -0.0010293478059275566,
+      "mass_weighted_diff": 0.0011017282349543435,
+      "median_abs_diff": 0.0012836466846621875,
+      "max_abs_diff": 2.035764693159088,
+      "correlation": 0.9999538227274666,
+      "seconds": 12.0,
+      "passed": true
+    },
+    {
+      "lang": "azj_Latn",
+      "n_l": 100000,
+      "signed_mean": -0.010764940751883228,
+      "mass_weighted_diff": 0.020190984537373464,
+      "median_abs_diff": 0.011590959345891605,
+      "max_abs_diff": 3.6798744184617256,
+      "correlation": 0.9995625029751013,
+      "seconds": 13.4,
+      "passed": false
+    },
+    {
+      "lang": "bod_Tibt",
+      "n_l": 45476,
+      "signed_mean": -0.0983478202387401,
+      "mass_weighted_diff": 0.04176698545336567,
+      "median_abs_diff": 0.10043714837306084,
+      "max_abs_diff": 9.415954128940173,
+      "correlation": 0.9969548427106528,
+      "seconds": 17.3,
+      "passed": false
+    },
+    {
+      "lang": "mya_Mymr",
+      "n_l": 100000,
+      "signed_mean": -0.1741193141542414,
+      "mass_weighted_diff": 0.12403332693980816,
+      "median_abs_diff": 0.19387628255692846,
+      "max_abs_diff": 8.154244406835161,
+      "correlation": 0.9467182388378219,
+      "seconds": 18.8,
+      "passed": false
+    }
+  ],
+  "passed": false,
+  "thresholds": {
+    "max_abs_signed_mean": 0.01,
+    "max_mass_weighted_diff": 0.02,
+    "min_correlation": 0.9999
+  }
+}

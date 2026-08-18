@@ -25,6 +25,74 @@ uniform sample (`seed=42`, without replacement).
 
 ---
 
+## Both LLM-tokenizer variants carry the EM corruption; the plateau scan missed one (2026-08-18)
+
+**Correction of my own conclusion earlier the same day.** I wrote that "the
+DeepSeek3.2 model shows no sign of this failure", on the strength of the plateau
+diagnostic alone. **That was wrong.** The plateau diagnostic is insensitive to the
+milder form of the corruption; the retrain gate is not.
+
+**How it was found.** `analysis/gate_correction.py` retrains a language from its
+own corpus under the patched trainer and compares against the stored row. Run on
+the corrected DeepSeek3.2 model with `azj_Latn` named explicitly (a `--langs`
+option added for the purpose), against a size-spread selection:
+
+| language | N_L | signed mean, nats | correlation | verdict |
+|---|---|---|---|---|
+| `kdr_Latn` | 85 | -5.9e-07 | 1.00000000 | pass |
+| `wib_Latn` | 9,431 | -4.3e-05 | 1.00000000 | pass |
+| `qxh_Latn` | 17,446 | +2.1e-05 | 1.00000000 | pass |
+| `adh_Latn` | 23,111 | +9.6e-08 | 1.00000000 | pass |
+| `ace_Latn` | 47,937 | +1.5e-05 | 1.00000000 | pass |
+| `zul_Latn` | 100,000 | +6.7e-05 | 1.00000000 | pass |
+| **`azj_Latn`** | **100,000** | **+1.0002** | **0.7057** | **FAIL** |
+| `bod_Tibt` | 45,476 | +3.5365 | 0.9963 | FAIL |
+
+`zul_Latn` is the control: same corpus size, same 100,000-line cap, same draw
+question, and it reproduces to correlation 1.00000000. `azj_Latn` differs by a
+signed mean of one full nat at correlation 0.71. That is not a sampling
+difference.
+
+**Why the plateau scan missed it.** In the DeepSeek3.2 model `azj_Latn`'s plateau
+sits 1.7 sd below expectation, inside the normal range, while in the Qwen3 model
+the equivalent row was driven to the hard training floor at 20.1 sd. The
+corruption is present in both and its effect on the plateau differs by an order
+of magnitude. **The retrain gate is the instrument that catches both; neither the
+plateau scan nor the degeneracy scan does.** Recorded because the natural
+inference from a clean plateau scan is that a model is sound, and that inference
+is not safe.
+
+**The timeline makes this expected rather than surprising.** Both LLM-tokenizer
+variants were built 2026-03-27. The fp64 EM bug was fixed 2026-07-27 (Exp 42),
+four months later. The base model and the Mistral-Nemo variant were retrained
+after the fix; these two were not. So both are expected to carry it, and both do.
+
+**The base model is not in the same category.** Gated with the same three hard
+languages named explicitly:
+
+| language | N_L | base model signed mean | correlation | DeepSeek3.2, same language |
+|---|---|---|---|---|
+| `zul_Latn` | 100,000 | -1.03e-03 | 0.999954 | +6.7e-05 |
+| `azj_Latn` | 100,000 | -1.08e-02 | 0.999563 | **+1.0002** |
+| `bod_Tibt` | 45,476 | -9.83e-02 | 0.996955 | +3.5365 |
+| `mya_Mymr` | 100,000 | -1.74e-01 | 0.946718 | not gated |
+
+The base model's `azj_Latn` discrepancy is **93 times smaller** than the
+DeepSeek3.2 one, and only 1.08x the gate's `MAX_ABS_SIGNED_MEAN` threshold. Those
+three languages are the hard cases (a capped corpus so a different draw, minority
+scripts), and the gate's thresholds were calibrated on a size-spread sample that
+contained none of them. **Read as threshold calibration on hard languages, not as
+corruption**, which is consistent with the base model having zero plateau
+outliers and having been retrained under the patched trainer. It is worth a
+closer look and it is not the same phenomenon.
+
+**Action, extending the author's decision of 2026-08-18 for Qwen3 to the
+identical defect in its sibling: retrain DeepSeek3.2 too.** Job 3112879,
+`slurm_deepseek_train_fp64.sh`. Qwen3 is job 3112846.
+
+**Artifacts:** `outputs/rerelease/gate_correction_deepseek.json`,
+`outputs/rerelease/gate_correction_base_azj.json`.
+
 ## The Qwen3 variant's Azerbaijani row is corrupted, independently of the special-token defect (2026-08-18)
 
 **How this was found.** Inspecting the two variant models from the co-author's

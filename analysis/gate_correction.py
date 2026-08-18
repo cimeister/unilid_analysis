@@ -87,6 +87,11 @@ def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("corrected")
     ap.add_argument("--n-langs", type=int, default=8)
+    ap.add_argument("--langs", default=None,
+                    help="comma-separated languages to gate IN ADDITION to the "
+                         "size-spread selection. Use it to target a row that is "
+                         "suspect for another reason, e.g. azj_Latn, which "
+                         "carries the fp64 EM bug in the Qwen3 variant.")
     ap.add_argument("-o", "--output", default=None)
     args = ap.parse_args(argv)
 
@@ -98,8 +103,17 @@ def main(argv=None):
     counts = json.loads(TRAIN_COUNTS.read_text())
 
     chosen = pick_languages(langs, counts, args.n_langs)
+    if args.langs:
+        extra = [l.strip() for l in args.langs.split(",") if l.strip()]
+        missing = [l for l in extra
+                   if l not in counts or not (CORPUS_DIR / f"{l}_train.txt").is_file()]
+        if missing:
+            raise SystemExit(f"requested language(s) with no corpus or count: {missing}")
+        chosen = chosen + [l for l in extra if l not in chosen]
+        print(f"  targeted additions: {extra}", flush=True)
     print(f"gating {len(chosen)} languages spanning N_L "
-          f"{counts[chosen[0]]:,} to {counts[chosen[-1]]:,}", flush=True)
+          f"{min(counts[l] for l in chosen):,} to "
+          f"{max(counts[l] for l in chosen):,}", flush=True)
 
     rows = []
     with tempfile.TemporaryDirectory() as tmp:
