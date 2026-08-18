@@ -905,6 +905,20 @@ of every row's mass, depressing every real token by log 5 = 1.6094 nats. Fixed i
 package version 0.3.0 and applied to all four stored models as a closed-form
 transformation.
 
+**Author decisions taken 2026-08-18:**
+5. **c = -17.3906 for the corrected model**, which is what the published Exp 20
+   procedure selected when re-run (job 3107082), rather than -21 + log 5 =
+   -19.3906, the pre-registered expectation. Reason: overriding a pre-registered
+   procedure with a prior expectation after seeing its result is the pattern the
+   project's own rules exist to prevent. The two grid points are tied (released
+   picks -21 over -19 by 0.0001, corrected picks -17.3906 over -19.3906 by
+   0.0002), and that tie must be disclosed in the paper rather than presented as
+   a clean selection.
+6. **The paper reports the full-pool stratum regressions alongside the overall
+   gain** (overall macro F1 +0.0035, tail -0.0087, magnets -0.0071), stating the
+   mechanism: the stratum rows are the within-stratum recall view, so a falling
+   tail figure means tail-language examples are misclassified more often.
+
 **Author decisions taken 2026-08-17, not to be silently revisited:**
 1. Regenerate what this machine can. Table 1 carries corrected UniLID, calibrated
    and Mistral-Nemo rows next to DeepSeek3.2 and Qwen3 rows computed on
@@ -947,14 +961,16 @@ transformation.
   `analysis/model_context_selfcheck.py` fires all six resolver branches and all
   seven entry points: 13/13. The two missing generators are written:
   `analysis/viterbi_vs_marginal.py` and `analysis/lenbias_norm_table.py`.
-- **B2: re-derive the calibration** — `ongoing`. c: job 3107082 submitted
-  2026-08-17, published protocol on the grid shifted by log 5. Still to do once
-  c lands: all 1,084 group-A thresholds; the high-entropy group re-identified
-  under the published criterion (`build_release_calibration.py` asserts the
-  current four and aborts until updated, overridable only by an explicit flag).
-  Group A membership cannot change, being defined by N_L.
+- **B2: re-derive the calibration** — `ongoing`. c: **finished**, job 3107082,
+  selected **-17.3906**; see the 2026-08-18 results entry for the tie. Still to
+  do: all 1,084 group-A thresholds (`solo_gates.py floor21`, needs the floor-c
+  full-pool pass first); the high-entropy group re-identified under the published
+  criterion (`build_release_calibration.py` asserts the current four and aborts
+  until updated, overridable only by an explicit flag). Group A membership cannot
+  change, being defined by N_L.
 - **B3: regenerate the paper numbers** — `ongoing`. Step 1 (corrected full-pool
-  baseline) is job 3107045, submitted 2026-08-17, `--configs baseline` only.
+  baseline) **finished**, job 3107045: overall macro F1 0.9292 to 0.9327. Step 2
+  (floor-c full-pool pass at c = -17.3906) is job 3110918, submitted 2026-08-18.
   Remaining steps and their dependency order in `RERELEASE_PLAN.md`.
 - **B4: ship the corrected artifacts, retire polybox** — `waiting on dependency`
   (B2 for the calibrated model; the uncalibrated model is ready now).

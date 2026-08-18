@@ -95,6 +95,40 @@ def build_equalized_weights(W: np.ndarray, target: float,
     return out, n_mod
 
 
+def verify_one_sided_clamp(W, target: float, special_cols, n_mod: int,
+                           label: str = "") -> dict:
+    """Check that the clamp only ever lowered, and report how many rows moved.
+
+    Replaces the older `n_mod == n_lang` assertion used across the chain. That
+    assertion encoded an incidental fact rather than a property of the method:
+    at c = -21 every released row's plateau happened to sit above it, so all
+    1,940 moved. It is false at other constants and on corrected weights. The
+    corrected model selected c = -17.3906, where 1,821 of 1,940 rows move and
+    119 legitimately do not.
+
+    What must hold in every case is the one-sided rule: a row the clamp left
+    alone must already have had its plateau at or below the target. Anything
+    else means the clamp skipped a row it should have lowered. This is the check
+    analysis/mistralnemo_eval.py already used for its own partial clamp; it is
+    promoted here so the whole chain shares it.
+    """
+    real = np.ones(W.shape[1], dtype=bool)
+    real[list(special_cols)] = False
+    row_mins = W[:, np.flatnonzero(real)].min(axis=1)
+    n_lang = W.shape[0]
+    above = np.flatnonzero(row_mins > target)
+    if len(above) != n_mod:
+        bad = sorted(set(above.tolist()))[:5]
+        raise RuntimeError(
+            f"{label}floor {target}: {n_mod} rows were modified but {len(above)} "
+            f"rows have a plateau above the target (first indices {bad}); the "
+            f"clamp skipped a row it should have lowered")
+    print(f"  {label}floor {target}: {n_mod:,} of {n_lang:,} rows clamped; "
+          f"{n_lang - n_mod:,} already at or below the target", flush=True)
+    return {"n_modified": int(n_mod), "n_languages": int(n_lang),
+            "n_already_below": int(n_lang - n_mod), "target": float(target)}
+
+
 def _special_columns(model_path: str) -> list[int]:
     """Special-token column indices, read from the model's own vocabulary.
 

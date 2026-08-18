@@ -32,14 +32,16 @@ from analysis.full_test_eval import (
     CHUNK_LINES, UNSEEN, EXCLUDED, EMPTY, BOOTSTRAP_MAX_N,
     _sample_line_indices, _parse_line,
 )
-from analysis.floor_equalization import build_equalized_weights, _special_columns
+from analysis.floor_equalization import (build_equalized_weights, _special_columns,
+                                         verify_one_sided_clamp)
 from analysis.model_context import resolve
 
 FLOOR_TARGET = -21.0            # the Exp 20 guard-selected constant
 OUT_DIR = "outputs"
 
 
-def run(out_dir: str = OUT_DIR, model_path: str = None, scratch_dir: str = None):
+def run(out_dir: str = OUT_DIR, model_path: str = None, scratch_dir: str = None,
+        floor_target: float = None):
     """Score the full pool under the floor-21 clamp.
 
     ``model_path``/``scratch_dir`` go through analysis.model_context.resolve,
@@ -67,17 +69,17 @@ def run(out_dir: str = OUT_DIR, model_path: str = None, scratch_dir: str = None)
     # training floor and would otherwise BE each row's minimum, so the plateau of
     # unseen real tokens would never be found and the clamp would do nothing.
     special_cols = _special_columns(ctx.model_path)
-    w21, n_mod = build_equalized_weights(W, FLOOR_TARGET, special_idx=special_cols)
-    if n_mod != n_lang:
-        raise RuntimeError(f"floor {FLOOR_TARGET} modified {n_mod} rows, expected all "
-                           f"{n_lang} (row floors all exceed it)")
+    target = FLOOR_TARGET if floor_target is None else float(floor_target)
+    w21, n_mod = build_equalized_weights(W, target, special_idx=special_cols)
+    verify_one_sided_clamp(W, target, special_cols, n_mod)
     if not np.array_equal(w21[:, special_cols], W[:, special_cols]):
         raise RuntimeError(f"special-token columns {special_cols} were modified "
                            f"by the clamp")
 
     fp = {"sha256_base_W": hashlib.sha256(W.tobytes()).hexdigest(),
           "sha256_w21": hashlib.sha256(w21.tobytes()).hexdigest(),
-          "floor_target": FLOOR_TARGET,
+          "floor_target": target,
+          "n_modified": int(n_mod),
           "langs_sha256": hashlib.sha256("|".join(langs).encode()).hexdigest(),
           "model_path": ctx.model_path, "model_sha256": ctx.sha256(),
           "chunk_lines": CHUNK_LINES, "total_lines": TOTAL_LINES}
@@ -252,9 +254,13 @@ def main(argv=None):
     from analysis.model_context import add_arguments
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--out-dir", default=OUT_DIR)
+    ap.add_argument("--floor-target", type=float, default=None,
+                    help=f"the unseen-token constant c (default {FLOOR_TARGET}, "
+                         f"the Exp 20 selection for the released model)")
     add_arguments(ap)
     a = ap.parse_args(argv)
-    run(out_dir=a.out_dir, model_path=a.model_path, scratch_dir=a.scratch_dir)
+    run(out_dir=a.out_dir, model_path=a.model_path, scratch_dir=a.scratch_dir,
+        floor_target=a.floor_target)
 
 
 if __name__ == "__main__":

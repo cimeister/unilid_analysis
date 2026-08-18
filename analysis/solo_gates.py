@@ -52,7 +52,8 @@ from analysis.transfer_sweep import _load_model_data, _load_unilid_model
 from analysis.full_test_eval import _parse_line
 from analysis.full_test_margin import HEAD_N
 from analysis.full_test_floor21 import FLOOR_TARGET
-from analysis.floor_equalization import build_equalized_weights, _special_columns
+from analysis.floor_equalization import (build_equalized_weights, _special_columns,
+                                         verify_one_sided_clamp)
 from analysis.model_context import resolve
 from analysis.hierarchical_pool import RES_CAP
 from analysis.margin_diagnostic import (_topk_batch, _gap, PRF_CSV, TOPK_MARGIN,
@@ -61,7 +62,7 @@ from analysis.margin_diagnostic import (_topk_batch, _gap, PRF_CSV, TOPK_MARGIN,
 
 
 def run(base: str, model_path: str = None, scratch_dir: str = None,
-        out_dir: str = "outputs") -> str:
+        out_dir: str = "outputs", floor_target: float = None) -> str:
     """base="unmod": adaptive margin gate over the unmodified weight matrix and
     pred_baseline.npy. base="floor21": the same gate over the floor-21 matrix
     (build_equalized_weights at FLOOR_TARGET, fingerprint-verified against
@@ -114,11 +115,10 @@ def run(base: str, model_path: str = None, scratch_dir: str = None,
         # floor, so an unnamed minimum would select them and the clamp would
         # silently do nothing.
         special_cols = _special_columns(ctx.model_path)
-        matrix, n_mod = build_equalized_weights(W, FLOOR_TARGET,
+        target = FLOOR_TARGET if floor_target is None else float(floor_target)
+        matrix, n_mod = build_equalized_weights(W, target,
                                                 special_idx=special_cols)
-        if n_mod != n_lang:
-            raise RuntimeError(f"floor {FLOOR_TARGET} modified {n_mod} rows, expected "
-                               f"all {n_lang} (row floors all exceed it)")
+        verify_one_sided_clamp(W, target, special_cols, n_mod)
         if not np.array_equal(matrix[:, special_cols], W[:, special_cols]):
             raise RuntimeError(f"special-token columns {special_cols} were modified "
                                f"by the clamp")
@@ -257,10 +257,12 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("base", choices=("unmod", "floor21"))
     ap.add_argument("--out-dir", default="outputs")
+    ap.add_argument("--floor-target", type=float, default=None,
+                    help=f"the unseen-token constant c (default {FLOOR_TARGET})")
     add_arguments(ap)
     a = ap.parse_args(argv)
     run(a.base, model_path=a.model_path, scratch_dir=a.scratch_dir,
-        out_dir=a.out_dir)
+        out_dir=a.out_dir, floor_target=a.floor_target)
 
 
 if __name__ == "__main__":
