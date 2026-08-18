@@ -39,15 +39,28 @@ ALPHA_VALUES = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 
 
 def _load_unilid_model(model_path: str = UNILID_MODEL_PATH):
-    """Load UnilidModel without triggering torch import from __init__.py."""
-    spec = importlib.util.spec_from_file_location(
-        "model_io",
-        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "UNILID", "unilid", "model_io.py"),
-    )
-    model_io = importlib.util.module_from_spec(spec)
-    sys.modules["unilid.model_io"] = model_io
-    spec.loader.exec_module(model_io)
-    return model_io.UnilidModel(model_path)
+    """Load UnilidModel.
+
+    This used to load model_io.py by file path with importlib, to avoid pulling
+    torch in through unilid/__init__.py. That stopped working when model_io grew
+    relative imports for the calibration work: executing it outside its package
+    raises "attempted relative import with no known parent package". Putting the
+    package root on sys.path and importing normally is what every other script in
+    this repository does, and it does not import torch, because model_io imports
+    only tokenizers and numpy.
+    """
+    unilid_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "UNILID")
+    if unilid_dir not in sys.path:
+        sys.path.insert(0, unilid_dir)
+    from unilid.model_io import UnilidModel
+    # calibrated=False, not the constructor default. Everything in this module is
+    # base-mode by definition: predict_normalized divides a score by the
+    # segmentation length and the package refuses it on a calibrated model, since
+    # that would apply the unseen-token constant without the re-examination. The
+    # default would also fail outright on a version-1 container, which carries no
+    # calibration artifact.
+    return UnilidModel(model_path, calibrated=False)
 
 
 def _stream_sampled_texts(sample_size: int = DEFAULT_SAMPLE_SIZE) -> list[str]:

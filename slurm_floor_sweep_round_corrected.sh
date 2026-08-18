@@ -38,6 +38,6 @@ echo "grid:   -15,-17,-19,-21"
 echo "commit: $(git rev-parse HEAD)"
 ${PYTHON} -u -m analysis.floor_equalization \
     --model "${MODEL}" \
-    --floors "-15,-17,-19,-21" \
+    --floors="-15,-17,-19,-21" \
     --out-dir outputs_corrected_round
 echo "=== Finished at $(date) ==="
