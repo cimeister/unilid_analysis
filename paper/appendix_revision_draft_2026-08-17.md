@@ -5,8 +5,8 @@ file are in the working tree, and most of the numbers are still being
 regenerated. This is the wording sample for sign-off before anything is edited in
 place.
 
-Only item 1 is ready now. Items 2 and 3 depend on runs that have not finished and
-are listed so they are not lost.
+Items 1, 1b, 1c and 1d are ready. Items 2 and 3 depend on runs that have not
+finished and are listed so they are not lost.
 
 ---
 
@@ -66,6 +66,84 @@ Artifacts: `outputs/rerelease/plateau_reference_fit.json`,
 
 ---
 
+## 1b. READY: "all of them are set to $c$" becomes false (`submission.tex:627-628`)
+
+### Current text
+
+> for the base \unilid model every unseen-token value exceeds $c$, so all of them
+> are set to $c$.
+
+### Why it changes
+
+True for the released model at $c = -21$: all 1,940 rows have their unseen-token
+value above $-21$, so all 1,940 are clamped. **False for the corrected model at
+its own selected $c = -17.3906$**: 1,821 of 1,940 rows are clamped and 119
+already sit at or below the target, so they are left unchanged.
+
+### Proposed replacement
+
+> for the base \unilid model 1{,}821 of the 1{,}940 unseen-token values exceed
+> $c$ and are set to it; the remaining 119 already lie below $c$ and are left
+> unchanged, since the rule only ever lowers.
+
+Note this makes the base model behave like the Mistral-Nemo variant described at
+`:1383-1384`, where some rows already lie below $c$. The two passages should be
+read together for consistency once both are settled.
+
+**Code consequence, already applied.** The chain asserted `n_mod == n_lang`,
+which encoded the incidental fact that at $c = -21$ every released row moved.
+That assertion is replaced by
+`analysis.floor_equalization.verify_one_sided_clamp`, which checks the property
+that actually has to hold: no row was skipped that should have been lowered.
+
+---
+
+## 1c. READY: the selection of $c$ was a tie, in both models
+
+Not currently disclosed. The appendix presents $c = -21$ as the outcome of a
+guarded sweep over $\{-17,-19,-21,-23\}$. On validation macro F1 the released
+model scores 0.9489 at $-21$ against 0.9488 at $-19$, a gap of **0.0001**, and
+the corrected model scores 0.9486 at $-17.3906$ against 0.9484 at $-19.3906$, a
+gap of **0.0002**. The two grid points are tied in both.
+All four values passed the all-strata guard in both models, so the selection rests
+on validation overall macro F1 alone.
+
+Suggested addition to the protocol appendix:
+
+> The two central grid values are not separated by this procedure: on validation
+> macro F1 they differ by 0.0001 for the model reported here, and the constant
+> should be read as any value in that range rather than as a resolved optimum.
+
+Recommended regardless of which $c$ ships. Reporting a constant chosen by a
+0.0001 margin as though it were resolved overstates what the sweep measured.
+
+---
+
+## 1d. READY: the full-pool effect of the correction (`submission.tex:344` and the stratum tables)
+
+Uncalibrated, full pool, 45,377,279 lines:
+
+| stratum | released | corrected | delta |
+|---|---|---|---|
+| overall macro F1 | 0.9292 | 0.9327 | +0.0035 |
+| overall accuracy | 0.9608 | 0.9609 | +0.0001 |
+| tail | 0.9132 | 0.9045 | -0.0087 |
+| magnets | 0.9138 | 0.9067 | -0.0071 |
+| twins | 0.9167 | 0.9164 | -0.0003 |
+| head | 0.9602 | 0.9596 | -0.0006 |
+
+`:344` quotes macro F1 .929, which becomes .933.
+
+Per the author decision of 2026-08-18 the stratum regressions are reported
+alongside the overall gain, with the mechanism stated: the stratum rows are the
+within-stratum recall view and exclude false positives into tail labels, so a
+falling tail figure means examples truly written in tail languages are
+misclassified more often. This is the same decomposition Exp 20 recorded for the
+floor-21 clamp, where an overall gain from global precision sat alongside a
+recall-side loss on the tail.
+
+---
+
 ## 2. BLOCKED on the corrected Mistral-Nemo chain: a claim that reverses (`submission.tex:1383-1384`)
 
 > its own unseen-token treatment (two languages whose trained unseen-token values
@@ -73,10 +151,13 @@ Artifacts: `outputs/rerelease/plateau_reference_fit.json`,
 
 Measured on the stored files: the **released** Mistral-Nemo variant has exactly
 two such rows, `khm_Khmr` ($-21.232$) and `ory_Orya` ($-21.016$); the
-**corrected** variant has none, because the correction raises every real token by
-1.6094 nats. So the parenthetical reverses, and after correction the variant
-behaves like the base model, where every unseen-token value exceeds $c$ and all
-are set to $c$.
+**corrected** variant has none *at $c = -21$*, because the correction raises
+every real token by 1.6094 nats. So the parenthetical reverses at that constant.
+Whether it reverses at the variant's own re-derived $c$ is not yet known: the base
+model's re-derived $c = -17.3906$ leaves 119 of its 1,940 rows below the target
+(item 1b), so a re-derived constant for the variant may well leave some of its
+rows unclamped too. The count has to be measured against the variant's own
+constant, not assumed from this one.
 
 The final wording waits on the corrected variant's own re-derived $c$, since the
 count is a comparison against it. The same paragraph names Banjar, Scots and
