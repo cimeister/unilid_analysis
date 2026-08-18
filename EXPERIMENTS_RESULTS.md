@@ -25,6 +25,91 @@ uniform sample (`seed=42`, without replacement).
 
 ---
 
+## Corrected model, full-pool baseline: overall +0.0035, tail -0.0087 (2026-08-18, job 3107045)
+
+**Hypothesis under test:** the effect of the special-token correction, measured on
+the full evaluation pool rather than the 250,000-line golden subset.
+
+**Finding: not a wash at full-pool scale, and the strata move in opposite
+directions.** Base mode, 45,377,279 lines, `--configs baseline` only.
+
+| stratum | released | corrected | delta |
+|---|---|---|---|
+| overall macro F1 | 0.9292 | 0.9327 | **+0.0035** |
+| overall accuracy | 0.9608 | 0.9609 | +0.0001 |
+| tail (7,735 examples, 96 languages) | 0.9132 | 0.9045 | **-0.0087** |
+| magnets (64,657 examples, 118 languages) | 0.9138 | 0.9067 | **-0.0071** |
+| twins (9,156,023 examples) | 0.9167 | 0.9164 | -0.0003 |
+| head (43,665,835 examples) | 0.9602 | 0.9596 | -0.0006 |
+
+**This qualifies the earlier "essentially a wash".** That statement was measured
+on the golden subset (macro F1 0.9454 to 0.9460) and remains true there. On the
+full pool the overall figure moves by +0.0035 and two strata move by roughly
+-0.008. Both statements are correct about their own instrument; the golden-subset
+one must not be quoted as though it covered the full pool.
+
+The direction repeats the pattern Exp 20 recorded for the floor-21 clamp: an
+overall gain that is a global-precision effect sitting alongside a recall-side
+loss on the tail and magnet strata. The stratum rows are the within-stratum
+recall view and exclude false positives into tail labels, so a tail figure falling
+means examples truly written in tail languages are misclassified more often.
+
+**This is not an adoption decision.** The released weights carry a training
+defect and the corrected ones do not; the re-release is not a choice between two
+candidate methods on their metrics. The tail figure is recorded because the paper
+quotes per-stratum numbers, not because it bears on whether to correct.
+
+**Paper consequence:** `submission.tex:344` quotes macro F1 .929, which becomes
+.933.
+
+**Artifacts:** `outputs_corrected/tables/full_test_eval.md`,
+`outputs_corrected/diagnostic/full_test_per_lang_f1.csv`, scratch root
+`full_test_eval_corrected/`.
+
+## The unseen-token constant did not move; a 0.0001 tie flipped (2026-08-18, job 3107082)
+
+**Hypothesis under test:** where the published Exp 20 selection procedure lands
+for the corrected model. Pre-registered expectation, recorded in
+`slurm_floor_sweep_corrected.sh` before the run: near -19.3906 = -21 + log 5,
+which would reproduce the released clamped matrix up to the uniform shift. **A
+result far from that was to be recorded as a finding, not treated as a tuning
+problem.**
+
+**The procedure selected -17.3906**, that is -19 + log 5, one grid step above the
+expectation. Aligning the two sweeps by grid position (released F against
+corrected F + log 5) shows why, and shows that the constant itself did not move:
+
+| position | released F | corrected F | rows clamped | val overall released | val overall corrected |
+|---|---|---|---|---|---|
+| baseline | | | 0 | 0.9451 | 0.9453 |
+| 1 | -17 | -15.3906 | 452 / 452 | 0.9475 | 0.9474 |
+| 2 | -19 | -17.3906 | 1,821 / 1,821 | 0.9488 | **0.9486** |
+| 3 | -21 | -19.3906 | 1,940 / 1,940 | **0.9489** | 0.9484 |
+| 4 | -23 | -21.3906 | 1,940 / 1,940 | 0.9486 | 0.9481 |
+
+**The number of rows clamped is identical at every position**, and every grid step
+is exactly log 5, which is the check that the shifted grid asks the same question
+of both models. Validation macro F1 differs by at most 0.0005 at any position, so
+the correction behaves as the uniform shift it is claimed to be.
+
+**Positions 2 and 3 are tied in both models.** The released model selects position
+3 over position 2 **by 0.0001**; the corrected model selects position 2 over
+position 3 **by 0.0002**. So the published c = -21 was never resolved against
+-19: it won by one ten-thousandth of a macro F1 point, and under the correction
+the same procedure picks the other member of the tie. The constant did not shift
+by more than log 5; a tie broke the other way.
+
+All four grid values passed the all-strata guard in both models, so the selection
+was made on validation overall macro F1 alone.
+
+**Consequence:** the choice of c for the re-release is not determined by the data,
+and it propagates. The thresholds tau are percentiles of margins measured on the
+clamped matrix, so a different c gives 1,084 different thresholds.
+
+**Artifacts:** `outputs_corrected/tables/floor_equalization.md`,
+`analysis/c_selection_comparison.py`,
+`outputs/rerelease/c_selection_comparison.json`.
+
 ## Special-token defect: per-language training gave four unusable tokens 0.8 of every row's mass (2026-08-17, login node, no SLURM job)
 
 **Hypothesis under test:** a setup report of large score differences between

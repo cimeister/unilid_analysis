@@ -1,0 +1,71 @@
+{
+  "log5": 1.6094379124341003,
+  "positions": [
+    {
+      "position": 0,
+      "released_F": null,
+      "corrected_F": null,
+      "shift": null,
+      "shift_matches_log5": null,
+      "n_modified_released": 0,
+      "n_modified_corrected": 0,
+      "n_modified_equal": true,
+      "val_overall_released": 0.9451,
+      "val_overall_corrected": 0.9453
+    },
+    {
+      "position": 1,
+      "released_F": -17.0,
+      "corrected_F": -15.3906,
+      "shift": 1.6094000000000008,
+      "shift_matches_log5": true,
+      "n_modified_released": 452,
+      "n_modified_corrected": 452,
+      "n_modified_equal": true,
+      "val_overall_released": 0.9475,
+      "val_overall_corrected": 0.9474
+    },
+    {
+      "position": 2,
+      "released_F": -19.0,
+      "corrected_F": -17.3906,
+      "shift": 1.6094000000000008,
+      "shift_matches_log5": true,
+      "n_modified_released": 1821,
+      "n_modified_corrected": 1821,
+      "n_modified_equal": true,
+      "val_overall_released": 0.9488,
+      "val_overall_corrected": 0.9486
+    },
+    {
+      "position": 3,
+      "released_F": -21.0,
+      "corrected_F": -19.3906,
+      "shift": 1.6094000000000008,
+      "shift_matches_log5": true,
+      "n_modified_released": 1940,
+      "n_modified_corrected": 1940,
+      "n_modified_equal": true,
+      "val_overall_released": 0.9489,
+      "val_overall_corrected": 0.9484
+    },
+    {
+      "position": 4,
+      "released_F": -23.0,
+      "corrected_F": -21.3906,
+      "shift": 1.6094000000000008,
+      "shift_matches_log5": true,
+      "n_modified_released": 1940,
+      "n_modified_corrected": 1940,
+      "n_modified_equal": true,
+      "val_overall_released": 0.9486,
+      "val_overall_corrected": 0.9481
+    }
+  ],
+  "released_selected_position": 3,
+  "corrected_selected_position": 2,
+  "released_margin_over_runner_up": 9.999999999998899e-05,
+  "corrected_margin_over_runner_up": 0.00019999999999997797,
+  "n_modified_identical_at_every_position": true,
+  "grid_shift_is_log5_at_every_position": true
+}

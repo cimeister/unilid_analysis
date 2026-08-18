@@ -27,6 +27,32 @@ for the infrastructure record.
 `EXPERIMENTAL_SETUP.md` (hierarchical pooling). Full plan:
 `~/.claude/plans/yes-do-both-then-giggly-sprout.md`.
 
+### 2026-08-18: both corrected-model jobs COMPLETED
+
+- **Job 3107045** `unilid-fulltest-corr` COMPLETED 01:42:36, MaxRSS 9.45G,
+  exit 0:0. Full-pool baseline on the corrected weights, 45,377,279 lines.
+  Outcome: overall macro F1 0.9292 to 0.9327 (+0.0035), accuracy 0.9608 to
+  0.9609, tail 0.9132 to 0.9045 (-0.0087), magnets 0.9138 to 0.9067 (-0.0071),
+  twins -0.0003, head -0.0006. **Qualifies the earlier "essentially a wash",
+  which was the golden-subset measurement and stays true there.** Artifacts:
+  `outputs_corrected/tables/full_test_eval.md`,
+  `outputs_corrected/diagnostic/full_test_per_lang_f1.csv`.
+- **Job 3107082** `unilid-csweep-corr` COMPLETED 00:13:49, MaxRSS 6.53G,
+  exit 0:0. Selected c = **-17.3906**, one grid step above the pre-registered
+  expectation of -19.3906. Aligned position by position against the released
+  sweep, the rows clamped are identical at every position (452 / 1,821 / 1,940 /
+  1,940) and every grid step is exactly log 5, so the shifted grid asked the same
+  question. Positions 2 and 3 are tied in both models: the released model picks
+  position 3 by 0.0001, the corrected model picks position 2 by 0.0002. **The
+  constant did not move; a tie broke the other way.** All four values passed the
+  all-strata guard in both models. Artifacts:
+  `outputs_corrected/tables/floor_equalization.md`,
+  `analysis/c_selection_comparison.py`,
+  `outputs/rerelease/c_selection_comparison.json`.
+- **Blocking decision raised to the author:** which c the re-release ships. The
+  data does not determine it, and it propagates to all 1,084 thresholds, which
+  are percentiles of margins on the clamped matrix.
+
 ### 2026-08-17: corrected-model unseen-token constant sweep submitted (job 3107082)
 
 - **Purpose / hypothesis:** re-derive c for the corrected model. The probe showed
