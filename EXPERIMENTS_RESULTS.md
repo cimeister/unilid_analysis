@@ -25,42 +25,65 @@ uniform sample (`seed=42`, without replacement).
 
 ---
 
-## Drive folder `glotlid_unilid` inspected: does not contain the DeepSeek3.2 or Qwen3 models (2026-08-18)
+## Drive folder `glotlid_unilid`: the DeepSeek3.2 and Qwen3 models are there (2026-08-18)
 
-**Purpose:** the co-author shared
-`drive.google.com/drive/folders/19sRPRiFHX8Lk3vZWlNGl0zzA88eAZ3Yx` as the
-location of the DeepSeek and Qwen models plus other paper results, which would
-unblock the 24 cells of `lid_main.tex` recorded as having no artifact on this
-machine.
+**Correction of my own earlier entry.** I first recorded that this folder held no
+model weights, based on the Google Drive MCP connector, which returned only a
+`full_prob` subfolder with two JSON files under every query I tried
+(`parentId =` the folder, with and without a mimeType filter; `title contains
+'glotlid'`; `owner =` the co-author; `mimeType = 'application/octet-stream'`).
+**That conclusion was wrong.** `gdown` run from the login node lists the folder
+correctly, so the connector's search index does not cover its contents. The
+lesson for later: a negative result from that connector is not evidence of
+absence, and a direct fetch is the check.
 
-**Contents, listed in full.** One subfolder, `full_prob`, holding exactly two
-files, both describing the base `glotlidc.unilid` model:
+**Actual contents**, from `gdown --folder`:
 
-| file | size | content |
-|---|---|---|
-| `glotlidc_metrics.json` | 348 B | accuracy 0.9615000930, macro F1 0.9311137455, macro FPR 1.9892873e-05, 45,627,279 samples, 43,870,633 correct, 1,940 languages, `only_model_langs: true`, inference 42,443.7 s at 1,075.0 samples/s |
-| `glotlidc_per_language.json` | 329 KB | per-language metrics for the same run |
+| file | note |
+|---|---|
+| `deepseek_v3.2_glotlid.unilid` | 1,004,157,190 B. **The DeepSeek3.2 model.** |
+| `qwen3_8b_glotlid.unilid` | 1,181,995,016 B. **The Qwen3 model.** |
+| `deepseek_v3.2_glotlid_y_pred.txt` | its recorded predictions |
+| `qwen3_8b_glotlid_y_pred.txt` | its recorded predictions |
+| `glotlidc_y_pred.txt` | base model predictions (also inside `full_prob/`) |
+| `glotlid_e100_sanity/` | fastText e100 metrics, per-language, y_pred |
+| `full_prob/` | `glotlidc_metrics.json`, `glotlidc_per_language.json`, `glotlidc_y_pred.txt` (411 MB) |
+| `glotlid_correct_test.txt.zip`, `train.txt.zip`, `glotlid_train_counts.json` | corpora and counts already held here |
 
-**No model weights of any kind. No DeepSeek3.2, no Qwen3, no WiLI, no DSL-ML.**
-So the two blocked groups in `paper/PAPER_EDITS_pending.md` (C1 and C2) remain
-blocked.
+Both models downloaded to
+`/capstor/scratch/cscs/cmeister747/unilid_analysis/drive_models/`.
 
-**One useful cross-check, and it passes.** The metrics file is the
-original-submission computation over all 45,627,279 lines and gives macro F1
-0.9311. The paper's `tab:lid_main` UniLID row prints `.929`, which is the
-scored-pool figure (45,377,279 lines, macro F1 0.9292, measured here). The two
-differ exactly as the table caption states: the UniLID and calibrated rows are on
-the scored pool, the carried-over rows on the full file. **This corroborates the
-caption's provenance claim from the co-author's own artifact**, which was
-previously asserted from this repository's side only.
+**Both carry the same special-token defect, so both take the same correction.**
+Measured on `deepseek_v3.2_glotlid.unilid`: 1,940 languages, vocabulary 128,819,
+special-token mass **0.800000 in every row** (min equals max), real-token mass
+0.200000 in every row, unseen-token plateau -23.354 to -13.464.
 
-**One discrepancy worth raising with the co-author.** This run reports 1,075.0
-samples/s, while `tab:latency_glotlid` reports 3,253 samples/s (0.307 ms/sample)
-for UniLID over the same 45,627,279 samples, a factor of 3.0. The folder name
-`full_prob` suggests a run emitting full probability distributions rather than
+**A structural difference worth carrying forward: its special columns are
+128815-128818, at the END of the vocabulary, not 0-3.** The base GlotLID-C model
+has them at the start and the Mistral-Nemo variant at 0, 1, 2 and 10. Any code
+that assumes columns 0:3 is wrong for two of the four models. Two scripts still
+do (`full_test_bgfloor.py:207`, `mixed_matrix.py:204`); neither is on the
+re-release path, and the rest of the chain now finds them by name from the
+vocabulary.
+
+**Unblocks** the C2 group of `paper/PAPER_EDITS_pending.md`: the 24 Table 1 cells
+no longer have to stay on pre-correction weights, and `:975`'s "all within 0.025
+macro F1" no longer straddles two model generations.
+
+**Still open:** the WiLI and DSL-ML artifacts (group C1) are not in this folder.
+
+**One discrepancy to raise with the co-author, unchanged.** `full_prob`'s metrics
+file reports 1,075.0 samples/s while `tab:latency_glotlid` reports 3,253
+samples/s for UniLID over the same 45,627,279 samples, a factor of 3.0. The
+folder name suggests a run emitting full probability distributions rather than
 the argmax, which would account for it, but the latency table's run
-configuration is a standing open item on the ask list and this does not close it.
-It should not be used as the latency source.
+configuration remains an open item and this does not close it.
+
+**One cross-check that passes.** `full_prob/glotlidc_metrics.json` gives macro F1
+0.9311 over all 45,627,279 lines. The paper's `tab:lid_main` UniLID row prints
+`.929`, the scored-pool figure (45,377,279 lines, macro F1 0.9292, measured
+here). The two differ exactly as the table caption states, corroborating that
+provenance claim from the co-author's own artifact.
 
 ## Pre-registration: round-grid c sweep for the corrected model (2026-08-18, recorded before the run)
 
