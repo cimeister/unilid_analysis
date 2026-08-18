@@ -1,0 +1,18 @@
+{
+  "released": {
+    "tag": "released",
+    "n_lines": 45377279,
+    "macro_f1": 0.929190045827552,
+    "macro_fpr": 2.026316183435326e-05,
+    "accuracy": 0.9607843608251609
+  },
+  "corrected": {
+    "tag": "corrected",
+    "n_lines": 45377279,
+    "macro_f1": 0.9327099739222771,
+    "macro_fpr": 2.0187446708120504e-05,
+    "accuracy": 0.9609332238717971
+  },
+  "delta_macro_f1": 0.003519928094725011,
+  "delta_macro_fpr": -7.571512623275533e-08
+}

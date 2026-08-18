@@ -1,11 +1,20 @@
 # Draft appendix revisions after the special-token correction
 
+> The concrete, itemized edit list is `paper/PAPER_EDITS_pending.md`. This file
+> holds the proposed *wording* for the items that are prose rewrites rather than
+> number substitutions.
+>
+> An earlier item 1c proposed disclosing that the sweep did not separate the two
+> central grid values. **Removed 2026-08-18**: the preprint is unreleased, so
+> there is no prior constant to reconcile against and no disclosure is owed. The
+> paper states the procedure and the constant it selected.
+
 Not applied to `submission.tex`. Two reasons: your own uncommitted edits to that
 file are in the working tree, and most of the numbers are still being
 regenerated. This is the wording sample for sign-off before anything is edited in
 place.
 
-Items 1, 1b, 1c and 1d are ready. Items 2 and 3 depend on runs that have not
+Items 1, 1b and 1d are ready. Items 2 and 3 depend on runs that have not
 finished and are listed so they are not lost.
 
 ---
@@ -95,27 +104,6 @@ which encoded the incidental fact that at $c = -21$ every released row moved.
 That assertion is replaced by
 `analysis.floor_equalization.verify_one_sided_clamp`, which checks the property
 that actually has to hold: no row was skipped that should have been lowered.
-
----
-
-## 1c. READY: the selection of $c$ was a tie, in both models
-
-Not currently disclosed. The appendix presents $c = -21$ as the outcome of a
-guarded sweep over $\{-17,-19,-21,-23\}$. On validation macro F1 the released
-model scores 0.9489 at $-21$ against 0.9488 at $-19$, a gap of **0.0001**, and
-the corrected model scores 0.9486 at $-17.3906$ against 0.9484 at $-19.3906$, a
-gap of **0.0002**. The two grid points are tied in both.
-All four values passed the all-strata guard in both models, so the selection rests
-on validation overall macro F1 alone.
-
-Suggested addition to the protocol appendix:
-
-> The two central grid values are not separated by this procedure: on validation
-> macro F1 they differ by 0.0001 for the model reported here, and the constant
-> should be read as any value in that range rather than as a resolved optimum.
-
-Recommended regardless of which $c$ ships. Reporting a constant chosen by a
-0.0001 margin as though it were resolved overstates what the sweep measured.
 
 ---
 
