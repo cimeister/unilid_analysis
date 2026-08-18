@@ -252,6 +252,58 @@ login-node process tied to an interactive session.
 
 ---
 
+## 2026-08-18: results landed, and the consequences in code
+
+### `analysis/c_selection_comparison.py` (new)
+
+Aligns the released and corrected c sweeps by grid position and checks the
+alignment is real: the number of rows clamped must match at every position and
+every grid step must be exactly log 5. Both hold. Output:
+`outputs/rerelease/c_selection_comparison.json`.
+
+### `analysis/floor_equalization.verify_one_sided_clamp` (new), replacing `n_mod == n_lang`
+
+The chain asserted in five places that the clamp modified **all** 1,940 rows.
+That encoded an incidental fact rather than a property of the method: at c = -21
+every released row's plateau happened to sit above the target. The corrected
+model's own selected c = -17.3906 clamps 1,821 rows and legitimately leaves 119,
+so the assertion fires on a correct run.
+
+The replacement checks what actually has to hold: **a row the clamp left alone
+must already have had its plateau at or below the target**, so no row was skipped
+that should have been lowered. This is the check
+`analysis/mistralnemo_eval.py` already used for its own partial clamp; it is
+promoted to `floor_equalization` and shared.
+
+Applied in `full_test_floor21.py` and `solo_gates.py`, both of which also gained
+a `--floor-target` flag. The other `FLOOR_TARGET` consumers
+(`gate_variants.py`, `commonlid_calibrated.py`, `external_bench_eval.py`,
+`mixed_*.py`, `full_test_bgfloor.py`) still import the module constant and will
+need the same treatment when they are next run against corrected weights.
+
+### Author decisions of 2026-08-18, recorded in `EXPERIMENTS_PLAN.md`
+
+- **c = -17.3906** for the corrected model: what the published procedure selected
+  when re-run, rather than the pre-registered -19.3906. The two are tied
+  (released picks -21 over -19 by 0.0001, corrected picks -17.3906 by 0.0002) and
+  the tie is to be disclosed in the paper.
+- The paper reports the full-pool stratum regressions (tail -0.0087, magnets
+  -0.0071) alongside the overall gain (+0.0035), with the mechanism stated.
+
+---
+
+## Runs, updated
+
+| Run | Job | State | Result |
+|---|---|---|---|
+| Corrected full-pool baseline | 3107045 | COMPLETED 01:42:36 | overall macro F1 0.9292 to 0.9327 |
+| Corrected c sweep | 3107082 | COMPLETED 00:13:49 | selected c = -17.3906 |
+| Corrected floor-c full-pool pass | 3110918 | queued | |
+| Corrected decoder comparison | 3110925 | queued | independent of c (base mode) |
+| Corrected lenbias-norm | 3110926 | queued | independent of c (base mode) |
+
+---
+
 ## What has NOT been changed, deliberately
 
 - The released artifacts on store and on the Hub. Untouched.
