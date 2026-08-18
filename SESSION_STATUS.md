@@ -65,9 +65,10 @@ normal here, do not cancel and resubmit).
 
 ## Open decisions
 
-- Whether the `learned_bias` config is still reported: its `learned_bias.npy` was
-  fit to the old model, and keeping it means paying for a refit and a third full
-  pass per `full_test_eval.py` invocation.
+- RESOLVED 2026-08-17: the `learned_bias` and `freq_prior` configs are not run
+  for the corrected model. Neither appears in `submission.tex`, and one full pool
+  pass each is a 3x cost. The Exp 14/16 records stay marked superseded pending
+  regeneration.
 - Whether the Apertus 200k and 131k variants are published or only corrected
   locally. They appear in no paper table.
 - Whether the package offers users a migration for their own pre-0.3.0 models.
