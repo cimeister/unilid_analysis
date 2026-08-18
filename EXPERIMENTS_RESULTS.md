@@ -25,6 +25,43 @@ uniform sample (`seed=42`, without replacement).
 
 ---
 
+## Drive folder `glotlid_unilid` inspected: does not contain the DeepSeek3.2 or Qwen3 models (2026-08-18)
+
+**Purpose:** the co-author shared
+`drive.google.com/drive/folders/19sRPRiFHX8Lk3vZWlNGl0zzA88eAZ3Yx` as the
+location of the DeepSeek and Qwen models plus other paper results, which would
+unblock the 24 cells of `lid_main.tex` recorded as having no artifact on this
+machine.
+
+**Contents, listed in full.** One subfolder, `full_prob`, holding exactly two
+files, both describing the base `glotlidc.unilid` model:
+
+| file | size | content |
+|---|---|---|
+| `glotlidc_metrics.json` | 348 B | accuracy 0.9615000930, macro F1 0.9311137455, macro FPR 1.9892873e-05, 45,627,279 samples, 43,870,633 correct, 1,940 languages, `only_model_langs: true`, inference 42,443.7 s at 1,075.0 samples/s |
+| `glotlidc_per_language.json` | 329 KB | per-language metrics for the same run |
+
+**No model weights of any kind. No DeepSeek3.2, no Qwen3, no WiLI, no DSL-ML.**
+So the two blocked groups in `paper/PAPER_EDITS_pending.md` (C1 and C2) remain
+blocked.
+
+**One useful cross-check, and it passes.** The metrics file is the
+original-submission computation over all 45,627,279 lines and gives macro F1
+0.9311. The paper's `tab:lid_main` UniLID row prints `.929`, which is the
+scored-pool figure (45,377,279 lines, macro F1 0.9292, measured here). The two
+differ exactly as the table caption states: the UniLID and calibrated rows are on
+the scored pool, the carried-over rows on the full file. **This corroborates the
+caption's provenance claim from the co-author's own artifact**, which was
+previously asserted from this repository's side only.
+
+**One discrepancy worth raising with the co-author.** This run reports 1,075.0
+samples/s, while `tab:latency_glotlid` reports 3,253 samples/s (0.307 ms/sample)
+for UniLID over the same 45,627,279 samples, a factor of 3.0. The folder name
+`full_prob` suggests a run emitting full probability distributions rather than
+the argmax, which would account for it, but the latency table's run
+configuration is a standing open item on the ask list and this does not close it.
+It should not be used as the latency source.
+
 ## Pre-registration: round-grid c sweep for the corrected model (2026-08-18, recorded before the run)
 
 **Why a second sweep, stated plainly.** The first sweep (job 3107082) used the
