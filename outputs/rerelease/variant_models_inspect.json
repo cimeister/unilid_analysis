@@ -1,0 +1,38 @@
+[
+  {
+    "model": "/capstor/scratch/cscs/cmeister747/unilid_analysis/drive_models/deepseek_v3.2_glotlid.unilid",
+    "n_languages": 1940,
+    "vocab_size": 128819,
+    "special_columns": [
+      128815,
+      128816,
+      128817,
+      128818
+    ],
+    "special_mass_min": 0.7999999759433745,
+    "special_mass_max": 0.8000000713108089,
+    "real_mass_min": 0.1999999127021273,
+    "real_mass_max": 0.20000005168113746,
+    "plateau_min": -23.354320526123047,
+    "plateau_max": -13.46369743347168,
+    "defect_present": true
+  },
+  {
+    "model": "/capstor/scratch/cscs/cmeister747/unilid_analysis/drive_models/qwen3_8b_glotlid.unilid",
+    "n_languages": 1940,
+    "vocab_size": 151670,
+    "special_columns": [
+      128245,
+      128247,
+      151669,
+      128244
+    ],
+    "special_mass_min": 0.7999999759433745,
+    "special_mass_max": 0.8000000713108089,
+    "real_mass_min": 0.19999992676470502,
+    "real_mass_max": 0.20000016217158156,
+    "plateau_min": -27.63102149963379,
+    "plateau_max": -13.615870475769043,
+    "defect_present": true
+  }
+]

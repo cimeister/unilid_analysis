@@ -25,6 +25,75 @@ uniform sample (`seed=42`, without replacement).
 
 ---
 
+## The Qwen3 variant's Azerbaijani row is corrupted, independently of the special-token defect (2026-08-18)
+
+**How this was found.** Inspecting the two variant models from the co-author's
+Drive folder, the Qwen3 model's unseen-token plateau reached exactly
+log(1e-12) = -27.631, the training floor, which the base model never reaches.
+Two rows sit there: `azj_Latn` and `bod_Tibt`.
+
+**The diagnostic, and it is B0's result used as an instrument.** B0 established
+that a row's plateau is near-deterministic in corpus size. Fitting that relation
+*within* each model gives a per-language expectation, and a row far below its own
+expectation has something wrong that corpus size does not explain
+(`analysis/variant_plateau_outliers.py`, robust fit, outliers at 5 sd).
+
+The relation reproduces on both variant vocabularies, which is independent
+confirmation of B0 on models B0 never saw:
+
+| model | vocabulary | fitted slope, nats per decade of lines | residual sd | rows beyond 5 sd |
+|---|---|---|---|---|
+| `glotlidc` (base) | 100,000 | -2.068 | 0.298 | **0** |
+| `deepseek_v3.2` | 128,819 | -2.016 | 0.424 | 3 |
+| `qwen3_8b` | 151,670 | -2.010 | 0.409 | 5 |
+
+**Finding: `azj_Latn` in the Qwen3 model is 20.1 sd below expectation**, plateau
+-27.631 against an expected -19.413, and it appears in no other model. The
+project's own degeneracy scan does not flag it, because it retains more than 100
+tokens above its plateau.
+
+**Why this is the fixed-vocabulary EM bug and not vocabulary coverage.** The two
+causes are separable and the record already distinguishes them:
+
+- **Coverage** shows up wherever the vocabulary lacks a script's pieces.
+  `bod_Tibt` and `got_Goth` are flagged in both variants and are minority-script
+  languages; the degeneracy scan flags them too. That is the benign cause.
+- **`azj_Latn` is Latin script with N_L = 100,000**, fully covered by a
+  general-purpose LLM tokenizer, and it is flagged in the Qwen3 model **only**.
+  It is also the exact language `EXPERIMENTAL_SETUP.md` records as the fp64 EM
+  bug's trigger: "one 142,136-byte line in the Azerbaijani corpus, the longest
+  line in all 1,940 corpora". That bug overflowed 32-bit expected counts and the
+  fork's guard mapped non-finite counts to zero, **"deleting exactly the most
+  frequent tokens and leaving a plausible-looking but collapsed model"**, and it
+  was recorded as producing partial collapse "without ever crossing the
+  degeneracy threshold". That is precisely this row's signature.
+
+The base model has **zero** rows beyond 5 sd, which both confirms the diagnostic
+is not firing indiscriminately and is consistent with the record that the 100k
+production model was retrained with the patched trainer.
+
+**Conclusion: the Qwen3 model was very likely trained with the pre-fix (fp32)
+trainer.** `mya_Mymr` at -8.5 sd, also unique to Qwen3 and also at N_L = 100,000,
+may be a second casualty; Burmese script coverage is the competing explanation
+and has not been separated. The DeepSeek3.2 model shows no sign of this failure.
+
+**Consequences.**
+
+1. **The special-token correction does not fix this.** It is a separate,
+   pre-existing defect in that model's training run, and correcting the
+   special-token mass leaves the corrupted row corrupted.
+2. **The published Qwen3 row of `tab:lid_main` rests on this model.** Whatever is
+   done about it, the row cannot be presented as an ordinary training run without
+   either repairing the model or stating the defect.
+3. **Decision required from the author** before the Qwen3 cells are regenerated:
+   retrain the variant with the patched trainer, report it with the defect
+   stated, or drop the row. Recorded as open in `EXPERIMENTS_PLAN.md`.
+
+**Artifacts:** `analysis/variant_plateau_outliers.py`,
+`analysis/inspect_variant_models.py`,
+`outputs/rerelease/variant_plateau_outliers.json`,
+`outputs/rerelease/variant_models_inspect.json`.
+
 ## Drive folder `glotlid_unilid`: the DeepSeek3.2 and Qwen3 models are there (2026-08-18)
 
 **Correction of my own earlier entry.** I first recorded that this folder held no

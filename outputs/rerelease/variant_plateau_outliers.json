@@ -1,0 +1,95 @@
+[
+  {
+    "model": "/capstor/scratch/cscs/cmeister747/unilid_analysis/drive_models/deepseek_v3.2_glotlid.unilid",
+    "vocab_size": 128819,
+    "slope": -2.0160322401736974,
+    "intercept": -9.324561134452846,
+    "residual_sd": 0.42370012125093753,
+    "outlier_sd_threshold": 5.0,
+    "outliers": [
+      {
+        "lang": "bod_Tibt",
+        "n_l": 45476,
+        "plateau": -23.354320526123047,
+        "expected": -18.714800333909942,
+        "residual": -4.639520192213105,
+        "sd_below": -10.95000912087381
+      },
+      {
+        "lang": "got_Goth",
+        "n_l": 7413,
+        "plateau": -21.312562942504883,
+        "expected": -17.12659380797705,
+        "residual": -4.185969134527834,
+        "sd_below": -9.879556140246377
+      },
+      {
+        "lang": "nqo_Nkoo",
+        "n_l": 8471,
+        "plateau": -19.43614959716797,
+        "expected": -17.243404090139475,
+        "residual": -2.1927455070284942,
+        "sd_below": -5.175229831312309
+      }
+    ]
+  },
+  {
+    "model": "/capstor/scratch/cscs/cmeister747/unilid_analysis/drive_models/qwen3_8b_glotlid.unilid",
+    "vocab_size": 151670,
+    "slope": -2.009577410907454,
+    "intercept": -9.365392666631001,
+    "residual_sd": 0.40915616057225845,
+    "outlier_sd_threshold": 5.0,
+    "outliers": [
+      {
+        "lang": "bod_Tibt",
+        "n_l": 45476,
+        "plateau": -27.63102149963379,
+        "expected": -18.725566676854587,
+        "residual": -8.905454822779202,
+        "sd_below": -21.765417903823707
+      },
+      {
+        "lang": "azj_Latn",
+        "n_l": 100000,
+        "plateau": -27.63102149963379,
+        "expected": -19.413279721168273,
+        "residual": -8.217741778465516,
+        "sd_below": -20.084609668279047
+      },
+      {
+        "lang": "mya_Mymr",
+        "n_l": 100000,
+        "plateau": -22.91144561767578,
+        "expected": -19.413279721168273,
+        "residual": -3.4981658965075084,
+        "sd_below": -8.549708482000772
+      },
+      {
+        "lang": "got_Goth",
+        "n_l": 7413,
+        "plateau": -19.972665786743164,
+        "expected": -17.142445189623032,
+        "residual": -2.8302205971201317,
+        "sd_below": -6.917213694550505
+      },
+      {
+        "lang": "kyu_Kali",
+        "n_l": 4280,
+        "plateau": -18.759498596191406,
+        "expected": -16.6630600338205,
+        "residual": -2.0964385623709063,
+        "sd_below": -5.12381033060522
+      }
+    ]
+  },
+  {
+    "model": "/capstor/store/cscs/swissai/a0229/cmeister/unilid_analysis/glotlidc.unilid",
+    "vocab_size": 100000,
+    "slope": -2.0680976938424687,
+    "intercept": -8.722377488282136,
+    "residual_sd": 0.29814060997584785,
+    "outlier_sd_threshold": 5.0,
+    "outliers": []
+  }
+]
