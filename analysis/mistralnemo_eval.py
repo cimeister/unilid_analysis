@@ -290,12 +290,21 @@ PRED_NEMO_GATED = os.path.join(SCRATCH_DIR_NEMO, "pred_nemo_gated.npy")
 # ---------------------------------------------------------------------------
 DEFAULT_PACKED_MODEL_PATH = PACKED_MODEL_PATH
 DEFAULT_SCRATCH_DIR_NEMO = SCRATCH_DIR_NEMO
+DEFAULT_BASE_SCRATCH = BASE_SCRATCH
 
 
-def configure(model_path: str = None, scratch_dir: str = None):
-    """Resolve the (packed model, output root) pair and re-derive every path."""
+def configure(model_path: str = None, scratch_dir: str = None,
+              base_scratch: str = None):
+    """Resolve the (packed model, output root) pair and re-derive every path.
+
+    ``base_scratch`` names the base model's output root, which this chain reads
+    y_true.npy from. That array is model-independent (verified 2026-08-18:
+    bit-identical between the released and corrected base runs over all
+    45,627,279 entries), so the default is safe, but a corrected run should point
+    at its own root so it reads nothing from the released model's directory.
+    """
     from analysis.model_context import resolve
-    global PACKED_MODEL_PATH, SCRATCH_DIR_NEMO
+    global PACKED_MODEL_PATH, SCRATCH_DIR_NEMO, BASE_SCRATCH
     global FP_BASELINE_PATH, PROGRESS_BASELINE_PATH, PRED_NEMO_BASELINE
     global FP_CALIBVAL_PATH, CALIBVAL_IDX_PATH, PRED_NEMO_CALIBVAL
     global FP_FLOOR21_NEMO_PATH, PROGRESS_TOPK_PATH, TOPK_CHUNKS_DIR
@@ -309,6 +318,7 @@ def configure(model_path: str = None, scratch_dir: str = None):
                   purpose="Mistral-Nemo variant scoring")
     PACKED_MODEL_PATH = ctx.model_path
     SCRATCH_DIR_NEMO = d = ctx.scratch_dir
+    BASE_SCRATCH = base_scratch or DEFAULT_BASE_SCRATCH
     FP_BASELINE_PATH = os.path.join(d, "fingerprint_baseline.json")
     PROGRESS_BASELINE_PATH = os.path.join(d, "progress_baseline.json")
     PRED_NEMO_BASELINE = os.path.join(d, "pred_nemo_baseline.npy")
@@ -325,7 +335,7 @@ def configure(model_path: str = None, scratch_dir: str = None):
     GATE_TOPK_FP_NEMO = os.path.join(d, "gate_topk_fingerprint_nemo.json")
     PRED_NEMO_FLOOR21 = os.path.join(d, "pred_nemo_floor21.npy")
     PRED_NEMO_GATED = os.path.join(d, "pred_nemo_gated.npy")
-    print(f"Mistral-Nemo chain against {ctx.describe()}", flush=True)
+    print(f"Mistral-Nemo chain against {ctx.describe()}\n  base y_true from {BASE_SCRATCH}", flush=True)
     return ctx
 
 # Repo-side artifact names (outputs/).
@@ -2058,8 +2068,11 @@ def main() -> None:
     parser.add_argument("--stage", required=True, choices=list(STAGES))
     from analysis.model_context import add_arguments
     add_arguments(parser)
+    parser.add_argument("--base-scratch", default=None,
+                        help="the base model's output root, read for y_true.npy "
+                             "(default: the released base model's)")
     args = parser.parse_args()
-    configure(args.model_path, args.scratch_dir)
+    configure(args.model_path, args.scratch_dir, args.base_scratch)
     STAGES[args.stage]()
 
 
