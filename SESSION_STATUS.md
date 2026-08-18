@@ -55,10 +55,21 @@ normal here, do not cancel and resubmit).
   `baseline` still read `FLOOR_TARGET` as a module constant, so it needs the same
   `--floor-target` treatment before its clamped stages can run at the corrected
   model's own c.
-- **Still importing `FLOOR_TARGET` as a module constant**, and needing the
-  `--floor-target` treatment before a corrected-weights run: `gate_variants.py`,
-  `commonlid_calibrated.py`, `external_bench_eval.py`, `mistralnemo_eval.py`,
-  `mixed_assign.py`, `mixed_matrix.py`, `full_test_bgfloor.py`.
+- **`gate_variants.py` is done differently and better**: it now takes the
+  constant from `fingerprint_floor21.json`, written next to the predictions its
+  candidates are compared against, so it cannot rebuild the matrix at a different
+  c than those predictions were scored under. The sha256 check then verifies the
+  rebuild. Prefer this pattern over a `--floor-target` flag wherever a fingerprint
+  is available.
+- **Still reading `FLOOR_TARGET` as a module constant**, and needing the same
+  treatment before a corrected-weights run: `commonlid_calibrated.py`,
+  `external_bench_eval.py`, `mistralnemo_eval.py`, `mixed_assign.py`,
+  `mixed_matrix.py`, `full_test_bgfloor.py`.
+- **Two scripts still assume the special tokens are columns 0:3**
+  (`full_test_bgfloor.py:207`, `mixed_matrix.py:204`). False for the Mistral-Nemo
+  vocabulary, whose specials are at 0, 1, 2 and 10. Neither is on the re-release
+  path and both abort on a corrected matrix for other reasons, so they are left
+  alone rather than changed without being run.
 - **Paper**: `paper/appendix_revision_draft_2026-08-17.md` now has four items
   ready for sign-off (1, 1b, 1c, 1d) and two blocked. Nothing has been edited into
   `submission.tex`.

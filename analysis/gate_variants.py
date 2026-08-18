@@ -144,7 +144,8 @@ from analysis.transfer_sweep import _load_model_data, _load_unilid_model
 from analysis.full_test_eval import _parse_line
 from analysis.full_test_margin import HEAD_N
 from analysis.full_test_floor21 import FLOOR_TARGET
-from analysis.floor_equalization import build_equalized_weights, _special_columns
+from analysis.floor_equalization import (build_equalized_weights, _special_columns,
+                                         verify_one_sided_clamp)
 from analysis.model_context import resolve
 from analysis.hierarchical_pool import RES_CAP, DIAG_CSV
 from analysis.margin_diagnostic import (_topk_batch, _gap, PRF_CSV, TOPK_MARGIN,
@@ -259,16 +260,26 @@ def _build_verified_floor21_matrix(langs: list) -> tuple[np.ndarray, str, str]:
     if sha_w != fp21["sha256_base_W"]:
         raise RuntimeError(f"loaded W does not match sha256_base_W in {fp21_path}")
 
+    # The constant comes from the fingerprint, not from the module default. The
+    # fingerprint is written by analysis/full_test_floor21.py alongside the
+    # predictions this stage's candidates are compared against, so taking it from
+    # there makes it impossible to rebuild the matrix at a different c than the
+    # one those predictions were scored under. The sha256 check below then
+    # verifies the rebuild. The corrected model's own selected c is -17.3906,
+    # not the released model's -21.
+    target = float(fp21["floor_target"])
+    if target != FLOOR_TARGET:
+        print(f"  floor target {target} from {fp21_path} "
+              f"(module default is {FLOOR_TARGET})", flush=True)
+
     # Special columns by name; from 0.3.0 they are the row minimum and
     # would otherwise be selected as the plateau, disabling the clamp.
-    matrix, n_mod = build_equalized_weights(
-        W, FLOOR_TARGET, special_idx=_special_columns(_ctx().model_path))
-    if n_mod != n_lang:
-        raise RuntimeError(f"floor {FLOOR_TARGET} modified {n_mod} of {n_lang} "
-                           "rows; expected all of them (row floors all exceed the "
-                           "target, the precedent this model has always shown)")
-    if not np.array_equal(matrix[:, :4], W[:, :4]):
-        raise RuntimeError("special-token columns (0:4) were modified by the clamp")
+    special_cols = _special_columns(_ctx().model_path)
+    matrix, n_mod = build_equalized_weights(W, target, special_idx=special_cols)
+    verify_one_sided_clamp(W, target, special_cols, n_mod)
+    if not np.array_equal(matrix[:, special_cols], W[:, special_cols]):
+        raise RuntimeError(f"special-token columns {special_cols} were modified "
+                           f"by the clamp")
     sha_w21 = hashlib.sha256(matrix.tobytes()).hexdigest()
     if sha_w21 != fp21["sha256_w21"]:
         raise RuntimeError(f"rebuilt floor-21 matrix does not match sha256_w21 in "
