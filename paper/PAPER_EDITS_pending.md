@@ -10,32 +10,35 @@ earlier model selected.
 
 ---
 
-## Decision needed first, because it changes several numbers below
+## The grid decision: RESOLVED 2026-08-18, re-sweep running
 
-**The grid the constant was swept over.** The published grid
-$\{-17,-19,-21,-23\}$ was round numbers spanning the released model's
-unseen-token range ($-19.94$ to $-13.22$). The corrected model's range is
-$-18.33$ to $-11.61$, so the same grid-choosing logic gives different round
-numbers. I swept the published grid shifted by $\log 5$
-($\{-15.39,-17.39,-19.39,-21.39\}$) because that is the like-for-like comparison
-against the released model, and it selected $c = -17.3906$.
+**Decided: re-sweep on round numbers** (option B). Job **3111471**, queued.
 
-For a paper with no released predecessor, that grid prints as an arbitrary set of
-four-decimal numbers. Two options:
+Grid `{-15, -17, -19, -21}`, chosen by the rule the published grid follows rather
+than to move the answer: `{-17,-19,-21,-23}` put two values inside the released
+model's plateau range (-19.939 to -13.216) and two below all of it, and
+`{-15,-17,-19,-21}` stands in the same relation to the corrected model's range
+(-18.329 to -11.606). Selection procedure unchanged. Pre-registered in
+`EXPERIMENTS_RESULTS.md` and committed (`3a9c65c`) **before** the job was
+submitted, including the predicted clamp counts 317 / 1,655 / 1,940 / 1,940.
 
-| | grid | prints as | cost |
-|---|---|---|---|
-| **A. Keep the shifted grid** | $\{-15.39,-17.39,-19.39,-21.39\}$ | $c = -17.39$ | none, already run |
-| **B. Re-sweep on round numbers** | $\{-15,-17,-19,-21\}$ | $c$ likely $-17$ | one 14-minute job |
+Expected selection is $c = -17$, since the shifted grid selected $-17.3906$. If
+the guard selects otherwise, that is the result.
 
-I recommend **B**. The original grid was itself round numbers chosen against the
-model's own range, so applying that logic to this model is the faithful thing,
-not a shifted grid that only makes sense relative to a model no reader sees. It
-is a re-sweep of the same protocol on the same validation data, not a search for
-a better answer, and I would record it as such.
+**Until this lands, every $c$ below is provisional and the row counts in item 3
+are the ones for $-17.3906$.** At $c = -17$ the counts become 1,655 clamped and
+285 left unchanged.
 
-Everything marked $c$ below takes the value this decision fixes. The row counts
-in item 3 also depend on it.
+The earlier shifted-grid sweep (job 3107082) is not discarded: it stays in the
+record as the like-for-like comparison against the released model and as the
+evidence that the correction behaves as a uniform shift.
+
+**Consequence already acted on:** job 3110918, the floor-c full-pool pass, was
+cancelled while still pending. It would have written `fingerprint_floor21.json`
+at $-17.3906$, and `gate_variants.py` takes its clamp target from that
+fingerprint by design, so the whole downstream chain would have been built at a
+superseded constant. Nothing was written; it is resubmitted once the constant is
+named.
 
 ---
 
