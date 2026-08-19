@@ -162,6 +162,56 @@ and has not been separated. The DeepSeek3.2 model shows no sign of this failure.
 `outputs/rerelease/variant_plateau_outliers.json`,
 `outputs/rerelease/variant_models_inspect.json`.
 
+## The tail under both views, corrected model, and a correction to my own framing (2026-08-19)
+
+**Framing I got wrong.** I reported the clamp's tail cost as "smaller than the
+released model's, -0.0171 against -0.0204". Those are deltas measured from
+different baselines, and the endpoint is what matters. On the within-stratum view
+the corrected clamped configuration ends at 0.8875 against the released clamped
+configuration's 0.8928, so it is **0.0053 worse**, not better.
+
+**Both views, 96 tail languages (N_L < 1,000), 7,735 true examples:**
+
+| config | within-stratum tail F1 | global tail F1 | precision | recall | FPs into tail labels |
+|---|---|---|---|---|---|
+| released baseline | 0.9132 | 0.5618 | 0.459 | 0.874 | 22,522 |
+| released floor-21 | 0.8928 | 0.7655 | 0.763 | 0.842 | 9,103 |
+| corrected baseline | 0.9045 | 0.6292 | 0.544 | 0.862 | 18,162 |
+| **corrected floor-17** | **0.8875** | **0.7743** | **0.784** | **0.836** | **8,727** |
+
+**The two views disagree in opposite directions, as Exp 24 established they
+must.** Under the within-stratum view the corrected clamped configuration is the
+weakest of the four. Under global per-language F1, which counts the false
+positives *into* tail labels that the within-stratum view excludes by
+construction, it is the strongest on record: 0.7743, and 8,727 false positives
+into tail labels against 22,522 at the released baseline.
+
+**The special-token correction on its own is tail-positive under the global
+view**: 0.5618 to 0.6292 (+0.067) with 4,360 fewer false positives into tail
+labels, before any clamp is applied.
+
+**The trade the clamp makes, stated plainly:** tail recall 0.874 to 0.836
+(-3.8pp), tail precision 0.459 to 0.784 (+32.5pp). Which of those matters is a
+deployment question, and the paper already argues the precision side at
+`submission.tex:824` ("a poor FPR for a low-resource language can lead to a
+training corpus dominated by noise").
+
+**Not the shipped configuration.** Exp 20 declined to adopt floor-21 alone
+precisely on the within-stratum tail. The promoted configuration adds the
+re-examination gate, which targets the low-margin decisions this cost is
+concentrated in. Those numbers do not exist yet: job 3123324 (group-A thresholds)
+then `gate_variants`.
+
+**A lever, if the tail is to be weighted more heavily.** c is selected on
+validation overall macro F1 under the all-strata guard. c = -15 clamps only 317
+of 1,940 rows and would cost the tail less; -19 and -21 clamp all 1,940. Changing
+the selection criterion to weight the tail is legitimate, but it is a change of
+objective and would have to be stated and pre-registered, not picked after seeing
+these numbers.
+
+**Artifacts:** `analysis/tail_views_corrected.py`,
+`outputs/rerelease/tail_views_corrected.json`.
+
 ## Round-grid c sweep: c = -17, and the pre-registration hit exactly (2026-08-19, job 3117581)
 
 **Pre-registered before the run** (`3a9c65c`): grid {-15,-17,-19,-21}, chosen by

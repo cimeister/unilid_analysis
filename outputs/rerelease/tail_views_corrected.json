@@ -1,0 +1,39 @@
+{
+  "tail_max_n": 1000,
+  "released_recorded": {
+    "baseline": {
+      "within": 0.9132,
+      "global_f1": 0.5618,
+      "prec": 0.459,
+      "rec": 0.874,
+      "fp_into_tail": 22522
+    },
+    "floor21": {
+      "within": 0.8928,
+      "global_f1": 0.7655,
+      "prec": 0.763,
+      "rec": 0.842,
+      "fp_into_tail": 9103
+    }
+  },
+  "corrected": {
+    "baseline": {
+      "within_stratum_f1": 0.9045402191749247,
+      "global_f1": 0.6292050050669031,
+      "global_precision": 0.5443350569293003,
+      "global_recall": 0.8621719093493363,
+      "fp_into_tail_labels": 18162,
+      "n_tail_languages": 96,
+      "n_tail_true_examples": 7735
+    },
+    "floor17": {
+      "within_stratum_f1": 0.8874554384586575,
+      "global_f1": 0.7742692442630984,
+      "global_precision": 0.7842733112662286,
+      "global_recall": 0.835745951556059,
+      "fp_into_tail_labels": 8727,
+      "n_tail_languages": 96,
+      "n_tail_true_examples": 7735
+    }
+  }
+}
