@@ -1,101 +1,109 @@
 # Session Status
 
-Snapshot as of 2026-08-17. The paper is blocked on regenerating every UniLID
-number against the corrected weights; the open-source package fix is done and in
-PR #3.
+Snapshot, 2026-08-19. The re-release of the special-token-corrected model is in
+execution. The paper is blocked on regenerating its UniLID numbers; the
+open-source package fix is done and sits in PR #3.
 
 ## Where the authoritative records are
 
-- `RERELEASE_PLAN.md`: the execution plan for the re-release, revised after an
-  adversarial review. Author decisions, gates, dependency order.
-- `EXPERIMENTS_PLAN.md`, section "Special-token correction and re-release
-  (2026-08-17)": status of record for each work item, in the plan file's own
-  status vocabulary.
-- `EXPERIMENTS_RESULTS.md`: the 2026-08-17 entries at the top, plus the two
-  subsections of "Invalidated / superseded results" added the same day.
-- `EXPERIMENTAL_SETUP.md`: the defect, the corrected artifact and its gate, the
-  clamp regression, the unseen-token mechanism, the probe protocols, and the
-  release packaging step.
+- `paper/PAPER_EDITS_pending.md`: the concrete, itemized paper edit list. Read
+  this first for anything paper-related.
+- `paper/appendix_revision_draft_2026-08-17.md`: proposed wording for the edits
+  that are prose rewrites rather than number substitutions. Awaiting sign-off.
+- `RERELEASE_PLAN.md`: execution plan, gates, dependency order.
+- `EXPERIMENTS_PLAN.md`, "Special-token correction and re-release": status per
+  work item, in the file's own status vocabulary.
+- `EXPERIMENTS_RESULTS.md`: the 2026-08-17 to 2026-08-19 entries at the top.
+- `CODE_CHANGES_2026-08-17.md`: every code change, for review in one place.
 - `OPEN_SOURCE_STATUS.md`: package state, PR #3, the Hub and polybox plan.
 
-## Ongoing experiments
+## Running
 
-All three queued as of 2026-08-18, none started (reason `Priority`; congestion is
-normal here, do not cancel and resubmit).
+| job | what | note |
+|---|---|---|
+| 3123324 | group-A thresholds, all 1,084 (`solo_gates floor21`) | reads c from the fingerprint |
+| 3127704 | `gate_variants topk`, full-pool candidate banking | parallel with 3123324, not after: it needs no tau CSV |
+| 3112846 | Qwen3-8B retrain, patched fp64 trainer | ~5-6h once started |
+| 3112879 | DeepSeek3.2 retrain, patched fp64 trainer | ~5-6h once started |
+| 3117576 | Qwen3 full-pool eval | chained `afterok:3112846` |
+| 3117575 | DeepSeek3.2 full-pool eval | chained `afterok:3112879` |
 
-- **Job 3110918, corrected floor-c full-pool pass** (`slurm_full_test_floor21_corrected.sh`):
-  at the selected c = -17.3906. Gates the group-A thresholds and everything after
-  them.
-- **Job 3110925, corrected decoder comparison** (`slurm_viterbi_vs_marginal_corrected.sh`):
-  `tab:viterbi_vs_marginal`. Base mode, so independent of c. Two full-pool passes
-  per chunk; budget about three times a single baseline pass.
-- **Job 3110926, corrected lenbias-norm** (`slurm_lenbias_norm_corrected.sh`):
-  `tab:lenbias-norm`, alpha 0 and 1 over the 500k sample. Base mode, independent
-  of c.
+## Settled
 
-## Finished 2026-08-18
-
-- **Job 3107045**, corrected full-pool baseline: overall macro F1 0.9292 to
-  0.9327 (+0.0035), accuracy +0.0001, **tail -0.0087, magnets -0.0071**. The
-  earlier "essentially a wash" was the golden-subset measurement and stays true
-  there; it must not be quoted as covering the full pool.
-- **Job 3107082**, c sweep: selected **c = -17.3906**. Aligned by grid position
-  the released and corrected sweeps clamp identical row counts and every step is
-  exactly log 5; positions 2 and 3 are tied in both models (0.0001 released,
-  0.0002 corrected). The constant did not move, a tie broke the other way.
-
-## Next work, in order
-
-- **Blocked on job 3110918**: `solo_gates.py floor21` for all 1,084 group-A
-  thresholds, then `gate_variants.py` (group B, then the gated predictions), then
-  `build_release_calibration.py`, then fresh gate references, then `paper_eval.py`
-  and the breakdowns.
-- **The Mistral-Nemo chain** is independent and not started. Its `configure()`
-  now takes `--model`, `--scratch-dir` and `--base-scratch`, but its stages after
-  `baseline` still read `FLOOR_TARGET` as a module constant, so it needs the same
-  `--floor-target` treatment before its clamped stages can run at the corrected
-  model's own c.
-- **`gate_variants.py` is done differently and better**: it now takes the
-  constant from `fingerprint_floor21.json`, written next to the predictions its
-  candidates are compared against, so it cannot rebuild the matrix at a different
-  c than those predictions were scored under. The sha256 check then verifies the
-  rebuild. Prefer this pattern over a `--floor-target` flag wherever a fingerprint
-  is available.
-- **Still reading `FLOOR_TARGET` as a module constant**, and needing the same
-  treatment before a corrected-weights run: `commonlid_calibrated.py`,
-  `external_bench_eval.py`, `mistralnemo_eval.py`, `mixed_assign.py`,
-  `mixed_matrix.py`, `full_test_bgfloor.py`.
-- **Two scripts still assume the special tokens are columns 0:3**
-  (`full_test_bgfloor.py:207`, `mixed_matrix.py:204`). False for the Mistral-Nemo
-  vocabulary, whose specials are at 0, 1, 2 and 10. Neither is on the re-release
-  path and both abort on a corrected matrix for other reasons, so they are left
-  alone rather than changed without being run.
-- **Paper**: `paper/appendix_revision_draft_2026-08-17.md` now has four items
-  ready for sign-off (1, 1b, 1c, 1d) and two blocked. Nothing has been edited into
-  `submission.tex`.
+- **c = -17** for the corrected model (job 3117581), round grid {-15,-17,-19,-21}
+  chosen by the rule the published grid follows. The pre-registration was exact:
+  predicted clamp counts 317 / 1,655 / 1,940 / 1,940 and the selection of -17, all
+  correct. 1,655 rows clamped, 285 already below.
+- **Corrected base, full pool**: macro F1 0.9292 to 0.9327, macro FPR 2.03e-5 to
+  2.02e-5.
+- **Corrected + clamp, full pool**: overall 0.9419, against the released model's
+  0.9421 at c = -21. The two clamped models land 0.0002 apart.
+- **Tail, both views** (96 languages, N_L < 1,000): within-stratum 0.8875 against
+  the released clamped 0.8928; global per-language F1 **0.7743 against 0.7655**,
+  with false positives into tail labels down to 8,727 from 22,522 at the released
+  baseline. The views disagree by construction (Exp 24). **Priorities unchanged
+  by author decision 2026-08-19: c stays selected on validation overall macro F1
+  under the all-strata guard.**
+- **Three tables regenerated**: `viterbi_vs_marginal` (.961/.933 against
+  .961/.935; the paper's "+0.002 from marginalization" survives),
+  `lenbias-norm` (0.961 to 0.838 under normalization, a larger drop than the
+  published 0.960 to 0.885), Mistral-Nemo GlotLID-C cells (0.9119 / 1.858e-5,
+  unchanged to three decimals).
+- **B0**: the unseen-token plateau is set by corpus size, scaling as `T^-0.95`.
+  Independently reproduced on the DeepSeek and Qwen vocabularies (slopes -2.016
+  and -2.010 against -2.068 for the base model).
+- **B1**: the analysis chain is safe to point at a second model.
+  `analysis/model_context.py` is the single resolution point; 13/13 guard cases
+  verified by triggering.
 
 ## Open decisions
 
-- RESOLVED 2026-08-17: the `learned_bias` and `freq_prior` configs are not run
-  for the corrected model. Neither appears in `submission.tex`, and one full pool
-  pass each is a 3x cost. The Exp 14/16 records stay marked superseded pending
-  regeneration.
+- **The two variant models carry a second, pre-existing defect.** Both were built
+  2026-03-27, four months before the fp64 EM bug was fixed, and both have a
+  corrupted `azj_Latn` row (Qwen3: plateau at the training floor, 20.1 sd below
+  expectation; DeepSeek3.2: retrain differs by +1.0002 nats at correlation 0.7057
+  against a zul_Latn control at 1.00000000). Both are being retrained. **`mya_Mymr`
+  in the Qwen3 model is unresolved**: Burmese script coverage against a second EM
+  casualty. The retrain settles it, since coverage survives a retrain and
+  corruption does not.
+- **The base model's `azj_Latn`, `bod_Tibt` and `mya_Mymr` exceed the correction
+  gate's thresholds**, but by 93x less than the variants and only 1.08x the
+  threshold for `azj_Latn`. Read as threshold calibration on hard languages
+  (capped corpora, minority scripts) rather than corruption, consistent with zero
+  plateau outliers. Worth a closer look; not the same phenomenon.
+- **`tab:lenbias-delta` instrument**: the corrected predictions exclude the
+  250,000 validation lines, while the published table used all 45,627,279. Small
+  change of instrument, needs an author call.
+- **Group B (high-entropy) membership** is read from
+  `outputs/diagnostic/lang_diagnostic.csv`, computed on the released model.
+  Re-identifying it on corrected predictions needs that diagnostic regenerated;
+  `build_release_calibration.py` asserts the current four and will abort until
+  updated.
+- **WiLI and DSL-ML artifacts** (six tables) are not on this machine and were not
+  in the co-author's Drive folder.
+- **Latency discrepancy to raise with the co-author**: the Drive `full_prob` run
+  reports 1,075 samples/s against `tab:latency_glotlid`'s 3,253 for the same
+  45,627,279 samples. Probably a full-probability-output run; the latency table's
+  configuration remains an open ask.
 - Whether the Apertus 200k and 131k variants are published or only corrected
   locally. They appear in no paper table.
 - Whether the package offers users a migration for their own pre-0.3.0 models.
-- Whether the Mistral-Nemo variant ships in a v1.1 release (carried over,
-  unresolved; artifacts ready on store).
-- Camera-ready items below, all carried over unresolved.
 
-## Camera-ready items carried over
+## Blocked, in dependency order
+
+`gate_variants apply` (needs 3123324 and 3127704) then
+`build_release_calibration.py`, fresh gate references, `release_gates.py`,
+`paper_eval.py` and the breakdowns, the CommonLID chain, and Mistral-Nemo's
+stages after `baseline` (all of which clamp, so they need the constant threaded
+the way `solo_gates` and `gate_variants` now do it).
+
+## Carried over: camera-ready items
 
 - Edit pass applied 2026-08-09, every text edit wrapped in `\camrev{}`. User to
-  review the red text, especially the two published-row unbolds in Table 1, the
-  Table 1 caption editorial note, and the C5 fixed-constants provenance sentence.
-  Dispositions in `paper/review_notes_2026-08-09.md`.
-- Ahmetcan ask list: subset-evaluation script/command (standing); UDHR-subset
-  UniLID FPR 1.06e-5 confirmation; fastText WiLI config; DSL-ML competitor-score
-  source and split; CommonLID citation; latency run configs.
+  review the red text; dispositions in `paper/review_notes_2026-08-09.md`.
+- Ahmetcan ask list: subset-evaluation script/command; UDHR-subset UniLID FPR
+  1.06e-5 confirmation; fastText WiLI config; DSL-ML competitor-score source and
+  split; CommonLID citation; latency run configs.
 - The user compiles the PDF (no icml2026.sty in this repo).
 - Uncommitted in the working tree and not mine to touch: an edit to
   `paper/submission.tex` removing the abstract's calibration sentence, and an
