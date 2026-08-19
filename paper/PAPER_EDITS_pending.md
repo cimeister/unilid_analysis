@@ -1,110 +1,98 @@
 # Paper edits required by the corrected model
 
-Concrete edit list. Every row names the site, the current text, and either the
-new value or the specific run it waits on. Line numbers are `paper/submission.tex`
-at commit `e6bf689`.
+Concrete edit list. Each row names the site, the current text, and either the new
+value or the run it waits on. Line numbers are `paper/submission.tex`.
 
-No disclosure of the selection history is included: the preprint is unreleased,
-so the paper states the procedure and the constant it selected, not what an
-earlier model selected.
+No disclosure of selection history is included: the preprint is unreleased, so
+the paper states the procedure and the constant it selected.
 
----
-
-## The grid decision: RESOLVED 2026-08-18, re-sweep running
-
-**Decided: re-sweep on round numbers** (option B). Job **3111471**, queued.
-
-Grid `{-15, -17, -19, -21}`, chosen by the rule the published grid follows rather
-than to move the answer: `{-17,-19,-21,-23}` put two values inside the released
-model's plateau range (-19.939 to -13.216) and two below all of it, and
-`{-15,-17,-19,-21}` stands in the same relation to the corrected model's range
-(-18.329 to -11.606). Selection procedure unchanged. Pre-registered in
-`EXPERIMENTS_RESULTS.md` and committed (`3a9c65c`) **before** the job was
-submitted, including the predicted clamp counts 317 / 1,655 / 1,940 / 1,940.
-
-Expected selection is $c = -17$, since the shifted grid selected $-17.3906$. If
-the guard selects otherwise, that is the result.
-
-**Until this lands, every $c$ below is provisional and the row counts in item 3
-are the ones for $-17.3906$.** At $c = -17$ the counts become 1,655 clamped and
-285 left unchanged.
-
-The earlier shifted-grid sweep (job 3107082) is not discarded: it stays in the
-record as the like-for-like comparison against the released model and as the
-evidence that the correction behaves as a uniform shift.
-
-**Consequence already acted on:** job 3110918, the floor-c full-pool pass, was
-cancelled while still pending. It would have written `fingerprint_floor21.json`
-at $-17.3906$, and `gate_variants.py` takes its clamp target from that
-fingerprint by design, so the whole downstream chain would have been built at a
-superseded constant. Nothing was written; it is resubmitted once the constant is
-named.
+**The unseen-token constant is settled: c = -17** (job 3117581, round grid
+{-15,-17,-19,-21} chosen by the rule the published grid follows; pre-registered
+clamp counts and selection both hit exactly). 1,655 of 1,940 rows are clamped and
+285 already lie below it.
 
 ---
 
 ## A. Ready now
 
-| # | Site | Current | New | Source |
-|---|---|---|---|---|
-| 1 | `:754` | "shared unseen-token constant $c = -21$" | $c = -17.39$ (or $-17$ under B) | job 3107082 |
-| 2 | `:1287` | "$c = -21$ ... sweep over $\{-17,-19,-21,-23\}$" | new constant and grid | job 3107082 |
-| 3 | `:627-628` | "every unseen-token value exceeds $c$, so all of them are set to $c$" | **1,821 of 1,940 are set to $c$; 119 already lie below it and are left unchanged** | job 3107082 |
-| 4 | `:629-631` | "that value is a byproduct of the training-time probability floor of $10^{-12}$ and renormalization" | **the smallest value the per-language fit assigns; scales as one count in the training-token count $T$; the $10^{-12}$ floor is never reached** | B0 |
-| 5 | `tab:lid_main`, \unilid row, GlotLID-C | `.929` / `2.03e-5` | **`.933` / `2.02e-5`** | job 3107045 |
-| 6 | `:344`, `:833` | "from .929 to .957" | `.929` becomes **`.933`**; the `.957` is item B1 | job 3107045 |
-| 7 | `:824` | "2.03e-5 vs 2.71e-5", "roughly 25\%" | **`2.02e-5`** vs 2.71e-5; "roughly 25\%" still holds (25.5\%) | job 3107045 |
-| 8 | `tab:calibration_provenance` | "unseen-token constant $c=-21$" | new constant | job 3107082 |
-
-**Item 4 is the only one that is a claim rather than a number, and it is the one
-the paper currently gets wrong.** Replacement wording and the reasoning behind it
-are in `paper/appendix_revision_draft_2026-08-17.md` item 1.
-
-**Item 3 turns the base model into the case the Mistral-Nemo paragraph already
-describes** (some rows already below $c$). Item B7 must be written to match.
+| # | Site | Current | New |
+|---|---|---|---|
+| 1 | `:754` | "shared unseen-token constant $c = -21$" | **$c = -17$** |
+| 2 | `:1287` | "$c = -21$ ... sweep over $\{-17,-19,-21,-23\}$" | **$c = -17$, sweep over $\{-15,-17,-19,-21\}$** |
+| 3 | `:627-628` | "every unseen-token value exceeds $c$, so all of them are set to $c$" | **1,655 of the 1,940 exceed $c$ and are set to it; the remaining 285 already lie below and are left unchanged** |
+| 4 | `:629-631` | "byproduct of the training-time probability floor of $10^{-12}$ and renormalization" | **the smallest value the per-language fit assigns, scaling as one count in the training-token count $T$; the floor is never reached.** Wording in the appendix draft, item 1 |
+| 5 | `tab:lid_main`, \unilid row, GlotLID-C | `.929` / `2.03e-5` | **`.933` / `2.02e-5`** |
+| 6 | `tab:lid_main`, \unilid-Mistral-Nemo, GlotLID-C | `.912` / `1.84e-5` | **`.912` / `1.86e-5`** (F1 unchanged to three decimals) |
+| 7 | `:344`, `:833` | "from .929 to .957" | `.929` becomes **`.933`**; the `.957` is B1 |
+| 8 | `:824` | "2.03e-5 vs 2.71e-5", "roughly 25\%" | **`2.02e-5`**; "roughly 25\%" still holds (25.5\%) |
+| 9 | `tab:calibration_provenance` | "unseen-token constant $c=-21$" | **$c=-17$** |
+| 10 | `tab:viterbi_vs_marginal` | `.961`/`.929`, `.962`/`.931` | **`.961`/`.933`, `.961`/`.935`.** The "+0.002 from marginalization" claim survives (+0.0023). **Two caption fixes:** the accuracy cells now round to the same value so the bolding must go, and measured cost is about 1.7x Viterbi, not "approximately $2\times$" |
+| 11 | `tab:lenbias-norm` | Original / Raw rescore / Normalized, overall `.960`/`.960`/`.885` | **Raw rescore `.961`, Normalized `.838`** (per-bin table in `outputs_corrected/tables/lenbias_norm.md`). Normalization is **more** damaging, so `:1247`'s conclusion strengthens. The Original column is omitted; see the open item below |
 
 ---
 
 ## B. Blocked, each on a named run
 
-| # | Site | What is needed | Blocked on |
-|---|---|---|---|
-| B1 | `tab:lid_main` calibrated row, GlotLID-C cells (`.957`/`1.77e-5`); `:344`, `:833`, `:835` | gated predictions on the corrected model | job 3110918, then `solo_gates.py floor21` (1,084 thresholds), then `gate_variants.py` |
-| B2 | `tab:lid_main` \unilid and calibrated UDHR / FLORES cells; `:850-851` (`0.859`, `0.838`, `0.932`, `0.933`) | the E2 external-benchmark chain re-run | `external_bench_eval.py`, after B1 |
-| B3 | `tab:calibrated_heldout`, `tab:calibrated_views` | held-out and both-views tables | after B1 |
-| B4 | `tab:commonlid` | CommonLID re-scored | `commonlid_carried.py` then `commonlid_calibrated.py`, after B1 |
-| B5 | `tab:resource-tier`, `tab:script-breakdown`, `tab:per_language_f1` (\unilid column) | breakdowns | `paper_breakdowns.py`, `regen_resource_tier_counts.py`, after B1 |
-| B6 | `:1284` "held-out macro F1 rises from 0.912 to 0.930" | the constant-alone ablation | after B1 |
-| B7 | `:1383-1384` "two languages whose trained unseen-token values already lie below $c = -21$"; the variant's high-entropy group (Banjar, Scots, Serbian-Latin); `tab:calibrated_nemo` | the corrected Mistral-Nemo chain end to end | `mistralnemo_eval.py`, six stages, not started |
-| B8 | `tab:viterbi_vs_marginal` (`.961`/`.929`, `.962`/`.931`) | both decoders on the corrected model | **job 3110925, queued** |
-| B9 | `tab:lenbias-norm` | alpha 0 and 1 on the corrected model | **job 3110926, queued** |
-| B10 | `tab:lenbias-delta` | the token-count delta on misclassifications; `:1247` quotes "0.17 tokens" | `length_bias.py`, after B1 |
-
----
-
-## C. Needs the co-author, or has no artifact here
-
-| # | Site | Note |
+| # | Site | Blocked on |
 |---|---|---|
-| C1 | `tab:unilid_llm_comparison`, `tab:noise_robustness`, `tab:length_accuracy`, `tab:samples-accuracy`, `tab:vocab_size_efficiency`, `tab:tatoeba_udhr_comparison` | WiLI and DSL-ML models are not on this machine |
-| C2 | `tab:lid_main` \unilid-DeepSeek3.2 and \unilid-Qwen3 rows, 24 cells | no artifact here, no owner identified. Author decision 2026-08-17: they stay on pre-correction weights with the caption stating the mixture |
-| C3 | `:975` "all within 0.025 macro F1" | **This comparison will straddle two model generations** once C2 stands: corrected Mistral-Nemo against pre-correction DeepSeek3.2 and Qwen3. Needs rewording, not a new number, unless the two variants are recomputed |
+| B1 | `tab:lid_main` calibrated row GlotLID-C cells (`.957`/`1.77e-5`); `:344`, `:833`, `:835` | jobs 3123324 (group-A thresholds) and 3127704 (topk), then `gate_variants apply` |
+| B2 | `tab:lid_main` \unilid and calibrated UDHR / FLORES cells; `:850-851` | `external_bench_eval.py`, after B1 |
+| B3 | `tab:calibrated_heldout`, `tab:calibrated_views` | after B1 |
+| B4 | `tab:commonlid` | `commonlid_carried.py` then `commonlid_calibrated.py`, after B1 |
+| B5 | `tab:resource-tier`, `tab:script-breakdown`, `tab:per_language_f1` | `paper_breakdowns.py`, `regen_resource_tier_counts.py`, after B1 |
+| B6 | `:1284` "held-out macro F1 rises from 0.912 to 0.930" | after B1 |
+| B7 | `:1383-1384` Mistral-Nemo unseen-token parenthetical; its high-entropy group; `tab:calibrated_nemo` | Mistral-Nemo stages after `baseline`, which clamp |
+| B8 | `tab:lid_main` \unilid-DeepSeek3.2 and \unilid-Qwen3 rows | retrains 3112879 / 3112846, then evals 3117575 / 3117576 |
+| B9 | `tab:lenbias-delta`; `:1247`'s "0.17 tokens" | `length_bias.py`, plus the instrument decision below |
 
 ---
 
-## D. Unaffected, listed so they are not re-checked
+## C. Needs the co-author
+
+`tab:unilid_llm_comparison`, `tab:noise_robustness`, `tab:length_accuracy`,
+`tab:samples-accuracy`, `tab:vocab_size_efficiency`,
+`tab:tatoeba_udhr_comparison`. The WiLI and DSL-ML models are not on this machine
+and were not in the Drive folder.
+
+---
+
+## D. Unaffected
 
 `tab:latency_glotlid`, `tab:latency_wili`, `tab:training_time`,
 `tab:dialect_stats`, `tab:fasttext_epoch_sweep`, and every \fasttext, \glotlid
-and \cld row in every table. Also `:754`'s statement that token probabilities are
-floored at $10^{-12}$ during training, which remains true of the code; what
-changes is only the claim that the floor explains the unseen-token values.
+and \cld row. Also `:754`'s statement that token probabilities are floored at
+$10^{-12}$ during training, which remains true of the code; only the claim that
+the floor explains the unseen-token values changes.
 
 ---
 
-## Caption work implied by the above
+## Caption and framing work
 
-- `tab:lid_main`'s caption must state that the DeepSeek3.2 and Qwen3 rows are
-  computed on different weights from the \unilid, calibrated and Mistral-Nemo
-  rows (C2).
-- The existing editorial note in that caption about the UDHR-subset FPR of
-  1.06e-5 is unresolved and independent of this work.
+- **`tab:lid_main`'s caption loses its split.** It currently says the \unilid and
+  calibrated rows are on the 45,377,279-line scored pool while the others carry
+  over from the original submission on all 45,627,279 lines. The DeepSeek3.2 and
+  Qwen3 rows are being recomputed on the scored pool, so the table becomes
+  internally consistent for the first time and that sentence goes.
+- **`:975` "all within 0.025 macro F1"** no longer straddles model generations,
+  since both variants are being retrained. Recheck the span against the new
+  numbers rather than assuming it still holds.
+- **The stratum regressions are reported alongside the overall gain** (author
+  decision 2026-08-18), with the mechanism stated. Full-pool, uncalibrated:
+  overall +0.0035, tail -0.0087, magnets -0.0071. Under the clamp the tail lands
+  at 0.8875 within-stratum against the released model's 0.8928, while global
+  per-language tail F1 rises to 0.7743 against 0.7655 with false positives into
+  tail labels down to 8,727 from 22,522. Both views belong in the appendix; they
+  disagree by construction (Exp 24).
+- The existing editorial note about the UDHR-subset FPR of 1.06e-5 is unresolved
+  and independent of this work.
+
+---
+
+## Open items needing an author call
+
+- **`tab:lenbias-norm`'s Original column and `tab:lenbias-delta`'s basis.** The
+  corrected predictions exclude the 250,000 validation lines; the published
+  tables used all 45,627,279. The Original column also supported an
+  implementation check ("Raw rescore reproduces the original predictions
+  exactly"), which can be partly recovered by comparing the $\alpha=0$ rescore
+  against `pred_baseline.npy` on the test half.
