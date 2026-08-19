@@ -115,7 +115,18 @@ def run(base: str, model_path: str = None, scratch_dir: str = None,
         # floor, so an unnamed minimum would select them and the clamp would
         # silently do nothing.
         special_cols = _special_columns(ctx.model_path)
-        target = FLOOR_TARGET if floor_target is None else float(floor_target)
+        # The constant comes from the fingerprint written alongside the
+        # predictions this gate is built on, not from the module default, so the
+        # matrix cannot be rebuilt at a different c than those predictions were
+        # scored under. The sha256 check below then verifies the rebuild. Same
+        # rule as analysis/gate_variants.py.
+        if floor_target is not None:
+            target = float(floor_target)
+        else:
+            target = float(fp.get("floor_target", FLOOR_TARGET))
+        if target != FLOOR_TARGET:
+            print(f"  floor target {target} from {fp_path} "
+                  f"(module default is {FLOOR_TARGET})", flush=True)
         matrix, n_mod = build_equalized_weights(W, target,
                                                 special_idx=special_cols)
         verify_one_sided_clamp(W, target, special_cols, n_mod)

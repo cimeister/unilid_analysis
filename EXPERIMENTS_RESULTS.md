@@ -162,6 +162,99 @@ and has not been separated. The DeepSeek3.2 model shows no sign of this failure.
 `outputs/rerelease/variant_plateau_outliers.json`,
 `outputs/rerelease/variant_models_inspect.json`.
 
+## Round-grid c sweep: c = -17, and the pre-registration hit exactly (2026-08-19, job 3117581)
+
+**Pre-registered before the run** (`3a9c65c`): grid {-15,-17,-19,-21}, chosen by
+the rule the published grid follows; predicted rows clamped 317 / 1,655 / 1,940 /
+1,940; expected selection -17.
+
+**Result: every prediction correct.** Clamp counts 317 / 1,655 / 1,940 / 1,940,
+and the guard selected **c = -17**.
+
+| config | rows clamped | val overall |
+|---|---|---|
+| baseline | 0 | 0.9453 |
+| floor-15 | 317 | 0.9473 |
+| **floor-17** | **1,655** | **0.9485** |
+| floor-19 | 1,940 | 0.9483 |
+| floor-21 | 1,940 | 0.9482 |
+
+-17 beats -19 by 0.0002, the same tie the shifted grid showed. Test half:
+overall 0.9460 to 0.9488 (+0.0019, CI [+0.0007, +0.0032]), tail -0.0623,
+magnets -0.0218, accuracy 0.9604 to 0.9611.
+
+**This is the constant of record for the re-release.** 1,655 of 1,940 rows are
+clamped and 285 already lie at or below it. The shifted-grid sweep (job 3107082,
+c = -17.3906) stays in the record as the like-for-like comparison against the
+released model.
+
+**Artifacts:** `outputs_corrected_round/tables/floor_equalization.md`.
+
+## Floor-c full-pool pass at c = -17 (2026-08-19, job 3117583)
+
+Ran automatically on a SLURM dependency, reading the constant from the sweep's
+own output. 1,655 of 1,940 rows clamped, 285 left unchanged.
+
+| stratum | corrected base | corrected + clamp | delta | released model, floor-21 (Exp 20) |
+|---|---|---|---|---|
+| overall | 0.9327 | **0.9419** | +0.0092 | 0.9292 to 0.9421 (+0.0129) |
+| tail | 0.9045 | 0.8875 | -0.0171 | 0.9132 to 0.8928 (-0.0204) |
+| magnets | 0.9067 | 0.8928 | -0.0139 | 0.9138 to 0.8974 (-0.0164) |
+| twins | 0.9164 | 0.9166 | +0.0002 | -0.0001 |
+| head | 0.9596 | 0.9595 | -0.0001 | -0.0003 |
+
+**The clamped models land in the same place.** Corrected at c = -17 gives overall
+0.9419 against the released model's 0.9421 at c = -21, a difference of 0.0002.
+The clamp absorbs most of the correction's effect, which is what it should do:
+both constants target the same place relative to each row's seen tokens. **The
+tail cost is smaller than the released model's** (-0.0171 against -0.0204).
+
+**Artifacts:** `outputs_corrected_round/tables/full_test_floor21.md`,
+`full_test_eval_corrected/pred_floor21.npy`, `fingerprint_floor21.json`
+(records `floor_target: -17.0`, `n_modified: 1655`).
+
+## Three paper tables regenerated on the corrected model (2026-08-19)
+
+**`tab:viterbi_vs_marginal`** (job 3110925, 4h36m, both decoders over the full
+pool):
+
+| decoding | accuracy | macro F1 | published |
+|---|---|---|---|
+| Viterbi | 0.961 | 0.933 | .961 / .929 |
+| Marginalization | 0.961 | 0.935 | .962 / .931 |
+
+Marginalization gains +0.0023 macro F1, so **the paper's claim that it "improves
+macro F1 by 0.002" survives unchanged**. The accuracy cells now round to the same
+value, so the bolding on the accuracy column has to go. Measured cost:
+4h36m for both decoders against 1h42m for Viterbi alone, so marginalization is
+about 1.7x Viterbi, against the caption's "approximately 2x".
+
+**`tab:lenbias-norm`** (job 3117582):
+
+| length | N | raw rescore | normalized | published normalized |
+|---|---|---|---|---|
+| <30 | 27,328 | 0.792 | 0.493 | 0.566 |
+| 30-75 | 177,256 | 0.952 | 0.777 | 0.842 |
+| 75-150 | 195,267 | 0.978 | 0.883 | 0.925 |
+| 150-300 | 87,096 | 0.987 | 0.946 | 0.966 |
+| 300+ | 13,053 | 0.995 | 0.987 | 0.991 |
+| Overall | 500,000 | 0.961 | 0.838 | 0.885 |
+
+**Length normalization is more damaging on the corrected model, not less**:
+overall 0.961 to 0.838 (-0.123) against the published 0.960 to 0.885 (-0.075).
+The paper's conclusion strengthens rather than changes. The Original column is
+omitted because no recorded prediction column exists for this model; the
+implementation check it supported can be partly recovered by comparing the
+alpha = 0 rescore against `pred_baseline.npy` on the test half, which is not yet
+done.
+
+**Mistral-Nemo variant, corrected, GlotLID-C cells** (job 3117569, 1h47m):
+macro F1 **0.9119**, macro FPR **1.858e-05**, accuracy 0.9640, against the
+published .912 / 1.84e-5. **The row does not move to three decimals.** The
+correction shifts the base model by +0.0035 macro F1 and this variant by
+essentially zero, which is worth stating rather than assuming the effect is
+uniform across models.
+
 ## Drive folder `glotlid_unilid`: the DeepSeek3.2 and Qwen3 models are there (2026-08-18)
 
 **Correction of my own earlier entry.** I first recorded that this folder held no

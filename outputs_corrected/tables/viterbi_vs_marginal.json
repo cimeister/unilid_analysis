@@ -1,0 +1,16 @@
+{
+  "model": "/capstor/scratch/cscs/cmeister747/unilid_analysis/corrected/glotlidc_corrected.unilid",
+  "n_lines": 45377279,
+  "rows": [
+    {
+      "decoder": "viterbi",
+      "accuracy": 0.9609332238717971,
+      "macro_f1": 0.9327099739222771
+    },
+    {
+      "decoder": "marginal",
+      "accuracy": 0.9613789094758194,
+      "macro_f1": 0.935002500653076
+    }
+  ]
+}

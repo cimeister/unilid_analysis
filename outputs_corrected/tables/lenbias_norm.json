@@ -1,0 +1,45 @@
+{
+  "model": "/capstor/scratch/cscs/cmeister747/unilid_analysis/corrected/glotlidc_corrected.unilid",
+  "sample_size": 500000,
+  "raw_alpha": 0.0,
+  "norm_alpha": 1.0,
+  "raw_agreement_with_recorded": null,
+  "rows": [
+    {
+      "bin": "<30",
+      "n": 27328,
+      "Raw rescore": 0.7919716042154566,
+      "Normalized": 0.4926083138173302
+    },
+    {
+      "bin": "30--75",
+      "n": 177256,
+      "Raw rescore": 0.9519790585368055,
+      "Normalized": 0.7768989484135939
+    },
+    {
+      "bin": "75--150",
+      "n": 195267,
+      "Raw rescore": 0.9776408712173588,
+      "Normalized": 0.8826120132946171
+    },
+    {
+      "bin": "150--300",
+      "n": 87096,
+      "Raw rescore": 0.987450629190778,
+      "Normalized": 0.9460824836961513
+    },
+    {
+      "bin": "300+",
+      "n": 13053,
+      "Raw rescore": 0.9946372481421896,
+      "Normalized": 0.9866697310962997
+    },
+    {
+      "bin": "Overall",
+      "n": 500000,
+      "Raw rescore": 0.960548,
+      "Normalized": 0.837592
+    }
+  ]
+}
