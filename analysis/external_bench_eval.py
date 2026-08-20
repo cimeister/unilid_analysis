@@ -135,9 +135,12 @@ import pandas as pd
 
 from analysis.commonlid_carried import SCORE_CHUNK
 from analysis.config import TOTAL_LINES
-from analysis.floor_equalization import build_equalized_weights
+from analysis.floor_equalization import (build_equalized_weights,
+                                         _special_columns,
+                                         verify_one_sided_clamp)
 from analysis.format_utils import to_markdown
-from analysis.full_test_eval import EMPTY, SCRATCH_DIR as FT_SCRATCH
+from analysis.full_test_eval import EMPTY
+from analysis.model_context import add_arguments, resolve
 from analysis.full_test_floor21 import FLOOR_TARGET
 from analysis.full_test_margin import HEAD_N
 from analysis.gate_variants import (D3_PROX, TAU_FLAT4_CSV, TAU_FLOOR21_GATE_CSV,
@@ -194,6 +197,31 @@ N_FLAT4 = 4
 
 OUT_TABLES_DIR = "outputs/tables"
 OUT_DIAG_DIR = "outputs/diagnostic/external_bench"
+
+# ---------------------------------------------------------------- model context
+# Configured once rather than threaded through each free function, the same
+# pattern as analysis/gate_variants.py. Unconfigured, it falls back to the
+# released model and its own output root, which is the historical behaviour.
+_CTX = None
+
+
+def configure(model_path: str = None, scratch_dir: str = None,
+              out_dir: str = None):
+    global _CTX, OUT_TABLES_DIR, OUT_DIAG_DIR
+    _CTX = resolve(model_path, scratch_dir, purpose="external benchmark scoring")
+    if out_dir:
+        OUT_TABLES_DIR = os.path.join(out_dir, "tables")
+        OUT_DIAG_DIR = os.path.join(out_dir, "diagnostic/external_bench")
+    print(f"external benchmarks against {_CTX.describe()}\n"
+          f"  tables under {OUT_TABLES_DIR}", flush=True)
+    return _CTX
+
+
+def _ctx():
+    global _CTX
+    if _CTX is None:
+        _CTX = resolve(None, None, purpose="external benchmark scoring")
+    return _CTX
 
 
 # ---------------------------------------------------------------------------
@@ -416,7 +444,7 @@ def run_score(bench: str) -> str:
     labels, texts = _read_tsv(reg["tsv_path"], reg["expected_rows"])
     n_rows = len(texts)
 
-    weights, langs, lang_to_idx = _load_model_data()
+    weights, langs, lang_to_idx = _load_model_data(_ctx().model_path)
     n_lang = len(langs)
     W = np.array(weights, dtype=np.float32)
     del weights
@@ -428,7 +456,7 @@ def run_score(bench: str) -> str:
     git_commit = _git_commit()
 
     print(f"Loading model ({UNILID_MODEL_PATH})...", flush=True)
-    model = _load_unilid_model()
+    model = _load_unilid_model(_ctx().model_path)
     if model.langs != langs:
         raise RuntimeError("_load_unilid_model's language list differs from "
                            "_load_model_data's; the two loaders read the model "
@@ -453,19 +481,18 @@ def run_score(bench: str) -> str:
     print("baseline pass (unmodified W)...", flush=True)
     pred_baseline = _score_baseline(model, pre, vidx, n_rows)
 
-    print("building and verifying the floor-21 matrix...", flush=True)
-    w21, n_mod = build_equalized_weights(W, FLOOR_TARGET)
-    if n_mod != n_lang:
-        raise RuntimeError(f"floor {FLOOR_TARGET} modified {n_mod} of {n_lang} "
-                           "languages, expected all of them")
-    fp_path = os.path.join(FT_SCRATCH, "fingerprint_floor21.json")
+    fp_path = os.path.join(_ctx().scratch_dir, "fingerprint_floor21.json")
     with open(fp_path) as f:
         fp = json.load(f)
-    if fp["floor_target"] != FLOOR_TARGET:
-        raise RuntimeError(
-            f"{fp_path} records floor_target {fp['floor_target']}, expected "
-            f"FLOOR_TARGET {FLOOR_TARGET} (analysis.full_test_floor21); the "
-            "fingerprint was built under a different floor than this run uses")
+    # The constant comes from the fingerprint, so this cannot be built at a
+    # different c than the full-pool predictions it is compared against. The
+    # sha256 check below then verifies the rebuild.
+    target = float(fp.get("floor_target", FLOOR_TARGET))
+    print(f"building and verifying the clamped matrix at c = {target}...",
+          flush=True)
+    w21, n_mod = build_equalized_weights(
+        W, target, special_idx=_special_columns(_ctx().model_path))
+    verify_one_sided_clamp(W, target, _special_columns(_ctx().model_path), n_mod)
     sha_w = hashlib.sha256(W.tobytes()).hexdigest()
     if sha_w != fp["sha256_base_W"]:
         raise RuntimeError(
@@ -777,7 +804,7 @@ def run_eval(bench: str) -> str:
                            f"(BENCH_REGISTRY[{bench!r}]['expected_labels'])")
 
     # --- canonical language order + training-line counts N ---
-    weights, langs, _lang_to_idx = _load_model_data()
+    weights, langs, _lang_to_idx = _load_model_data(_ctx().model_path)
     del weights
     n_lang = len(langs)
     prf = pd.read_csv(PRF_CSV)
@@ -969,12 +996,12 @@ def run_selfcheck() -> None:
     line (gate_variants.py's own agree_mask carve-out, mirrored here explicitly;
     see the module docstring). Aborts with counts and the first 10 differing line
     indices on any other mismatch; prints SELFCHECK OK on success."""
-    lines_path = os.path.join(FT_SCRATCH, "gate_topk_lines.npy")
-    ids_path = os.path.join(FT_SCRATCH, "gate_topk_ids.npy")
-    scores_path = os.path.join(FT_SCRATCH, "gate_topk_scores.npy")
-    fp_path = os.path.join(FT_SCRATCH, "gate_topk_fingerprint.json")
-    pred_floor21_path = os.path.join(FT_SCRATCH, "pred_floor21.npy")
-    pred_gated_path = os.path.join(FT_SCRATCH, "pred_gate_flat4_prox21.npy")
+    lines_path = os.path.join(_ctx().scratch_dir, "gate_topk_lines.npy")
+    ids_path = os.path.join(_ctx().scratch_dir, "gate_topk_ids.npy")
+    scores_path = os.path.join(_ctx().scratch_dir, "gate_topk_scores.npy")
+    fp_path = os.path.join(_ctx().scratch_dir, "gate_topk_fingerprint.json")
+    pred_floor21_path = os.path.join(_ctx().scratch_dir, "pred_floor21.npy")
+    pred_gated_path = os.path.join(_ctx().scratch_dir, "pred_gate_flat4_prox21.npy")
     for p in (lines_path, ids_path, scores_path, fp_path, pred_floor21_path,
              pred_gated_path, PRF_CSV, TAU_FLOOR21_GATE_CSV, TAU_FLAT4_CSV):
         if not os.path.exists(p):
@@ -1005,7 +1032,7 @@ def run_selfcheck() -> None:
         raise RuntimeError(f"gate_topk_ids/scores shape mismatch: ids {ids.shape}, "
                            f"scores {scores.shape}, expected {expect_shape}")
 
-    weights, langs, _lang_to_idx = _load_model_data()
+    weights, langs, _lang_to_idx = _load_model_data(_ctx().model_path)
     del weights
     n_lang = len(langs)
     prf = pd.read_csv(PRF_CSV)
@@ -1097,10 +1124,13 @@ def main() -> None:
                     "neither the model nor --bench.")
     parser.add_argument("--stage", required=True,
                         choices=["score", "eval", "selfcheck"])
+    parser.add_argument("--out-dir", default=None)
+    add_arguments(parser)
     parser.add_argument("--bench", choices=list(BENCH_REGISTRY),
                         help="required for --stage score/eval; ignored for "
                              "--stage selfcheck")
     args = parser.parse_args()
+    configure(args.model_path, args.scratch_dir, args.out_dir)
     if args.stage == "selfcheck":
         if args.bench is not None:
             print("--bench is ignored for --stage selfcheck", flush=True)
