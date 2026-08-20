@@ -12,11 +12,18 @@ exactly that table.
   reproduce the model's own predictions exactly.
 - Normalized is alpha = 1, dividing the summed token log-probabilities by the
   segmentation length.
-- Original is the model's recorded predictions. For the released model those are
-  pred_UniLID in the seed-42 sample pickle, and the agreement with the Raw
-  rescore column is reported as the implementation check. For any other model
-  there is no recorded column, so Original is omitted and the caption says so
-  rather than silently reusing another model's predictions.
+- Original is the model's own plain-scorer predictions. For the released model
+  those are pred_UniLID in the seed-42 sample pickle (the source of the published
+  table, outputs/tables/normalized_comparison.md). For any other model they come
+  from that model's own full-pool run, pred_baseline.npy.
+
+The sample is the GOLDEN SUBSET: the test half of the seed-42 500,000-line draw,
+250,000 lines. The published table used all 500,000, but half of those are the
+validation lines the full-pool runs exclude, so a corrected model has no
+plain-scorer prediction for them and the Original column could not be filled. The
+test half is inside the scored pool, which keeps the three columns on one
+instrument and keeps the validation half out of a reported number. It is the same
+subset both release gates use.
 
   python -m analysis.lenbias_norm_table -o outputs/tables
   python -m analysis.lenbias_norm_table --model CORRECTED.unilid -o outputs_corrected/tables
@@ -35,9 +42,11 @@ REPO = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO / "UNILID"))
 
 from analysis.config import DEFAULT_SAMPLE_SIZE, LENGTH_BINS, LENGTH_LABELS
+from analysis.full_test_eval import _sample_line_indices
 from analysis.normalized_predict import (UNILID_MODEL_PATH, _load_unilid_model,
                                          _stream_sampled_texts, predict_all)
 from analysis.sample_data import load_sample
+from analysis.transfer_sweep import _load_model_data
 
 RAW_ALPHA = 0.0
 NORM_ALPHA = 1.0
@@ -66,18 +75,51 @@ def main(argv=None):
     ap.add_argument("--model", dest="model_path", default=UNILID_MODEL_PATH)
     ap.add_argument("-o", "--out-dir", default="outputs/tables")
     ap.add_argument("--sample-size", type=int, default=DEFAULT_SAMPLE_SIZE)
+    ap.add_argument("--baseline-pred", default=None,
+                    help="pred_baseline.npy from this model's own full-pool run; "
+                         "required unless the model is the released one")
     a = ap.parse_args(argv)
 
     is_default = os.path.abspath(a.model_path) == os.path.abspath(UNILID_MODEL_PATH)
-    print(f"model: {a.model_path}"
-          f"{'' if is_default else '  (not the released model)'}", flush=True)
+    print(f"model: {a.model_path}", flush=True)
 
     data = load_sample(a.sample_size)
-    y_true = np.array(data["y_true"])
-    lengths = np.array(data["text_lengths"])
-    texts = _stream_sampled_texts(a.sample_size)
-    if len(texts) != len(y_true):
-        raise RuntimeError(f"{len(texts)} texts against {len(y_true)} labels")
+    y_all = np.array(data["y_true"])
+    len_all = np.array(data["text_lengths"])
+    texts_all = _stream_sampled_texts(a.sample_size)
+    if len(texts_all) != len(y_all):
+        raise RuntimeError(f"{len(texts_all)} texts against {len(y_all)} labels")
+
+    # The golden subset: odd positions of the draw are the test half, the same
+    # split analysis/full_test_eval.py and the release gates use.
+    test_pos = (np.arange(a.sample_size) % 2) == 1
+    y_true = y_all[test_pos]
+    lengths = len_all[test_pos]
+    texts = [t for t, keep in zip(texts_all, test_pos) if keep]
+    del texts_all
+    abs_idx = _sample_line_indices()[test_pos]
+    print(f"golden subset: {len(texts):,} lines (test half of the "
+          f"{a.sample_size:,}-line seed-42 draw)", flush=True)
+
+    # Original: this model's own plain-scorer predictions.
+    if is_default:
+        pred_orig = np.array(data["pred_UniLID"])[test_pos]
+    else:
+        if not a.baseline_pred:
+            raise SystemExit(
+                "--baseline-pred is required for a non-default model: the "
+                "Original column must be that model's own plain-scorer "
+                "predictions, and filling it from the sample pickle would put "
+                "the released model's predictions in a row about this one")
+        _w, langs, _m = _load_model_data(a.model_path)
+        del _w
+        codes = np.asarray(np.load(a.baseline_pred, mmap_mode="r"))[abs_idx]
+        if (codes < 0).any():
+            raise SystemExit(
+                f"{int((codes < 0).sum()):,} of {len(codes):,} golden-subset "
+                f"lines carry a sentinel in {a.baseline_pred}; that run did not "
+                f"score this subset")
+        pred_orig = np.array([langs[c] for c in codes], dtype=object)
 
     model = _load_unilid_model(a.model_path)
     print(f"scoring alpha={RAW_ALPHA} (raw rescore)...", flush=True)
@@ -86,23 +128,15 @@ def main(argv=None):
     pred_norm = np.array(predict_all(texts, model, alpha=NORM_ALPHA))
 
     columns = {}
-    agreement = None
-    if is_default:
-        pred_orig = np.array(data["pred_UniLID"])
-        agreement = float((pred_orig == pred_raw).mean())
-        print(f"raw-rescore agreement with the recorded predictions: "
-              f"{agreement:.6f}", flush=True)
-        if agreement < RAW_AGREEMENT_MIN:
-            raise RuntimeError(
-                f"the alpha={RAW_ALPHA} rescore reproduces only {agreement:.6f} of "
-                f"the recorded UniLID predictions, not all of them. The Raw "
-                f"rescore column exists to show the two code paths agree; until "
-                f"they do, the Normalized column cannot be attributed to "
-                f"normalization alone.")
-        columns["Original"] = _by_length(pred_orig, y_true, lengths)
-    else:
-        print("no recorded prediction column exists for this model; the Original "
-              "column is omitted rather than filled from another model", flush=True)
+    agreement = float((pred_orig == pred_raw).mean())
+    print(f"raw-rescore agreement with the plain scorer: {agreement:.6f}", flush=True)
+    if agreement < RAW_AGREEMENT_MIN:
+        raise RuntimeError(
+            f"the alpha={RAW_ALPHA} rescore reproduces only {agreement:.6f} of "
+            f"the plain scorer's predictions, not all of them. The Raw rescore "
+            f"column exists to show the two code paths agree; until they do, the "
+            f"Normalized column cannot be attributed to normalization alone.")
+    columns["Original"] = _by_length(pred_orig, y_true, lengths)
     columns["Raw rescore"] = _by_length(pred_raw, y_true, lengths)
     columns["Normalized"] = _by_length(pred_norm, y_true, lengths)
 
@@ -116,17 +150,14 @@ def main(argv=None):
     header = "| Length (chars) | N | " + " | ".join(names) + " |"
     sep = "|---" * (len(names) + 2) + "|"
     lines = ["# tab:lenbias-norm: length-normalized scoring by input length", "",
-             f"Model: `{a.model_path}`. Sample: {a.sample_size:,} lines "
-             f"(seed-42 draw).",
+             f"Model: `{a.model_path}`. Sample: {len(texts):,} lines, the test "
+             f"half of the seed-42 {a.sample_size:,}-line draw (the golden "
+             f"subset; the validation half is excluded).",
              f"Raw rescore is alpha={RAW_ALPHA}, Normalized is alpha={NORM_ALPHA} "
              f"(score divided by segmentation length).", ""]
-    if agreement is not None:
-        lines.append(f"Raw rescore reproduces the recorded predictions exactly "
-                     f"({agreement:.6f} agreement), which is the implementation "
-                     f"check.")
-    else:
-        lines.append("The Original column is omitted: no recorded prediction "
-                     "column exists for this model.")
+    lines.append(f"Raw rescore reproduces the plain scorer exactly "
+                 f"({agreement:.6f} agreement), which is the implementation "
+                 f"check.")
     lines += ["", header, sep]
     for r in rows:
         cells = " | ".join("--" if r[c] is None else f"{r[c]:.3f}" for c in names)

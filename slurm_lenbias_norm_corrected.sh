@@ -25,5 +25,6 @@ echo "=== corrected-model lenbias-norm at $(date) on $(hostname) ==="
 echo "commit: $(git rev-parse HEAD)"
 ${PYTHON} -u -m analysis.lenbias_norm_table \
     --model /capstor/scratch/cscs/cmeister747/unilid_analysis/corrected/glotlidc_corrected.unilid \
-    -o outputs_corrected/tables
+    --baseline-pred /capstor/scratch/cscs/cmeister747/unilid_analysis/full_test_eval_corrected/pred_baseline.npy \
+    -o outputs_corrected_round/tables
 echo "=== Finished at $(date) ==="

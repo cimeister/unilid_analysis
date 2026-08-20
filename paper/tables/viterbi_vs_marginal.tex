@@ -3,14 +3,14 @@
 \small
 \setlength{\tabcolsep}{8pt}
 \renewcommand{\arraystretch}{1.15}
-\caption{Comparison of Viterbi decoding versus exact marginalization (forward algorithm) at inference time on GlotLID-C. \camrev{Marginalization is approximately $2\times$ more expensive and improves macro F1 by 0.002.}}
+\caption{Comparison of Viterbi decoding versus exact marginalization (forward algorithm) at inference time on GlotLID-C. \corrrev{Marginalization is approximately $1.7\times$ more expensive and improves macro F1 by 0.002.}}
 \adjustbox{max width=\linewidth}{
 \begin{tabular}{l c c}
 \toprule
 \textbf{Decoding} & \textbf{Accuracy}$\uparrow$ & \textbf{Macro F1}$\uparrow$ \\
 \midrule
-\unilid (Viterbi)         & 0.961 & 0.929 \\
-\unilid (Marginalization) & \textbf{0.962} & \textbf{0.931} \\
+\unilid (Viterbi)         & 0.961 & \corrrev{0.933} \\
+\unilid (Marginalization) & \corrrev{0.961} & \corrrev{\textbf{0.935}} \\
 \bottomrule
 \end{tabular}}
 \label{tab:viterbi_vs_marginal}
