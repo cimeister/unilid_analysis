@@ -32,19 +32,25 @@ than merely shifting.
 > $|\corpus^\lang|$; since \cref{eq:lang-id} compares scores across languages, the
 > variation acts as a language-dependent offset on every unseen token.
 
-### Proposed replacement
+### Applied 2026-08-19 (commit `6374b67`, revised for style)
 
-> Without this correction, that value is the smallest value $\log\unigramdistlang$
-> takes, and it depends on the size of $\corpus^\lang$: across the 1{,}940
-> languages it falls by 2.04 nats per decade of training tokens (correlation
-> $-0.99$ between the value and $\log_{10}$ of the language's training-token
-> count, $R^2 = 0.99$), and subsampling one language's corpus over two decades
-> reproduces the same slope, so the dependence is on corpus size and not on which
-> languages happen to have small corpora. It is not a byproduct of the
-> training-time probability floor of $10^{-12}$: no language's value reaches that
-> floor, the closest being 7.7 nats above it. Since \cref{eq:lang-id} compares
-> scores across languages, the variation acts as a language-dependent offset on
-> every unseen token.
+> Without this correction, that value is the smallest value of
+> $\log\unigramdistlang$ over $\vocab$, and it varies with the size of
+> $\corpus^\lang$. Across the 1{,}940 languages, the value decreases by 2.04 nats
+> for each tenfold increase in the number of training tokens, and the correlation
+> between the value and $\log_{10}$ of that token count is $-0.99$. For each of
+> three languages whose corpora were subsampled across two orders of magnitude,
+> the same decrease per tenfold increase is measured within that one language, so
+> the quantity that determines the value is corpus size and not the identity of
+> the language. The training-time probability floor of $10^{-12}$ does not
+> determine it: every value lies above that floor, and the smallest distance to
+> it is 7.7 nats.
+
+An earlier draft of this passage used "nats for each tenfold increase in the training-token count", which
+is coined shorthand rather than a defined term, and gave processes and values
+agency ("subsampling reproduces the same slope", "no language's value reaches
+that floor"). It also quoted both the correlation and $R^2$, which are redundant
+for a simple linear fit. Corrected on author instruction.
 
 ### What changed and why
 
@@ -60,7 +66,7 @@ than merely shifting.
   measured over 1,940 different languages, so corpus size and language identity
   are confounded in it. Holding language identity fixed and subsampling
   (`abk_Cyrl`, `mam_Latn`, `zul_Latn`, 1,000 to 100,000 lines) gives slopes
-  $-2.196$, $-2.196$, $-2.184$ nats per decade of training tokens at $R^2 = 0.999$,
+  $-2.196$, $-2.196$, $-2.184$ nats for each tenfold increase in the training-token count at $R^2 = 0.999$,
   against $-2.039$ across languages.
 - **Left out** the underlying scaling law. The slope corresponds to the value
   scaling as $T^{-0.95}$ in the training-token count $T$, approximately one count

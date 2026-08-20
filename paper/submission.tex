@@ -629,18 +629,20 @@ $\vocab$ not observed in $\corpus^\lang$ is \camrev{lowered to one shared
 constant wherever it exceeds it,
 $\log\unigramdistlang[\token] \defeq \min\bigl(\log\unigramdistlang[\token],\, c\bigr)$
 for every $\token$ unseen in $\corpus^\lang$; \corrrev{for the base \unilid
-model 1{,}655 of the 1{,}940 unseen-token values exceed $c$ and are set to it,
-while the remaining 285 already lie below $c$ and are left unchanged, since the
-rule only ever lowers.}}
-\corrrev{Without this correction, that value is the smallest value
-$\log\unigramdistlang$ takes, and it depends on the size of $\corpus^\lang$:
-across the 1{,}940 languages it falls by 2.04 nats per decade of training tokens
-(correlation $-0.99$ between the value and $\log_{10}$ of the language's
-training-token count, $R^2 = 0.99$), and subsampling one language's corpus over
-two decades reproduces the same slope, so the dependence is on corpus size and
-not on which languages happen to have small corpora. It is not a byproduct of the
-training-time probability floor of $10^{-12}$: no language's value reaches that
-floor, the closest being 7.7 nats above it.} Since \cref{eq:lang-id} compares
+model 1{,}655 of the 1{,}940 unseen-token values lie above $c$ and are set to
+$c$; the remaining 285 already lie below $c$ and are unchanged, because the
+minimum above never raises a value.}}
+\corrrev{Without this correction, that value is the smallest value of
+$\log\unigramdistlang$ over $\vocab$, and it varies with the size of
+$\corpus^\lang$. Across the 1{,}940 languages, the value decreases by 2.04 nats
+for each tenfold increase in the number of training tokens, and the correlation
+between the value and $\log_{10}$ of that token count is $-0.99$. For each of
+three languages whose corpora were subsampled across two orders of magnitude, the
+same decrease per tenfold increase is measured within that one language, so the
+quantity that determines the value is corpus size and not the identity of the
+language. The training-time
+probability floor of $10^{-12}$ does not determine it: every value lies above
+that floor, and the smallest distance to it is 7.7 nats.} Since \cref{eq:lang-id} compares
 scores across languages, the variation acts as a language-dependent offset on
 every unseen token. \camrev{The correction is applied without renormalizing
 $\unigramdistlang$, so the corrected per-language values are unnormalized
