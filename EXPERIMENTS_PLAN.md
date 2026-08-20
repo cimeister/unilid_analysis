@@ -961,6 +961,13 @@ transformation.
   `analysis/model_context_selfcheck.py` fires all six resolver branches and all
   seven entry points: 13/13. The two missing generators are written:
   `analysis/viterbi_vs_marginal.py` and `analysis/lenbias_norm_table.py`.
+- **B2a: the proximity bound (21 nats) is untracked and may need re-deriving** —
+  `not started`, found 2026-08-19. It is a score difference, the same kind of
+  quantity as the per-language thresholds, which the probe measured moving by up
+  to 123%. The published grid search found macro F1 flat to within 0.0003 for
+  bounds from roughly 15 to 35, so 21 may still sit inside that plateau on the
+  corrected model, but that is a hypothesis and not a measurement. Re-running the
+  grid search is one pass over the 18.0M-line development part.
 - **B2: re-derive the calibration** — `ongoing`. c: **finished**, job 3107082,
   selected **-17.3906**; see the 2026-08-18 results entry for the tie. Still to
   do: all 1,084 group-A thresholds (`solo_gates.py floor21`, needs the floor-c

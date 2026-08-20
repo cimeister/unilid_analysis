@@ -115,6 +115,41 @@ the floor explains the unseen-token values changes.
 
 ---
 
+## Gap found 2026-08-19: which calibration constants still need re-deriving
+
+`tab:calibration_provenance` lists five selected components. Sorting them by
+whether the special-token correction can move them:
+
+| component | moves? | status |
+|---|---|---|
+| unseen-token constant $c$ | **yes**, it is an absolute target in log space | re-derived, $c = -17$ |
+| thresholds $\tau_\lang$ | **yes**, percentiles of score margins | job 3123324 |
+| high-entropy-group membership | **yes**, identified from predictions | not started |
+| **proximity bound $21$** | **yes, and this is not tracked anywhere** | see below |
+| $100{,}000$-sample requirement | no, a corpus-size property | unchanged |
+| $18{,}000$-sample boundary (`head_n`) | no, a corpus-size property | unchanged |
+| $q_\lang$ form, percentiles, rank cutoff | no, dimensionless | unchanged |
+
+**The proximity bound is the gap.** It is a score difference in natural-log units:
+a replacement candidate is accepted when the top candidate's score minus the
+candidate's score is at most 21. Score differences between two languages are
+exactly the quantity the correction moves, because each language segments a line
+into a different number of tokens and each token gained $\log 5$. This is the
+same mechanism that moved the per-language thresholds by up to 123% when it was
+probed, and none of that reasoning was applied to the proximity bound.
+
+It was selected by a grid search from 0.5 to 100 on the development part, and the
+paper states that overall macro F1 on that part varies by less than 0.0003 across
+bounds from roughly 15 to 35, so 21 is a representative value of a plateau rather
+than a tuned optimum. **That flat plateau is the reason this may not matter, and
+it is also the reason it has to be checked rather than assumed**: if the plateau
+has moved or narrowed on the corrected model, 21 may no longer sit inside it.
+
+Cost: the recorded grid search ran on the development part, so re-running it is
+one pass over 18.0M lines, comparable to the other full-pool jobs.
+
+---
+
 ## Open items needing an author call
 
 - **`tab:lenbias-delta`'s basis**, the same question as `tab:lenbias-norm` but not
