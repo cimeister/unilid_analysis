@@ -74,14 +74,86 @@ The caption's sample size changes from 500k to 250k accordingly.
 
 ---
 
-## C. Needs the co-author
+## C. Ownership, re-triaged 2026-08-19
 
-`tab:unilid_llm_comparison`, `tab:noise_robustness`, `tab:length_accuracy`,
-`tab:samples-accuracy`, `tab:vocab_size_efficiency`,
-`tab:tatoeba_udhr_comparison`. The WiLI and DSL-ML models are not on this machine
-and were not in the Drive folder.
+The earlier version of this section said six tables "need the co-author". That was
+too coarse. Checked properly:
 
----
+### C0. The special-token defect is in the `sp` training path ONLY
+
+`language_specific_trainer.py:203-204` before the fix read
+`logp = float(vocab_dict.get(p_hf, 0.0))`, and that line sits inside
+`train_with_sentencepiece_direct`. The pure-Python EM path never had it: it left
+the special tokens at the training floor, so its rows already carried a real-token
+mass near 1.0.
+
+**Consequence: a model trained with `--method em` does not carry the defect and
+needs no correction.** `submission.tex:873` records, in a commented-out author
+note, that DSL-ML was trained with the EM method because SentencePiece errored on
+it. If that holds, **the DSL-ML results need no regeneration at all**, and
+`tab:dialect_stats` plus the dialect column of `tab:per_language_f1` come off the
+list entirely. This is an inference from the code plus that note, not a
+measurement; confirming it needs one look at a DSL-ML model's real-token mass,
+which is a two-minute check once the file is here.
+
+**The same question decides the five WiLI tables.** If the WiLI models were
+trained with EM, they are unaffected and nothing needs redoing. If with `sp`, they
+carry the defect and need correcting. **This is the single most useful thing to
+ask Ahmetcan**, because it may remove most of this section.
+
+### C1. Can be done HERE the moment one artifact arrives
+
+`train.py` already supports WiLI (`--wili-dir DIR`, taking `x_train.txt` and
+`y_train.txt`), so the capability is here and only the data is missing. There is
+no WiLI corpus, no WiLI-trained model, and no recorded WiLI run anywhere in this
+repository, on scratch, or on store.
+
+| table | what it needs |
+|---|---|
+| `tab:unilid_llm_comparison` | WiLI corpus, or his WiLI-trained models |
+| `tab:noise_robustness` | same |
+| `tab:length_accuracy` | same |
+| `tab:samples-accuracy` | same |
+| `tab:vocab_size_efficiency` | same |
+| `tab:tatoeba_udhr_comparison` | same, plus Tatoeba |
+
+**Ask for the WiLI models rather than the corpus if only one is possible.** With
+the models, correcting and re-evaluating them here is the same closed-form
+transformation plus gate already run four times. With only the corpus, they have
+to be retrained from scratch, which is several full training runs.
+
+**Not to be confused with the length analyses that ARE here.**
+`tab:length_accuracy` is accuracy against input length for models trained on
+WiLI. `tab:lenbias-delta` and `tab:lenbias-norm` are the token-count and
+normalization analyses on GlotLID-C, both produced in this repository
+(`outputs/tables/normalized_comparison.md` is the original artifact), and both are
+being regenerated here.
+
+### C2. Weights to publish so he can run against them
+
+Per the author instruction of 2026-08-19, every re-fitted or corrected weight file
+goes to the HuggingFace Hub and he is pointed at it, rather than being asked to
+reproduce the fit:
+
+| artifact | state |
+|---|---|
+| corrected base GlotLID-C, uncalibrated | ready |
+| corrected base GlotLID-C, calibrated at c = -17 | after the threshold chain |
+| corrected Mistral-Nemo variant | ready |
+| retrained DeepSeek3.2 (patched fp64 trainer) | job 3112879 |
+| retrained Qwen3-8B (patched fp64 trainer) | job 3112846 |
+| corrected Apertus 200k / 131k | ready; appear in no paper table, publish only if wanted |
+
+### C3. Genuinely only he can answer
+
+- **Which training method the WiLI and DSL-ML models used** (C0). Decides whether
+  five or six tables need anything at all.
+- **The latency configuration.** `tab:latency_glotlid` reports 3,253 samples/s
+  while his own `full_prob` run reports 1,075 for the same 45,627,279 samples, an
+  unexplained factor of 3.0.
+- **The subset-evaluation script or command** behind the \cld-subset cells, and
+  the UDHR-subset FPR of 1.06e-5. Both are standing asks predating this work.
+- **The DSL-ML competitor-score source and split**, also a standing ask.
 
 ## D. Unaffected
 
