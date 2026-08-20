@@ -9,13 +9,11 @@
 > there is no prior constant to reconcile against and no disclosure is owed. The
 > paper states the procedure and the constant it selected.
 
-Not applied to `submission.tex`. Two reasons: your own uncommitted edits to that
-file are in the working tree, and most of the numbers are still being
-regenerated. This is the wording sample for sign-off before anything is edited in
-place.
+The ready items were applied to `submission.tex` on 2026-08-19, each wrapped in
+`\corrrev{}`. The wording below is the record of what went in and why.
 
-Items 1, 1b and 1d are ready. Items 2 and 3 depend on runs that have not
-finished and are listed so they are not lost.
+Items 1, 1b and 1d are APPLIED (commit `6374b67`). Items 2 and 3 depend on runs
+that have not finished and are listed so they are not lost.
 
 ---
 
@@ -46,11 +44,11 @@ than merely shifting.
 > determine it: every value lies above that floor, and the smallest distance to
 > it is 7.7 nats.
 
-An earlier draft of this passage used "nats for each tenfold increase in the training-token count", which
-is coined shorthand rather than a defined term, and gave processes and values
-agency ("subsampling reproduces the same slope", "no language's value reaches
-that floor"). It also quoted both the correlation and $R^2$, which are redundant
-for a simple linear fit. Corrected on author instruction.
+An earlier draft of this passage used the phrase "nats per decade of training
+tokens", which is coined shorthand rather than a defined term, and gave processes
+and values agency ("subsampling reproduces the same slope", "no language's value
+reaches that floor"). It also quoted both the correlation and $R^2$, which are
+redundant for a simple linear fit. Corrected on author instruction 2026-08-19.
 
 ### What changed and why
 
@@ -66,8 +64,8 @@ for a simple linear fit. Corrected on author instruction.
   measured over 1,940 different languages, so corpus size and language identity
   are confounded in it. Holding language identity fixed and subsampling
   (`abk_Cyrl`, `mam_Latn`, `zul_Latn`, 1,000 to 100,000 lines) gives slopes
-  $-2.196$, $-2.196$, $-2.184$ nats for each tenfold increase in the training-token count at $R^2 = 0.999$,
-  against $-2.039$ across languages.
+  slopes of $-2.196$, $-2.196$ and $-2.184$ nats for each tenfold increase in the
+  training-token count, against $-2.039$ across languages.
 - **Left out** the underlying scaling law. The slope corresponds to the value
   scaling as $T^{-0.95}$ in the training-token count $T$, approximately one count
   in $T$, which is what an unsmoothed maximum-likelihood fit gives a type it never
@@ -92,14 +90,18 @@ Artifacts: `outputs/rerelease/plateau_reference_fit.json`,
 
 True for the released model at $c = -21$: all 1,940 rows have their unseen-token
 value above $-21$, so all 1,940 are clamped. **False for the corrected model at
-its own selected $c = -17.3906$**: 1,821 of 1,940 rows are clamped and 119
-already sit at or below the target, so they are left unchanged.
+its own selected $c = -17$**: 1,655 of 1,940 rows are clamped and 285 already lie
+below the target, so they are unchanged.
 
-### Proposed replacement
+### Applied 2026-08-19 (commit `6374b67`, revised for style)
 
-> for the base \unilid model 1{,}821 of the 1{,}940 unseen-token values exceed
-> $c$ and are set to it; the remaining 119 already lie below $c$ and are left
-> unchanged, since the rule only ever lowers.
+> for the base \unilid model 1{,}655 of the 1{,}940 unseen-token values lie above
+> $c$ and are set to $c$; the remaining 285 already lie below $c$ and are
+> unchanged, because the minimum above never raises a value.
+
+An earlier draft ended "since the rule only ever lowers", which gives a rule
+agency; the applied text names the operation instead. The counts also come from
+the round-grid sweep's $c = -17$, not the shifted grid's $-17.3906$.
 
 Note this makes the base model behave like the Mistral-Nemo variant described at
 `:1383-1384`, where some rows already lie below $c$. The two passages should be
@@ -148,9 +150,9 @@ two such rows, `khm_Khmr` ($-21.232$) and `ory_Orya` ($-21.016$); the
 **corrected** variant has none *at $c = -21$*, because the correction raises
 every real token by 1.6094 nats. So the parenthetical reverses at that constant.
 Whether it reverses at the variant's own re-derived $c$ is not yet known: the base
-model's re-derived $c = -17.3906$ leaves 119 of its 1,940 rows below the target
-(item 1b), so a re-derived constant for the variant may well leave some of its
-rows unclamped too. The count has to be measured against the variant's own
+model's re-derived $c = -17$ leaves 285 of its 1,940 rows below the target
+(item 1b), so a re-derived constant for the variant may leave some of its rows
+unclamped too. The count has to be measured against the variant's own
 constant, not assumed from this one.
 
 The final wording waits on the corrected variant's own re-derived $c$, since the
