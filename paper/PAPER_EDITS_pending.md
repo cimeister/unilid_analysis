@@ -79,7 +79,20 @@ The caption's sample size changes from 500k to 250k accordingly.
 The earlier version of this section said six tables "need the co-author". That was
 too coarse. Checked properly:
 
-### C0. The special-token defect is in the `sp` training path ONLY
+### C0. RESOLVED: DSL-ML needs nothing; the defect is `sp`-only
+
+**Author confirmation 2026-08-19: DSL-ML was trained entirely with
+`--method em`, so no correction applies and no DSL-ML result is regenerated.**
+`tab:dialect_stats` and the dialect column of `tab:per_language_f1` are off the
+list. The reasoning below is retained because it is what decides the WiLI tables
+too.
+
+**Author confirmation 2026-08-19: the latency discrepancy is resolved and is not
+to be revisited.** Latency varies with hardware and with label-set size, so the
+`full_prob` run's 1,075 samples/s and `tab:latency_glotlid`'s 3,253 are not
+expected to agree. Removed from the ask list.
+
+### C0b. The special-token defect is in the `sp` training path ONLY
 
 `language_specific_trainer.py:203-204` before the fix read
 `logp = float(vocab_dict.get(p_hf, 0.0))`, and that line sits inside
@@ -98,29 +111,60 @@ which is a two-minute check once the file is here.
 
 **The same question decides the five WiLI tables.** If the WiLI models were
 trained with EM, they are unaffected and nothing needs redoing. If with `sp`, they
-carry the defect and need correcting. **This is the single most useful thing to
-ask Ahmetcan**, because it may remove most of this section.
+carry the defect and need correcting. **Ask this first**, because a single answer
+may remove this whole section.
 
-### C1. Can be done HERE the moment one artifact arrives
+### C1. Exactly what is needed from Ahmetcan for the WiLI tables
 
 `train.py` already supports WiLI (`--wili-dir DIR`, taking `x_train.txt` and
-`y_train.txt`), so the capability is here and only the data is missing. There is
-no WiLI corpus, no WiLI-trained model, and no recorded WiLI run anywhere in this
+`y_train.txt`), so the capability is here and only data is missing. There is no
+WiLI corpus, no WiLI-trained model, and no recorded WiLI run anywhere in this
 repository, on scratch, or on store.
 
-| table | what it needs |
-|---|---|
-| `tab:unilid_llm_comparison` | WiLI corpus, or his WiLI-trained models |
-| `tab:noise_robustness` | same |
-| `tab:length_accuracy` | same |
-| `tab:samples-accuracy` | same |
-| `tab:vocab_size_efficiency` | same |
-| `tab:tatoeba_udhr_comparison` | same, plus Tatoeba |
+**Question 0, ask before sending anything:** which `--per-lang-counts-method` were
+the WiLI models trained with? If `em`, they carry no defect, nothing below is
+needed, and all five tables stand as published.
 
-**Ask for the WiLI models rather than the corpus if only one is possible.** With
-the models, correcting and re-evaluating them here is the same closed-form
-transformation plus gate already run four times. With only the corpus, they have
-to be retrained from scratch, which is several full training runs.
+If `sp`, then in priority order:
+
+**1. The WiLI-trained `.unilid` model files.** `tab:unilid_llm_comparison` names
+**seven** of them, three of which have no counterpart in the GlotLID-C table and
+so were not on any earlier list:
+
+| model | also in Table 1? |
+|---|---|
+| \unilid (base), the 100k vocabulary | no, WiLI-trained |
+| \unilid-Mistral-Nemo | GlotLID-C version yes |
+| \unilid-Mistral | **no counterpart anywhere here** |
+| \unilid-LLaMA3.2 | **no counterpart anywhere here** |
+| \unilid-LLaMA2 | **no counterpart anywhere here** |
+| \unilid-DeepSeek3.2 | GlotLID-C version yes |
+| \unilid-Qwen3 | GlotLID-C version yes |
+
+`tab:vocab_size_efficiency` needs **four more**, the same base tokenizer at
+vocabulary 10k, 20k, 50k and 200k (the 100k row is the base model above).
+
+So **eleven `.unilid` files**. With those, correcting and re-evaluating is the
+closed-form transformation plus gate already run four times here, and it needs
+nothing else from him.
+
+**2. The WiLI test set** (`x_test` / `y_test`, 117,500 samples over 235
+languages per `tab:noise_robustness`'s caption). Needed for
+`tab:unilid_llm_comparison`, `tab:noise_robustness` and `tab:length_accuracy`.
+The perturbation for the noise table is applied at evaluation time, so only the
+clean test set is needed.
+
+**3. The Tatoeba evaluation set**, for `tab:tatoeba_udhr_comparison`. UDHR is
+already here.
+
+**4. The WiLI TRAINING corpus** (`x_train.txt` + `y_train.txt`), which is a
+different kind of ask. `tab:samples-accuracy` is not an evaluation but a
+retraining sweep: accuracy at 5, 10, 25, 50, 100, 200, 300 and 400 training
+samples per language, reported as mean plus or minus standard deviation, so it
+needs several runs per point. **Also needed: the seeds and the number of repeats
+behind those standard deviations**, which are not recorded here. Sending the
+corpus would let everything above be regenerated from scratch here, at the cost
+of many training runs.
 
 **Not to be confused with the length analyses that ARE here.**
 `tab:length_accuracy` is accuracy against input length for models trained on
@@ -128,6 +172,11 @@ WiLI. `tab:lenbias-delta` and `tab:lenbias-norm` are the token-count and
 normalization analyses on GlotLID-C, both produced in this repository
 (`outputs/tables/normalized_comparison.md` is the original artifact), and both are
 being regenerated here.
+
+**UDHR and FLORES-200 in Table 1 are NOT in this group.** Those are a different
+test set, not a different training corpus, so the UniLID rows on them are
+GlotLID-C-trained and carry the correction. Both TSVs are already on scratch
+(24,115 and 192,280 lines) and scoring is submitted as jobs 3130020 and 3130021.
 
 ### C2. Weights to publish so he can run against them
 
