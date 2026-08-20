@@ -13,7 +13,16 @@ clamp counts and selection both hit exactly). 1,655 of 1,940 rows are clamped an
 
 ---
 
-## A. Ready now
+## A. APPLIED 2026-08-19, commit `6374b67`
+
+All wrapped in a new `\corrrev{}` macro (blue), kept separable from the
+camera-ready `\camrev{}` pass. To accept all of this round, redefine as
+`\newcommand{\corrrev}[1]{#1}`. Brace balance checked before and after: my edits
+introduced no imbalance (the file carries a pre-existing delta of 1 that my
+crude check flags in both versions).
+
+Item 11 (`tab:lenbias-norm`) is **not** applied; it is being regenerated, see
+below.
 
 | # | Site | Current | New |
 |---|---|---|---|
@@ -27,7 +36,25 @@ clamp counts and selection both hit exactly). 1,655 of 1,940 rows are clamped an
 | 8 | `:824` | "2.03e-5 vs 2.71e-5", "roughly 25\%" | **`2.02e-5`**; "roughly 25\%" still holds (25.5\%) |
 | 9 | `tab:calibration_provenance` | "unseen-token constant $c=-21$" | **$c=-17$** |
 | 10 | `tab:viterbi_vs_marginal` | `.961`/`.929`, `.962`/`.931` | **`.961`/`.933`, `.961`/`.935`.** The "+0.002 from marginalization" claim survives (+0.0023). **Two caption fixes:** the accuracy cells now round to the same value so the bolding must go, and measured cost is about 1.7x Viterbi, not "approximately $2\times$" |
-| 11 | `tab:lenbias-norm` | Original / Raw rescore / Normalized, overall `.960`/`.960`/`.885` | **Raw rescore `.961`, Normalized `.838`** (per-bin table in `outputs_corrected/tables/lenbias_norm.md`). Normalization is **more** damaging, so `:1247`'s conclusion strengthens. The Original column is omitted; see the open item below |
+| 11 | `tab:lenbias-norm` | Original / Raw rescore / Normalized, overall `.960`/`.960`/`.885` | **REGENERATING**, job 3129778. See below |
+
+### `tab:lenbias-norm`: regenerating rather than applying
+
+The published table came from `outputs/tables/normalized_comparison.md`
+(2026-04-04), whose per-bin figures match it exactly. Its Original column is the
+sample pickle's stored `pred_UniLID`.
+
+The first corrected run omitted that column, because half of the 500,000-line
+draw is the validation half that the full-pool runs exclude, so the corrected
+model has no plain-scorer prediction there. Per the author's instruction to redo
+it on a new subset, it is being rebuilt on the **golden subset**: the test half
+of the same draw, 250,000 lines, which is inside the scored pool. That fills
+Original from this model's own `pred_baseline.npy`, restores the implementation
+check (Raw rescore must reproduce the plain scorer exactly, enforced as a hard
+gate), and keeps the validation half out of a reported number. It is the same
+subset both release gates use.
+
+The caption's sample size changes from 500k to 250k accordingly.
 
 ---
 
@@ -90,9 +117,7 @@ the floor explains the unseen-token values changes.
 
 ## Open items needing an author call
 
-- **`tab:lenbias-norm`'s Original column and `tab:lenbias-delta`'s basis.** The
-  corrected predictions exclude the 250,000 validation lines; the published
-  tables used all 45,627,279. The Original column also supported an
-  implementation check ("Raw rescore reproduces the original predictions
-  exactly"), which can be partly recovered by comparing the $\alpha=0$ rescore
-  against `pred_baseline.npy` on the test half.
+- **`tab:lenbias-delta`'s basis**, the same question as `tab:lenbias-norm` but not
+  yet resolved: the corrected predictions exclude the 250,000 validation lines
+  while the published table used all 45,627,279. The golden-subset treatment
+  applied to `lenbias-norm` is the obvious match.
