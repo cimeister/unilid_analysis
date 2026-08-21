@@ -1,0 +1,32 @@
+{
+  "model": "/capstor/scratch/cscs/cmeister747/unilid_analysis/wili_assets/wili_100k_500.unilid",
+  "split": "test",
+  "total_samples": 117500,
+  "n_labels": 235,
+  "n_empty_after_preprocess": 0,
+  "n_gold_labels_absent_from_model": 0,
+  "accuracy": 0.9565021276595744,
+  "macro_f1": 0.9601129145883087,
+  "macro_fpr": 0.00018588834333515186,
+  "gate": [
+    {
+      "metric": "macro F1",
+      "got": 0.9601129145883087,
+      "expected": 0.96,
+      "match": true
+    },
+    {
+      "metric": "accuracy",
+      "got": 0.9565021276595744,
+      "expected": 0.9565,
+      "match": true
+    },
+    {
+      "metric": "macro FPR",
+      "got": 0.00018588834333515186,
+      "expected": 0.0001859,
+      "match": true
+    }
+  ],
+  "gate_passed": true
+}

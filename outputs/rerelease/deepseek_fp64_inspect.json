@@ -1,0 +1,20 @@
+[
+  {
+    "model": "/capstor/scratch/cscs/cmeister747/unilid_analysis/glotlid_deepseek_v32_fp64.unilid",
+    "n_languages": 1940,
+    "vocab_size": 128819,
+    "special_columns": [
+      128815,
+      128816,
+      128817,
+      128818
+    ],
+    "special_mass_min": 3.999998465179331e-12,
+    "special_mass_max": 3.999998465179331e-12,
+    "real_mass_min": 0.9999996391848791,
+    "real_mass_max": 1.0000003908565258,
+    "plateau_min": -19.076091766357422,
+    "plateau_max": -11.854259490966797,
+    "defect_present": false
+  }
+]

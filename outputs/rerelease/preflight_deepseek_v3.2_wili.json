@@ -1,0 +1,15 @@
+{
+  "source_model": "/capstor/scratch/cscs/cmeister747/unilid_analysis/wili_assets/deepseek_v3.2_wili.unilid",
+  "results_dir": "/capstor/scratch/cscs/cmeister747/unilid_analysis/results_deepseek_v3.2_wili_fp64",
+  "base_tokenizer": "/capstor/scratch/cscs/cmeister747/unilid_analysis/results_deepseek_v3.2_wili_fp64/tokenizers/langspec_base_tokenizer.json",
+  "vocab_size": 128819,
+  "n_languages": 235,
+  "model_type": "Unigram",
+  "special_token_indices": [
+    128815,
+    128816,
+    128817,
+    128818
+  ],
+  "base_tokenizer_sha256": "79b4c29571b21b88eecaf720a9f7f43be16fff2bc56490fd47228f9c61cefb69"
+}

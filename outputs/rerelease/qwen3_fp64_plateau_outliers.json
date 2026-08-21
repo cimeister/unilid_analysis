@@ -1,0 +1,28 @@
+[
+  {
+    "model": "/capstor/scratch/cscs/cmeister747/unilid_analysis/glotlid_qwen3_8b_fp64.unilid",
+    "vocab_size": 151670,
+    "slope": -2.012031373403988,
+    "intercept": -7.746612553536347,
+    "residual_sd": 0.40635121142801583,
+    "outlier_sd_threshold": 5.0,
+    "outliers": [
+      {
+        "lang": "got_Goth",
+        "n_l": 7413,
+        "plateau": -18.332258224487305,
+        "expected": -15.533161896666488,
+        "residual": -2.7990963278208163,
+        "sd_below": -6.888367129469404
+      },
+      {
+        "lang": "kyu_Kali",
+        "n_l": 4280,
+        "plateau": -17.15017318725586,
+        "expected": -15.053191347543276,
+        "residual": -2.0969818397125835,
+        "sd_below": -5.160515782254679
+      }
+    ]
+  }
+]
