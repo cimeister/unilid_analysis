@@ -27,6 +27,79 @@ for the infrastructure record.
 `EXPERIMENTAL_SETUP.md` (hierarchical pooling). Full plan:
 `~/.claude/plans/yes-do-both-then-giggly-sprout.md`.
 
+### 2026-08-21: WiLI models located, measured, and three retrains submitted (jobs 3138626/7/8)
+
+- **Purpose / hypothesis:** whether the five WiLI-trained paper tables need
+  regenerating. Settled by measurement: all three WiLI models from
+  github.com/Ahmetcanyvz/UNILID/releases carry 0.800000 special-token mass per
+  row, so they were `sp`-trained and carry the defect. Plan:
+  `~/.claude/plans/this-session-focuses-on-shimmering-dusk.md`, approved after an
+  adversarial review that returned two critical defects.
+- **Assets:** two draft releases, eleven files. WiLI corpus (117,500 train and
+  117,500 test, 235 languages, 500 per language), Tatoeba, UDHR, FLORES, DSL-ML,
+  and three of eleven models. **No 10k / 20k / 50k / 200k model exists**, so
+  `tab:vocab_size_efficiency` cannot be rebuilt from a container. Downloaded to
+  `/capstor/scratch/.../wili_assets/`.
+- **Phase 0, the instrument, PASSED:** `analysis/wili_eval.py` reproduces the
+  published cells from the stored defective model at macro F1 0.960113, accuracy
+  0.956502 and macro FPR 1.8589e-04. Written because no WiLI tooling existed here
+  and `UNILID/eval.py` reports no macro FPR.
+- **Base vocabulary provenance measured:** byte-identical between the WiLI and
+  GlotLID-C containers for DeepSeek3.2 (`79b4c295...`) and Qwen3 (`311d4685...`),
+  because an LLM tokenizer is carried unchanged; different for the 100k model
+  (24,357 of 100,000 tokens shared), because a supplied-nothing model has its
+  vocabulary trained on the corpus.
+- **Init-from:** each model's own base tokenizer, extracted with
+  `analysis/extract_base_tokenizer.py`, which writes only the base tokenizer.
+  `unpack_unilid` would also write 235 defective per-language rows, and
+  `convert.py` globs `langspec_soft_*` before `langspec_sp_*`, so the pack would
+  pick the corrected set by naming coincidence rather than by construction.
+- **Data:** one shared 235-language corpus split at
+  `/capstor/scratch/.../wili_corpus_shared` (117,500 lines, 64 MB), built once
+  with `train.prepare_corpus` so all three models train on byte-identical files.
+- **Configuration:** `slurm_wili_train_fp64.sh`, parameterized by `MODEL_NAME` and
+  `VOCAB_SIZE` via `--export`. Patched fp64 `spm_train` (fork commits d0208d9 +
+  c5921a2) and UNILID 0.3.0, so the retrain changes **two** things, not one.
+- **The trap the review caught, now guarded:** `--results-dir` and
+  `--base-tokenizer-path` are both mandatory. Without them `train.py:450-452`
+  defaults the base path to `results_<vocab//1000>k/tokenizers/`, the reuse test at
+  `train.py:455` fails, and `train.py:465-492` **silently trains a fresh
+  vocabulary and reports success**. The script also refuses a results directory
+  resolving into the durable store, and refuses to start if per-language rows
+  already exist, since `--skip-existing-langs` defaults to true and the loader
+  validates token order but not real-token mass.
+- **Expected:** WiLI is 64 MB over 235 languages against GlotLID-C's 1,940
+  languages with far more text, so well under the 4h19m the DeepSeek GlotLID-C
+  retrain took. 4h walltime requested.
+- **Blocked and needing the co-author:** the four LLM-tokenizer variants
+  (Mistral-Nemo extractable from the GlotLID-C container; Mistral, LLaMA3.2 and
+  LLaMA2 have no container anywhere and their cached HuggingFace tokenizers are
+  dangling symlinks with no blobs), and `tab:samples-accuracy`'s seed count.
+  `tab:noise_robustness` is on hold by author instruction.
+
+### 2026-08-21: GlotLID-C chain, five jobs completed
+
+- **3112879** DeepSeek3.2 retrain COMPLETED 04:19:26; **3112846** Qwen3 retrain
+  COMPLETED 04:49:30. Both clean: real-token mass 1.000000, defect absent.
+  **Every corrupted row disappeared and every coverage row persisted**, which
+  settles the open `mya_Mymr` question (corruption, not Burmese coverage) and
+  corrects the earlier classification of `bod_Tibt` (corruption in both variants,
+  not coverage). Results entry: "Both variant retrains completed".
+- **3123324** group-A thresholds COMPLETED 00:12:48: 1,080 rows with 26 excluded,
+  all `low_calibration`, matching the released model's expected counts exactly, so
+  `build_release_calibration.py`'s group-A assertions pass unchanged. Read c = -17
+  from the fingerprint. Artifact
+  `outputs_corrected_round/diagnostic/tau_floor21_gate.csv`.
+- **3129778** `tab:lenbias-norm` COMPLETED 00:02:09 on the golden subset, with the
+  Original column filled and the implementation check at agreement 1.000000.
+- **3130020 / 3130021** UDHR and FLORES score stages COMPLETED. **A provenance
+  defect was introduced and fixed the same day**: the first run overwrote the
+  released model's E2 scored artifacts and recorded the module-constant model path
+  and floor target rather than the ones used. The scored data was correct (the
+  sha256 check against the corrected fingerprint passed), but the mislabelled
+  files were deleted, the recording fixed, output isolated per model, and both
+  benchmarks re-scored.
+
 ### 2026-08-18: Qwen3-8B variant retrain under the patched trainer submitted
 
 - **Purpose / hypothesis:** the Qwen3 model's `azj_Latn` row is corrupted in the

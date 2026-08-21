@@ -981,13 +981,45 @@ transformation.
   Remaining steps and their dependency order in `RERELEASE_PLAN.md`.
 - **B4: ship the corrected artifacts, retire polybox** — `waiting on dependency`
   (B2 for the calibrated model; the uncalibrated model is ready now).
+- **WiLI-trained models, five tables** (`unilid_llm_comparison`,
+  `noise_robustness`, `length_accuracy`, `vocab_size_efficiency`,
+  `tatoeba_udhr_comparison`, plus `samples-accuracy` as a sixth) — `ongoing`.
+  Plan: `~/.claude/plans/this-session-focuses-on-shimmering-dusk.md`, approved
+  2026-08-21 after adversarial review.
+  - **Phase 0, the instrument** — `finished`. `analysis/wili_eval.py` reproduces
+    the published cells exactly from the stored defective model.
+  - **Phase 1, three retrains over their original vocabularies** — `ongoing`,
+    jobs 3138626 (100k), 3138627 (DeepSeek3.2), 3138628 (Qwen3).
+  - **Phase 2, Mistral-Nemo** — `not started`. Its base tokenizer is extractable
+    from `glotlid_mistralnemo_fp64.unilid` (131,072). Assumption to state: the
+    WiLI variant used the same vocabulary, consistent with the two confirmed
+    byte-identical cases but not verifiable without the model.
+  - **Phase 2b, Mistral / LLaMA3.2 / LLaMA2** — `waiting on dependency`. No
+    container anywhere, and the cached HuggingFace tokenizers are dangling
+    symlinks with no blobs. Author decision 2026-08-21: use
+    `mistral-community/Mistral-7B-v0.2`, `meta-llama/Llama-3.2-1B` and
+    `meta-llama/Llama-2-7b-hf` with vocabulary-size sanity checks, downloading
+    them, and state in the results entry that they are unconfirmed against the
+    originals. Note `\unilid-Mistral` cannot be Mistral-Nemo: the published rows
+    differ (0.921 against 0.958).
+  - **Phase 3, the four vocabulary sizes** — `not started`. No container exists,
+    so each base vocabulary is trained here. **Gating check first**: train a 100k
+    base vocabulary and compare its ordered token list against the one inside
+    `wili_100k_500.unilid`. Match means the four are the published models; no
+    match means they are new models built by the published procedure and the
+    table says so.
+  - **Phase 4, `tab:samples-accuracy`** — `waiting on dependency`: the sweep is
+    reproducible from the corpus but its standard deviations need the seed count.
+  - **`tab:noise_robustness`** — `abandoned for now`, author instruction
+    2026-08-21, perturbation evaluation on hold.
 - **DeepSeek3.2 and Qwen3 rows (24 cells of `lid_main.tex`)** — both models were
   located in the co-author's Drive folder on 2026-08-18 and downloaded, so this is
   no longer blocked on artifacts. Both carry the special-token defect.
-  - **DeepSeek3.2** — `not started`. Correct, gate, re-evaluate. No sign of the
-    fp64 EM corruption (3 plateau outliers, all shared minority-script coverage
-    effects).
-  - **Qwen3** — `ongoing`. **Its azj_Latn row is corrupted independently of the
+  - **DeepSeek3.2** — retrain `finished` 2026-08-21 (job 3112879, 04:19:26),
+    clean. The earlier note that it showed "no sign of the fp64 EM corruption"
+    was wrong: the plateau scan missed it and the retrain gate caught it.
+  - **Qwen3** — retrain `finished` 2026-08-21 (job 3112846, 04:49:30), clean.
+    **Its azj_Latn row was corrupted independently of the
     special-token defect** (plateau at the training floor, 20.1 sd below the
     corpus-size expectation, flagged in no other model, and the documented fp64
     EM bug trigger language). **Author decision 2026-08-18: retrain the variant
@@ -995,11 +1027,11 @@ transformation.
     drop the row. A 0.3.0 retrain fixes both defects at once, since the trainer
     no longer gives the special tokens the base tokenizer's score-0 entries.
     Submission script `slurm_qwen3_train_fp64.sh`.
-  - **`mya_Mymr` in the Qwen3 model** (-8.5 sd, also unique to it, also
-    N_L = 100,000) is unresolved: Burmese script coverage is the competing
-    explanation and has not been separated from a second EM casualty. The retrain
-    settles it either way, since a coverage effect survives a retrain and an EM
-    casualty does not.
+  - **`mya_Mymr` in the Qwen3 model** — RESOLVED 2026-08-21: it disappeared from
+    the outlier list after retraining, so it was a second EM casualty, not Burmese
+    script coverage. `bod_Tibt` likewise, in both variants, correcting its earlier
+    classification as coverage. `got_Goth`, `nqo_Nkoo` and `kyu_Kali` persist
+    across retraining and are genuine coverage effects.
 
 ## Notes for whoever resumes this (updated 2026-07-27; pointer corrected 2026-08-06)
 

@@ -224,16 +224,31 @@ def _ctx():
     return _CTX
 
 
+def _bench_out_dir() -> str:
+    """Where scored_<bench>.npz and its sidecar go.
+
+    The released model keeps EXTERNAL_BENCH_DIR itself, so its recorded E2
+    artifacts stay where every earlier record points. Any other model gets a
+    subdirectory named for it. Without this a second model silently overwrites
+    the first's scored arrays: the benchmark TSVs and the scored npz share one
+    directory, and the npz name carries only the benchmark, not the model.
+    """
+    if _ctx().is_default_model:
+        return EXTERNAL_BENCH_DIR
+    stem = os.path.splitext(os.path.basename(_ctx().model_path))[0]
+    return os.path.join(EXTERNAL_BENCH_DIR, f"scored_{stem}")
+
+
 # ---------------------------------------------------------------------------
 # Small shared helpers
 # ---------------------------------------------------------------------------
 
 def _scored_npz_path(bench: str) -> str:
-    return os.path.join(EXTERNAL_BENCH_DIR, f"scored_{bench}.npz")
+    return os.path.join(_bench_out_dir(), f"scored_{bench}.npz")
 
 
 def _scored_meta_path(bench: str) -> str:
-    return os.path.join(EXTERNAL_BENCH_DIR, f"scored_{bench}_meta.json")
+    return os.path.join(_bench_out_dir(), f"scored_{bench}_meta.json")
 
 
 def _gate_failure_md_path(bench: str) -> str:
@@ -455,7 +470,7 @@ def run_score(bench: str) -> str:
     tsv_sha = _sha256_file(reg["tsv_path"])
     git_commit = _git_commit()
 
-    print(f"Loading model ({UNILID_MODEL_PATH})...", flush=True)
+    print(f"Loading model ({_ctx().model_path})...", flush=True)
     model = _load_unilid_model(_ctx().model_path)
     if model.langs != langs:
         raise RuntimeError("_load_unilid_model's language list differs from "
@@ -522,7 +537,7 @@ def run_score(bench: str) -> str:
         "n_rows": n_rows,
         "n_labels": reg["expected_labels"],
         "n_empty": n_empty,
-        "model_path": UNILID_MODEL_PATH,
+        "model_path": _ctx().model_path,
         "matrix_shas": {
             "sha256_W_loaded": sha_w,
             "sha256_w21_computed": sha_w21,
@@ -541,11 +556,11 @@ def run_score(bench: str) -> str:
         ),
         "score_chunk": SCORE_CHUNK,
         "topk_margin": TOPK_MARGIN,
-        "floor_target": FLOOR_TARGET,
+        "floor_target": target,
         "n_short_cands": n_short_cands,
     }
 
-    os.makedirs(EXTERNAL_BENCH_DIR, exist_ok=True)
+    os.makedirs(_bench_out_dir(), exist_ok=True)
     npz_path = _scored_npz_path(bench)
     npz_tmp = npz_path.replace(".npz", ".tmp.npz")
     np.savez_compressed(npz_tmp, y=y, pred_baseline=pred_baseline, top5_ids=top5_ids,

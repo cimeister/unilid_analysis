@@ -304,6 +304,59 @@ need the same treatment when they are next run against corrected weights.
 
 ---
 
+## 2026-08-19 to 2026-08-21: the WiLI workstream and further chain fixes
+
+### New scripts
+
+| file | why |
+|---|---|
+| `analysis/wili_eval.py` | No WiLI tooling existed here, and `UNILID/eval.py` reports no macro FPR (`eval.py:309-316`) while every WiLI table quotes it. Metrics come from `analysis/metrics.py`, verified identical to the FPR convention in `paper_eval.py`. Has a gate mode that exits non-zero against published cells. |
+| `analysis/extract_base_tokenizer.py` | Pulls only the base tokenizer from a container, with an aborting preflight and a refusal to use a results directory resolving into the durable store. `unpack_unilid` would also write 235 defective per-language rows. |
+| `analysis/tail_views_corrected.py` | The tail under both metric views, after I framed the clamp's tail cost favourably. |
+| `analysis/inspect_variant_models.py`, `analysis/variant_plateau_outliers.py` | Defect signature and the corpus-size outlier diagnostic, row-blocked for large vocabularies. |
+| `analysis/variant_recorded_preds.py`, `analysis/corrected_lid_main_cells.py`, `analysis/selected_floor_target.py`, `analysis/c_selection_comparison.py` | Provenance checks and Table 1 cells. |
+| `slurm_wili_train_fp64.sh` | Parameterized WiLI retrain, guarded. |
+
+### Chain fixes
+
+- **`solo_gates.py` and `gate_variants.py` and `external_bench_eval.py` read the
+  clamp constant from `fingerprint_floor21.json`** rather than the module default,
+  so a run cannot be built at a different c than the predictions it is compared
+  against. The sha256 check then verifies the rebuild.
+- **`floor_equalization.verify_one_sided_clamp` replaces `n_mod == n_lang`** in
+  five places. That assertion encoded the incidental fact that at c = -21 every
+  released row moved; at c = -17 only 1,655 of 1,940 do, and it fired on a correct
+  run.
+- **`full_test_eval.py`**: the language list came from the default model while the
+  scoring used the requested one; the 0.99 agreement gate compared against the
+  released model's recorded predictions and would have passed by luck at 0.9928;
+  and there was no way to score a subset of configurations.
+- **`normalized_predict._load_unilid_model`** loaded `model_io.py` by file path
+  with importlib, which broke once `model_io` grew relative imports, and used the
+  constructor's `calibrated=True` default, which fails on a version-1 container
+  and is wrong for length normalization anyway.
+- **`external_bench_eval.py`** recorded `model_path` and `floor_target` from
+  module constants rather than the run, and wrote scored arrays into a shared
+  directory where a second model overwrote the first's. Both fixed; a non-default
+  model now writes to `external_bench/scored_<model stem>/`.
+
+### Defects I introduced and caught
+
+- Two SLURM jobs failed in seconds because I did not smoke-test the CLI
+  invocations: `--floors "-15,..."` was read by argparse as an option name, and
+  the `normalized_predict` loader was broken. A third bug surfaced while testing
+  the fix. **Smoke-test the exact argv before submitting.**
+- A blanket string replacement to purge a phrase also hit the sentence quoting
+  that phrase as the fault, making the note self-contradictory.
+- `git add -A` swept the user's uncommitted `paper/submission.tex` edit into an
+  unrelated commit (`20c6db3`). Content intact, provenance muddled.
+- The `external_bench_eval` provenance defect above.
+
+### Paper edits applied (commit `6374b67`, style-revised in `69105e6`)
+
+Fourteen edits in `submission.tex` and three table files, wrapped in a new
+`\corrrev{}` macro so this round stays separable from `\camrev{}`.
+
 ## What has NOT been changed, deliberately
 
 - The released artifacts on store and on the Hub. Untouched.

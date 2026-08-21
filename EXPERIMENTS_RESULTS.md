@@ -212,6 +212,135 @@ these numbers.
 **Artifacts:** `analysis/tail_views_corrected.py`,
 `outputs/rerelease/tail_views_corrected.json`.
 
+## Both variant retrains completed; every corrupted row disappeared (2026-08-21, jobs 3112879, 3112846)
+
+**Hypothesis under test:** whether retraining under the patched fp64 trainer
+removes the EM corruption, and whether the rows flagged by the plateau diagnostic
+were corruption or vocabulary coverage.
+
+**Both retrained models are clean of the special-token defect**: real-token mass
+1.000000 in every row, special mass 4.0e-12.
+
+**The outlier lists resolve the classification question:**
+
+| model | flagged before | flagged after |
+|---|---|---|
+| DeepSeek3.2 | `bod_Tibt` -11.0, `got_Goth` -9.9, `nqo_Nkoo` -5.2 | `got_Goth` -8.4, `nqo_Nkoo` -5.2 |
+| Qwen3-8B | `bod_Tibt` -21.8, `azj_Latn` -20.1, `mya_Mymr` -8.5, `got_Goth` -6.9, `kyu_Kali` -5.1 | `got_Goth` -6.9, `kyu_Kali` -5.2 |
+
+**`azj_Latn`, `bod_Tibt` and `mya_Mymr` all disappear after retraining; `got_Goth`,
+`nqo_Nkoo` and `kyu_Kali` persist.** A row whose anomaly survives a retrain on the
+same corpus is a vocabulary-coverage effect; one that vanishes was corruption in
+the training run.
+
+**This settles `mya_Mymr`, which was recorded as unresolved.** It was a second EM
+casualty in the Qwen3 model, not Burmese script coverage. **It also corrects my
+earlier classification of `bod_Tibt`**, which I had called a coverage effect
+because it appeared in both variants; it was corruption in both.
+
+**Artifacts:** `outputs/rerelease/{deepseek,qwen3}_fp64_inspect.json`,
+`outputs/rerelease/{deepseek,qwen3}_fp64_plateau_outliers.json`.
+
+## tab:lenbias-norm regenerated on the golden subset, with the implementation check restored (2026-08-21, job 3129778)
+
+The first corrected run omitted the Original column, because half the 500,000-line
+draw is the validation half the full-pool runs exclude. Rebuilt on the golden
+subset (the test half, 250,000 lines, inside the scored pool) with Original taken
+from the corrected model's own `pred_baseline.npy`.
+
+| length | N | Original | Raw rescore | Normalized | published Normalized |
+|---|---|---|---|---|---|
+| <30 | 13,708 | 0.795 | 0.795 | 0.494 | 0.566 |
+| 30-75 | 88,503 | 0.951 | 0.951 | 0.776 | 0.842 |
+| 75-150 | 97,861 | 0.977 | 0.977 | 0.883 | 0.925 |
+| 150-300 | 43,566 | 0.988 | 0.988 | 0.946 | 0.966 |
+| 300+ | 6,362 | 0.994 | 0.994 | 0.986 | 0.991 |
+| Overall | 250,000 | **0.960** | **0.960** | **0.837** | 0.885 |
+
+**Raw rescore reproduces the plain scorer at agreement 1.000000**, which is the
+implementation check the published table's caption claims and which the first
+corrected run could not perform. Original and Raw both still read 0.960, matching
+the published value. Normalization is more damaging on the corrected model, 0.960
+to 0.837 against the published 0.960 to 0.885, so the paper's conclusion
+strengthens.
+
+## UDHR and FLORES-200 scored on the corrected model (2026-08-21, jobs 3130020, 3130021)
+
+Score stage complete: UDHR 24,115 rows over 366 labels, FLORES-200 192,280 rows
+over 190 labels, both with 0 empty after preprocess and 0 rows with fewer than 5
+saved candidates, clamped at c = -17 with 1,655 of 1,940 rows modified. **The eval
+stage is blocked on the group B thresholds**, which come from `gate_variants`.
+
+**A provenance defect I introduced and fixed the same day.** The first run wrote
+`scored_udhr.npz` and `scored_flores.npz` into the shared `external_bench`
+directory, overwriting the released model's E2 artifacts from 2026-08-07, and its
+sidecar recorded `model_path` as the released model and `floor_target` as -21.0,
+both read from module constants rather than from the run.
+
+**The scored data itself was correct**: the sha256 check against the corrected
+`fingerprint_floor21.json` passed, which it could not have done had the released
+weights been loaded, and the log records the clamp at c = -17 with the corrected
+model's 1,655 rows. Only the recorded strings were wrong. The mislabelled files
+were deleted rather than left in the chain, `analysis/external_bench_eval.py` now
+records the model and constant actually used, and a non-default model writes to
+`external_bench/scored_<model stem>/` so it cannot overwrite another model's
+arrays. Re-run and verified.
+
+**The released model's own scored npz is now absent and would need regenerating**
+if its E2 numbers are ever recomputed. The directory is on scratch, not
+store-backed, so no published artifact was lost.
+
+## The WiLI evaluation instrument reproduces the paper exactly (2026-08-21)
+
+**Hypothesis under test:** whether the WiLI numbers can be measured here at all.
+No WiLI tooling existed in this repository, and `UNILID/eval.py` reports macro
+precision and recall but **no macro FPR**, which every WiLI table quotes.
+
+`analysis/wili_eval.py` takes its metrics from `analysis/metrics.py`, whose FPR is
+identical to the convention recorded in `analysis/paper_eval.py`:
+`tn = n - tp - fp - fn` with `support = tp + fn` is exactly `n - support - fp`.
+
+**Gated against the published cells, scored from the stored defective model:**
+
+| metric | measured | published |
+|---|---|---|
+| macro F1 | 0.960113 | .960 |
+| accuracy | 0.956502 | 0.9565 |
+| macro FPR | 1.8589e-04 | 1.859e-4 |
+
+All 117,500 lines, 0 empty after preprocess, 0 gold labels outside the model's
+set. **This is the instrument behind the published WiLI numbers**, so measurements
+made with it can be trusted. Had it missed, nothing downstream would have been
+usable and the plan stopped there.
+
+**Artifacts:** `analysis/wili_eval.py`,
+`outputs/rerelease/wili_instrument_gate.json`.
+
+## The WiLI models carry the defect, and where their base vocabularies come from (2026-08-21)
+
+**All three WiLI models carry 0.800000 special-token mass in every row**, so they
+were trained with `sp`. The five WiLI tables need regenerating. This was settled by
+measurement rather than by asking the co-author.
+
+**Base vocabularies split two ways, and conflating them is the main hazard:**
+
+| model | WiLI against GlotLID-C base vocabulary |
+|---|---|
+| `deepseek_v3.2` | **byte-identical**, sha256 `79b4c295...` |
+| `qwen3_8b` | **byte-identical**, sha256 `311d4685...` |
+| `wili_100k_500` | **different**: 24,357 of 100,000 tokens shared |
+
+A model built on an LLM tokenizer carries that tokenizer unchanged across training
+corpora. A model with no supplied tokenizer has its vocabulary trained on the
+corpus, so it is corpus-specific. Author confirmation 2026-08-21: with no base
+tokenizer provided, UniLID trains one on the entire training set with default
+settings, which the code confirms (`train.py:465-492`, HuggingFace UnigramTrainer,
+`--max-base-samples-per-lang` default 10,000, which never binds at 500 lines per
+language).
+
+**The base vocabulary is untouched by the special-token defect**, which lives in
+the per-language path, so extracting a container's vocabulary is exact.
+
 ## Round-grid c sweep: c = -17, and the pre-registration hit exactly (2026-08-19, job 3117581)
 
 **Pre-registered before the run** (`3a9c65c`): grid {-15,-17,-19,-21}, chosen by
