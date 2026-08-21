@@ -1,0 +1,56 @@
+[
+  {
+    "model": "/capstor/scratch/cscs/cmeister747/unilid_analysis/wili_assets/wili_100k_500.unilid",
+    "n_languages": 235,
+    "vocab_size": 100000,
+    "special_columns": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "special_mass_min": 0.7999999759433745,
+    "special_mass_max": 0.7999999759433745,
+    "real_mass_min": 0.1999999760673888,
+    "real_mass_max": 0.20000002582169088,
+    "plateau_min": -15.731252670288086,
+    "plateau_max": -14.137813568115234,
+    "defect_present": true
+  },
+  {
+    "model": "/capstor/scratch/cscs/cmeister747/unilid_analysis/wili_assets/deepseek_v3.2_wili.unilid",
+    "n_languages": 235,
+    "vocab_size": 128819,
+    "special_columns": [
+      128815,
+      128816,
+      128817,
+      128818
+    ],
+    "special_mass_min": 0.7999999759433745,
+    "special_mass_max": 0.7999999759433745,
+    "real_mass_min": 0.1999999733046897,
+    "real_mass_max": 0.20000002498729436,
+    "plateau_min": -23.822946548461914,
+    "plateau_max": -14.51290512084961,
+    "defect_present": true
+  },
+  {
+    "model": "/capstor/scratch/cscs/cmeister747/unilid_analysis/wili_assets/qwen3_8b_wili.unilid",
+    "n_languages": 235,
+    "vocab_size": 151670,
+    "special_columns": [
+      128245,
+      128247,
+      151669,
+      128244
+    ],
+    "special_mass_min": 0.7999999759433745,
+    "special_mass_max": 0.7999999759433745,
+    "real_mass_min": 0.19999998455538845,
+    "real_mass_max": 0.20000002752693216,
+    "plateau_min": -17.581653594970703,
+    "plateau_max": -14.660646438598633,
+    "defect_present": true
+  }
+]

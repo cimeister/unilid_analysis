@@ -114,69 +114,56 @@ trained with EM, they are unaffected and nothing needs redoing. If with `sp`, th
 carry the defect and need correcting. **Ask this first**, because a single answer
 may remove this whole section.
 
-### C1. Exactly what is needed from Ahmetcan for the WiLI tables
+### C1. Checked against github.com/Ahmetcanyvz/UNILID/releases, 2026-08-21
 
-`train.py` already supports WiLI (`--wili-dir DIR`, taking `x_train.txt` and
-`y_train.txt`), so the capability is here and only data is missing. There is no
-WiLI corpus, no WiLI-trained model, and no recorded WiLI run anywhere in this
-repository, on scratch, or on store.
+Two draft releases carry most of it. **Question 0 is answered by measurement
+rather than by asking: all three WiLI models carry 0.800000 special-token mass in
+every row, so they were trained with `sp` and the WiLI tables do need
+regenerating.** (`outputs/rerelease/wili_models_inspect.json`.)
 
-**Question 0, ask before sending anything:** which `--per-lang-counts-method` were
-the WiLI models trained with? If `em`, they carry no defect, nothing below is
-needed, and all five tables stand as published.
+**Present and downloaded.**
 
-If `sp`, then in priority order:
-
-**1. The WiLI-trained `.unilid` model files.** `tab:unilid_llm_comparison` names
-**seven** of them, three of which have no counterpart in the GlotLID-C table and
-so were not on any earlier list:
-
-| model | also in Table 1? |
+| asset | covers |
 |---|---|
-| \unilid (base), the 100k vocabulary | no, WiLI-trained |
-| \unilid-Mistral-Nemo | GlotLID-C version yes |
-| \unilid-Mistral | **no counterpart anywhere here** |
-| \unilid-LLaMA3.2 | **no counterpart anywhere here** |
-| \unilid-LLaMA2 | **no counterpart anywhere here** |
-| \unilid-DeepSeek3.2 | GlotLID-C version yes |
-| \unilid-Qwen3 | GlotLID-C version yes |
+| `wili-2018.zip` | **both** the WiLI test set and the training corpus: 117,500 train and 117,500 test lines, 235 languages, 500 samples per language, matching `tab:noise_robustness`'s stated 117,500 / 235 |
+| `tatoeba.zip` (980 MB) | `tab:tatoeba_udhr_comparison`'s missing half |
+| `wili_100k_500.unilid` | the `\unilid (base)` row: 235 languages, 100k vocabulary, label set identical to WiLI's |
+| `deepseek_v3.2_wili.unilid` | the `\unilid-DeepSeek3.2` WiLI row |
+| `qwen3_8b_wili.unilid` | the `\unilid-Qwen3` WiLI row |
+| `uhdr.zip`, `flores200_dataset.zip` | already held here |
+| `DSL-ML-2024.zip` | not needed; DSL-ML is EM-trained |
 
-`tab:vocab_size_efficiency` needs **four more**, the same base tokenizer at
-vocabulary 10k, 20k, 50k and 200k (the 100k row is the base model above).
+**Missing: 8 of the 11 model files.** All are reproducible here now that the
+training corpus is available, so these are a compute question rather than a
+blocking dependency.
 
-So **eleven `.unilid` files**. With those, correcting and re-evaluating is the
-closed-form transformation plus gate already run four times here, and it needs
-nothing else from him.
+| missing | needed for | to reproduce here |
+|---|---|---|
+| `\unilid-Mistral-Nemo` (WiLI) | `tab:unilid_llm_comparison` | its base tokenizer |
+| `\unilid-Mistral` (WiLI) | same | its base tokenizer |
+| `\unilid-LLaMA3.2` (WiLI) | same | its base tokenizer |
+| `\unilid-LLaMA2` (WiLI) | same | its base tokenizer |
+| vocabulary 10k / 20k / 50k / 200k | `tab:vocab_size_efficiency` | nothing extra; `train.py --vocab-size` builds each base |
 
-**2. The WiLI test set** (`x_test` / `y_test`, 117,500 samples over 235
-languages per `tab:noise_robustness`'s caption). Needed for
-`tab:unilid_llm_comparison`, `tab:noise_robustness` and `tab:length_accuracy`.
-The perturbation for the noise table is applied at evaluation time, so only the
-clean test set is needed.
+**Encouraging on the second defect.** None of the three WiLI models has a row at
+the training floor, so none shows the catastrophic EM-corruption signature. That
+is not conclusive, because the DeepSeek3.2 GlotLID-C model's corruption was milder
+and only the retrain gate caught it, but WiLI corpora are 500 lines per language,
+so the 142,136-byte line that triggered the overflow cannot occur. Each corrected
+WiLI model still gets the retrain gate before use.
 
-**3. The Tatoeba evaluation set**, for `tab:tatoeba_udhr_comparison`. UDHR is
-already here.
+**Remaining asks, now short:**
 
-**4. The WiLI TRAINING corpus** (`x_train.txt` + `y_train.txt`), which is a
-different kind of ask. `tab:samples-accuracy` is not an evaluation but a
-retraining sweep: accuracy at 5, 10, 25, 50, 100, 200, 300 and 400 training
-samples per language, reported as mean plus or minus standard deviation, so it
-needs several runs per point. **Also needed: the seeds and the number of repeats
-behind those standard deviations**, which are not recorded here. Sending the
-corpus would let everything above be regenerated from scratch here, at the cost
-of many training runs.
-
-**Not to be confused with the length analyses that ARE here.**
-`tab:length_accuracy` is accuracy against input length for models trained on
-WiLI. `tab:lenbias-delta` and `tab:lenbias-norm` are the token-count and
-normalization analyses on GlotLID-C, both produced in this repository
-(`outputs/tables/normalized_comparison.md` is the original artifact), and both are
-being regenerated here.
-
-**UDHR and FLORES-200 in Table 1 are NOT in this group.** Those are a different
-test set, not a different training corpus, so the UniLID rows on them are
-GlotLID-C-trained and carry the correction. Both TSVs are already on scratch
-(24,115 and 192,280 lines) and scoring is submitted as jobs 3130020 and 3130021.
+1. **The exact base tokenizers for the Mistral, LLaMA3.2 and LLaMA2 variants**
+   (HuggingFace repo plus snapshot hash, as recorded for Mistral-Nemo). Needed
+   only if those four are retrained here rather than uploaded.
+2. **The seeds and repeat count behind `tab:samples-accuracy`'s mean plus or minus
+   standard deviation.** The sweep is reproducible from the corpus, but the
+   spread cannot be matched without knowing how many runs it averages.
+3. **Whether the eight missing models exist elsewhere.** Uploading them is
+   cheaper than retraining them here.
+4. `datasets_reduced.zip` (5 MB) is in the datasets release and its contents are
+   unidentified; worth one line of explanation in case it matters.
 
 ### C2. Weights to publish so he can run against them
 
