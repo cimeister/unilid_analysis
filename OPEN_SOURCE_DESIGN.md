@@ -353,7 +353,8 @@ Golden gates: section 5, run on the login node via the package's Rust batch path
 - README rewrite: install (submodule + maturin story, spm optional), quick start
   (calibrated default), model download, the calibration trade-off with both numbers
   (GlotLID-C macro F1 .929 -> .957; UDHR .859 -> .838 on parallel equal-support
-  data), base-flag documentation, add-your-own-language guide, eval conventions
+  data; the corrected generation published 2026-08-24 reads .933 -> .956 and
+  .856 -> .842, and the package docs now carry those), base-flag documentation, add-your-own-language guide, eval conventions
   copied from the paper's stated definitions. [R1] The README and model card must
   both state the migration consequence explicitly: the new package default
   (calibrated=True) raises on the existing v1 polybox file (users either download

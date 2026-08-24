@@ -2015,3 +2015,61 @@ non-binding recorded constants for non-default models; a cross-model bug fixed
 in the eval stage's language-list load); selfcheck 46/46; released-tree replay
 byte-identical except the git-commit provenance line. Corrected cells recorded
 in EXPERIMENTS_RESULTS; B4 handed to the paper agent.
+
+2026-08-24, corrected release SHIPPED. PR #3 merged upstream 19:24:32Z (merge
+commit a47d4f5, tree identical to PR head 2d5f62d), so the package carries 0.3.0
+before any weight was published. Annotated tag v0.3.0 created on a47d4f5 and
+pushed to Ahmetcanyvz/UNILID. Because #3 was already merged, the load-time
+generation report went to a NEW branch `generation-report` off a47d4f5, commit
+6006095 (README, REPRODUCING, eval.py, tests/test_special_token_mass.py,
+unilid/model_io.py; 119 tests pass on the committed tree alone), opened as PR #4.
+The --max-sentence-length training-path changes (train.py, unilid/constants.py,
+trainers/language_specific_trainer.py) were deliberately left uncommitted and
+verified byte-identical to patches/unilid_max_sentence_length.patch after a
+stash round-trip.
+
+Doc numbers moved to the corrected generation in UNILID/README.md and
+UNILID/REPRODUCING.md: c = -21 -> -17, macro F1 0.929/0.957 -> 0.933/0.956, UDHR
+0.859/0.838 -> 0.856/0.842, CommonLID 0.845/0.860 -> 0.848/0.862 and 0.723/0.715
+-> 0.722/0.717, out-of-set lines 32,901 -> 25,884 becomes 32,525 -> 25,994. Two
+REPRODUCING claims were rewritten rather than substituted (the constant no longer
+lowers every row; the "released file is unchanged" sentence has no referent). Two
+further stale claims were caught during the sweep and are NOT in the drafted
+diff: README's add-language and container sections said "the released model"
+holds 0.2 real-token mass, which the overwrite makes false, so both now name the
+2026-08-11 release by date; and "The original release's uncalibrated behavior is
+one flag away" became "Base (uncalibrated) inference is one flag away", since
+calibrated=False on the overwritten file no longer reproduces the 2026-08-11
+model.
+
+Published numbers re-measured directly on the store file before publishing, not
+carried from the readiness pass: at c = -17 the clamp modifies 1,655 of 1,940
+rows and leaves 285; with the special columns NOT excluded (the 0.2.1 path) it
+modifies 0 of 1,940; real-token mass 1.000000 on every row; real-column row
+minima -18.3292 to -11.6063, median -16.0486. The calibration JSON's constants
+block reads unseen_token_constant -17.0, head_n 18000, replacement_min_n 100000,
+proximity_bound 21.0, min_calib_lines 200. The 1,807-changed-predictions figure
+in the model card was traced to its source (pr3_body_v2.md) and is base mode on
+the 250,000-line golden subset, 699 gold-correct gained and 669 lost, accuracy
+0.9603 -> 0.9604; the card now says base mode.
+
+Hub upload: one atomic commit e0a524ed on cmeister/unilid-1940 overwriting
+unilid-1940-calibrated.unilid and calibration.json in place and replacing the
+model card, per the author's 2026-08-24 decision. Dry run first, then --confirm.
+All three verified after upload by downloading and hashing: 135404c8..., 1ef3063b...,
+and the card byte-identical to MODEL_CARD_final.md. Prior revision 8d4044d2
+confirmed still to list the 2026-08-11 file (61d7f5fe...), and the model card
+names that revision as the route to the superseded weights. The corrected
+UNcalibrated version-1 model was NOT uploaded: the 2026-08-17 decision called for
+it but the 2026-08-24 decision named three files, so it is deferred and flagged,
+not cancelled.
+
+Polybox sweep: the only actual link lived at UNILID/README.md:74. Removed with
+its table row, and the "Both files contain the same trained model" sentence
+repaired. Textual mentions cleared at UNILID/README.md:122,
+UNILID/REPRODUCING.md:11 and :110, and OPEN_SOURCE_STATUS.md:39. Left in place as
+records of past state, by their own headers: OPEN_SOURCE_DESIGN.md:359 ("Written
+2026-08-10 ... IMPLEMENTED AND SHIPPED"), OPEN_SOURCE_HANDOFF.md:32 and :51
+("SUPERSEDED 2026-08-11 ... Kept for the original spec and provenance"),
+RERELEASE_PLAN.md:18 and :331, EXPERIMENTS_PLAN.md:930 and :982,
+EXPERIMENTS_CHRONOLOGICAL.md:1575.

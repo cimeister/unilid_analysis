@@ -1,8 +1,9 @@
 # Session Status
 
-Snapshot, 2026-08-23. Two workstreams run in parallel: correcting and
+Snapshot, 2026-08-24. Two workstreams run in parallel: correcting and
 regenerating the GlotLID-C numbers, and regenerating the WiLI-trained models.
-The open-source package fix is done and sits in PR #3.
+The corrected open-source release SHIPPED 2026-08-24 (see the readiness section
+at the bottom, now a shipped record).
 
 ## Read these first
 
@@ -150,9 +151,50 @@ remainder.
   carrying them must be a stated choice.
 - Whether the Apertus 200k and 131k variants are published; whether the package
   offers a migration for pre-0.3.0 models.
+- ~~Corrected-weight filenames on the Hub~~ SETTLED 2026-08-24 (author):
+  overwrite `unilid-1940-calibrated.unilid` and `calibration.json` in place.
+  Shipped; see the release record at the bottom.
+- **Publish the corrected UNcalibrated (version-1) model?** The 2026-08-17
+  decision said yes, the 2026-08-24 decision named three files and it was not
+  uploaded. `glotlidc_corrected.unilid` (31c3d956db7b00c9...) is in the store,
+  ready. Until it ships, the package docs offer no version-1 download; base
+  numbers come from `calibrated=False` on the calibrated file.
 - `commonlid_calibrated.py` asserts old-model reproduction and needs the
   carried npz regenerated first (`commonlid_carried` corrected run not yet
   done) -- the one remaining unparametrized corrected-chain piece.
+
+## Corrected release: SHIPPED 2026-08-24
+
+All three readiness blockers cleared, then published. Full record in
+`OPEN_SOURCE_STATUS.md` section "Re-release of the corrected weights: SHIPPED
+2026-08-24" and in `EXPERIMENTS_CHRONOLOGICAL.md` (last entry).
+
+- **Weights**: huggingface.co/cmeister/unilid-1940, commit `e0a524ed`, one
+  atomic commit. `unilid-1940-calibrated.unilid` (135404c834e9e074...) and
+  `calibration.json` (1ef3063b9f9a2a04...) overwritten IN PLACE, model card
+  replaced. All three verified post-upload by download and hash. Prior revision
+  `8d4044d2` still lists the 2026-08-11 file (61d7f5fe...) and the model card
+  names it as the route to the superseded weights.
+- **Package**: PR #3 merged upstream 2026-08-24T19:24Z, merge commit a47d4f5.
+  Annotated tag **v0.3.0** on a47d4f5, pushed to Ahmetcanyvz/UNILID.
+- **PR #4 OPEN**: https://github.com/Ahmetcanyvz/UNILID/pull/4, commit 6006095
+  on branch `generation-report` off a47d4f5. Carries the load-time real-token-mass
+  report and the corrected doc numbers. 119 tests pass. Not in v0.3.0; if the
+  tag should include it, v0.3.1 on the merge commit is the clean move.
+- **Uncommitted on purpose**: the `--max-sentence-length` changes (train.py,
+  unilid/constants.py, trainers/language_specific_trainer.py) are still in the
+  UNILID/ working tree, verified byte-identical to
+  `patches/unilid_max_sentence_length.patch`.
+- **The 0.2.1 no-op hazard**: a pre-0.3.0 loader modifies **0 of 1,940 rows**
+  where 0.3.0 modifies 1,655, and prints a success line either way. Mitigated by
+  merging and tagging 0.3.0 before the upload and by the model card leading with
+  "requires UNILID 0.3.0 or later" plus the 0-of-1,940 measurement.
+- **Re-measured before publishing, not carried**: 1,655 of 1,940 rows clamped at
+  c = -17 (285 untouched), 0 of 1,940 on the 0.2.1 path, real-token mass
+  1.000000 every row, real-column row minima -18.3292 to -11.6063 median
+  -16.0486.
+- STILL SCRATCH-ONLY and purge-exposed: `full_test_eval_corrected/` (690 MB),
+  the reference arrays both corrected gates are measured against.
 
 ## Known damage, recorded
 
@@ -176,5 +218,10 @@ Noise table removed; fastText carried; PD-2 three tables corrected (gated
 instrument); PD-3/PD-5 leave carried (CLD-subset instrument absent); PD-4
 lenbias-delta on the golden subset (B9 run pending); PD-6 pair breakdown
 applied; PD-7 sampled rows left; PD-9 LLaMA3.2 confirmed. Commit authorized
-"if appropriate". Open-source readiness assessment of the corrected calibrated
-bundle in progress.
+"if appropriate".
+
+Release decisions, same day, verbatim: PR #3 merges within the day; overwrite
+`unilid-1940-calibrated.unilid` in place; upload authorized; add the new model to
+PR #3 if unmerged, otherwise open a new PR; add a git tag; remove the polybox
+link from the README and anywhere else it appears. All executed 2026-08-24; PR #3
+was already merged, so the package change went to PR #4.

@@ -9,7 +9,8 @@ claims were corrected during execution, see "Corrections" below).
 
 ## State: SHIPPED. The calibrated release is merged into the upstream repo.
 
-- **Upstream**: github.com/Ahmetcanyvz/UNILID, branch `release`, tip 3867b1b.
+- **Upstream**: github.com/Ahmetcanyvz/UNILID, branch `release`, tip a47d4f5,
+  tagged **v0.3.0** (annotated, pushed 2026-08-24).
   - PR #1 (core release: calibrated inference default-on, v2 container,
     add-language, tests, README, proposed LICENSE) merged by Ahmetcanyvz
     2026-08-11T10:02Z, comment "lgtm!", merge commit e34f4d8. **The Apache-2.0
@@ -36,10 +37,12 @@ claims were corrected during execution, see "Corrections" below).
   `unilid-1940-calibrated.unilid` (779,663,390 bytes, version-2 container),
   `calibration.json` (160,363 bytes, identical to the bundled section),
   model-card README (license apache-2.0 + notices; install pointer updated
-  post-merge). Polybox stays as the mirror for the version-1 base file.
-- **Package**: version 0.2.1, Python >= 3.9. Test suite: 104 passing
+  post-merge). **Superseded 2026-08-24**: both files were overwritten in place
+  by the corrected generation, see "Re-release of the corrected weights" below.
+  The polybox mirror is retired and its link is gone from the package docs.
+- **Package**: version 0.3.0, Python >= 3.9. Test suite: 119 passing
   (unit + real-trainer integration + lazy-import + subsetting + doctor +
-  SentencePiece-path coverage).
+  SentencePiece-path + special-token-mass coverage).
 
 ## Setup-feedback follow-up (2026-08-15, on the fork branch, not yet upstream)
 
@@ -157,18 +160,73 @@ This is the reason `analysis/floor_equalization.py` no longer detects special
 columns by looking for the 0.2 probability: that detector cannot work on a
 corrected model, where the specials hold no mass at all.
 
-### Re-release of the corrected weights
+### Re-release of the corrected weights: SHIPPED 2026-08-24
 
-The four stored models are corrected and gated; the corrected calibrated and
-uncalibrated models both go to the Hub and the polybox mirror of the original
-uncalibrated model is retired (author decision 2026-08-17). Note for the model
-card and for any reader of a `.unilid` file: **the container cannot distinguish a
-corrected file from an uncorrected one.** The header encodes only version 1
-against 2, and `FORMAT_VERSION_MAX = 2` means every already-published reader
-rejects a version-3 file, so a version bump is not free. The agreed substitute is
-a load-time report of each row's real-token mass, which is 0.2 for a pre-0.3.0
-file and 1.0 for a corrected one, and needs no format change. Full plan:
-`RERELEASE_PLAN.md`.
+**What is published.** huggingface.co/cmeister/unilid-1940, commit
+`e0a524ed9e47dd295702de823f636bd5107415b0`, one atomic commit carrying three
+files, each sha256-verified after upload by download:
+
+| repo path | source | sha256 |
+|---|---|---|
+| `unilid-1940-calibrated.unilid` | store `corrected/glotlidc_corrected_calibrated.unilid` (779,663,677 B) | `135404c834e9e07435b99551c1c3a570cf3b2ac94cff6c26691e90796381dc91` |
+| `calibration.json` | store `corrected/release/calibration_glotlidc_corrected.json` (160,650 B) | `1ef3063b9f9a2a04d2997b8c762d035cf52a33dbc613ccf57567c5f81638b174` |
+| `README.md` (model card) | session scratchpad `MODEL_CARD_final.md` | `4cb583e48fe7624448d7faa89024e6ec1f69d7f6608c3d3e691251c5b903d58f` |
+
+**Author decision trail.** 2026-08-17: publish the corrected calibrated and
+uncalibrated models to the Hub and retire the polybox mirror. 2026-08-24:
+**overwrite `unilid-1940-calibrated.unilid` in place** rather than publish under
+new names, upload authorized, add a git tag, remove the polybox link from the
+README and everywhere else it appears.
+
+**Deferred, not cancelled.** The corrected *uncalibrated* (version-1) model was
+NOT uploaded. The 2026-08-17 decision called for it; the 2026-08-24 decision
+named three files, and the repo has never carried a version-1 file, so
+publishing one would have added a public artifact the author did not name that
+day. `glotlidc_corrected.unilid` (sha256 `31c3d956db7b00c9...`) is in the store,
+ready. The package README's download table now lists the one Hub file, and
+REPRODUCING says base numbers come from `calibrated=False` on it.
+
+**The 0.2.1 no-op hazard, and its mitigation.** A pre-0.3.0 loader takes each
+row's minimum over the whole row. In a corrected file the special tokens sit at
+the training floor, log(1e-12), below every real token, so the minimum finds
+them, the unseen-token plateau is never located, and the clamp does nothing
+while printing a line that reports it as applied. Measured on the published
+file: **0.2.1 modifies 0 of 1,940 rows, 0.3.0 modifies 1,655** (285 left as
+trained). Mitigations, all in place: 0.3.0 is merged upstream (a47d4f5) and
+tagged v0.3.0 before the upload; the model card leads with "requires UNILID
+0.3.0 or later" and carries the 0-of-1,940 measurement; `_special_columns`
+excludes the specials from the minimum and is present in the tagged commit.
+
+**The container still cannot distinguish the generations.** The header encodes
+only version 1 against 2, and `FORMAT_VERSION_MAX = 2` means every published
+reader rejects a version-3 file, so a version bump is not free. The substitute
+is the load-time report of each row's real-token mass, 0.2 for a pre-0.3.0 sp
+file and 1.0 for a corrected one. It is implemented (`real_token_mass` and
+`special_columns_of` in `unilid/model_io.py`, `eval.py` printing to stderr) and
+sits in **PR #4**, https://github.com/Ahmetcanyvz/UNILID/pull/4, commit 6006095,
+NOT yet merged. Until it merges, the self-check in the model card is the manual
+route. The special columns are located by token string, not position, because a
+base tokenizer converted from an LLM's holds them at non-contiguous high indices
+(qwen3_8b: columns 128,244/128,245/128,247/151,669).
+
+**Because the overwrite reuses the filename**, a copy downloaded before
+2026-08-24 has the same name and different contents. The model card states this
+and names revision `8d4044d2b69429e16ce256bde6acfa0c02e68203`, verified still to
+list the 2026-08-11 file (sha256 `61d7f5fe86422112a336c2cba4fa834faa896255156e44b83e89bb45c586bd72`),
+as the route to the superseded weights.
+
+**Two generations, two reference sets, not comparable.** Gates for the released
+generation are `outputs/release/gate_*.json` against references recorded from
+the 2026-08-11 weights; gates for the corrected generation are
+`outputs_corrected_round/release/gate_*_corrected.json` against
+`full_test_eval_corrected/`. c is **-17** for the corrected calibration and -21
+for the released one: the constant is an absolute target and the correction
+raised every real token by 1.6094 nats, so the two values are not directly
+comparable. Both corrected gates were re-run after the load-path change and
+passed at exact equality, 250,000/250,000 in base mode and 250,000/250,000 in
+calibrated mode with zero disagreements
+(`gate_*_corrected_postmassreport.json`). Minimum package version for these
+weights: **0.3.0**. Full plan: `RERELEASE_PLAN.md`.
 
 ### Found, not fixed (out of scope, flagged for a later decision)
 
