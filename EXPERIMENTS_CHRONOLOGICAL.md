@@ -2073,3 +2073,38 @@ records of past state, by their own headers: OPEN_SOURCE_DESIGN.md:359 ("Written
 ("SUPERSEDED 2026-08-11 ... Kept for the original spec and provenance"),
 RERELEASE_PLAN.md:18 and :331, EXPERIMENTS_PLAN.md:930 and :982,
 EXPERIMENTS_CHRONOLOGICAL.md:1575.
+
+2026-08-24, uncalibrated model published and the training-path flag sent
+upstream. Hub commit d2af7950 on cmeister/unilid-1940 adds unilid-1940.unilid
+(sha256 31c3d956..., 779,503,019 B) and the model card update in one atomic
+create_commit; the deferred decision from earlier the same day is now executed.
+Verified before upload and by forced re-download; the card round-trips
+byte-identical (6bf61b74...). The name was not prescribed anywhere, so
+unilid-1940.unilid follows the author's stated default over the considered
+alternative unilid-1940-base.unilid. Measured rather than assumed: both .unilid
+files give sha256(W.tobytes()) = a4aeff19... and sha256(langs) = 00ad6a35...,
+and a4aeff19... is the base_weight_matrix_sha256 recorded in the bundled
+calibration artifact, whose provenance names corrected/glotlidc_corrected.unilid
+as its source. Only the container version differs.
+
+UNILID PR #5 opened against Ahmetcanyvz/UNILID release
+(https://github.com/Ahmetcanyvz/UNILID/pull/5), branch max-sentence-length off
+a47d4f5, commit 795e5db: the three --max-sentence-length files only, no PR #4
+content. Worktree diff was byte-identical to
+patches/unilid_max_sentence_length.patch before and after; the commit was made
+in a temporary git worktree so the outer UNILID checkout still carries the three
+modified files for the still-pending cap-arm job 3173500 (verified after the
+push). 111 tests pass on the PR branch, 119 on the generation-report tree.
+Scope check while writing the PR: the two base-training spm_train calls in
+unilid/trainers/em_loop.py (seed vocabulary at line 659, base EM at line 720)
+pass no --max_sentence_length at all, so the BASE step has always run at
+sentencepiece's 4192 default while the per-language step ran at 1,000,000. The
+cap-4192 arm therefore varies only the per-language step. Facts in the PR text
+verified against the vendored source at sp_fp32_build/src/src:
+trainer_interface.cc:76 CHECK_RANGE(10, 1073741824), :380-389 skip-and-continue,
+sentencepiece_model.proto:114 [default = 4192].
+
+Docs: UNILID/README.md download table gains a unilid-1940 row plus a wget line
+(URL verified 302 -> 200), and UNILID/REPRODUCING.md's base-mode bullet names
+unilid-1940.unilid. Both went to PR #4's branch (commit cf9f44c) rather than
+PR #5, since PR #4 is the docs-and-weights branch.

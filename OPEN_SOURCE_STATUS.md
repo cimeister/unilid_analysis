@@ -162,15 +162,21 @@ corrected model, where the specials hold no mass at all.
 
 ### Re-release of the corrected weights: SHIPPED 2026-08-24
 
-**What is published.** huggingface.co/cmeister/unilid-1940, commit
-`e0a524ed9e47dd295702de823f636bd5107415b0`, one atomic commit carrying three
-files, each sha256-verified after upload by download:
+**What is published.** huggingface.co/cmeister/unilid-1940, in two atomic
+commits, both 2026-08-24: `e0a524ed9e47dd295702de823f636bd5107415b0` (calibrated
+file, calibration artifact, model card) and
+`d2af79507f8cb9a55ad77ba74583a9324352f1dc` (uncalibrated file plus the card
+update). Every file sha256-verified after upload by download:
 
 | repo path | source | sha256 |
 |---|---|---|
 | `unilid-1940-calibrated.unilid` | store `corrected/glotlidc_corrected_calibrated.unilid` (779,663,677 B) | `135404c834e9e07435b99551c1c3a570cf3b2ac94cff6c26691e90796381dc91` |
+| `unilid-1940.unilid` | store `corrected/glotlidc_corrected.unilid` (779,503,019 B) | `31c3d956db7b00c939c4985c86a82a8e8d1af963f8cf3921cebaab257d0d74fd` |
 | `calibration.json` | store `corrected/release/calibration_glotlidc_corrected.json` (160,650 B) | `1ef3063b9f9a2a04d2997b8c762d035cf52a33dbc613ccf57567c5f81638b174` |
-| `README.md` (model card) | session scratchpad `MODEL_CARD_final.md` | `4cb583e48fe7624448d7faa89024e6ec1f69d7f6608c3d3e691251c5b903d58f` |
+| `README.md` (model card, as of `d2af7950`) | session scratchpad `card_new.md` | `6bf61b74f48628180f25e84af766170574db06716d49272280d2f6c096d39530` |
+
+The card at commit `e0a524ed`, before the uncalibrated file was added, was
+`4cb583e48fe7624448d7faa89024e6ec1f69d7f6608c3d3e691251c5b903d58f`.
 
 **Author decision trail.** 2026-08-17: publish the corrected calibrated and
 uncalibrated models to the Hub and retire the polybox mirror. 2026-08-24:
@@ -178,13 +184,31 @@ uncalibrated models to the Hub and retire the polybox mirror. 2026-08-24:
 new names, upload authorized, add a git tag, remove the polybox link from the
 README and everywhere else it appears.
 
-**Deferred, not cancelled.** The corrected *uncalibrated* (version-1) model was
-NOT uploaded. The 2026-08-17 decision called for it; the 2026-08-24 decision
-named three files, and the repo has never carried a version-1 file, so
-publishing one would have added a public artifact the author did not name that
-day. `glotlidc_corrected.unilid` (sha256 `31c3d956db7b00c9...`) is in the store,
-ready. The package README's download table now lists the one Hub file, and
-REPRODUCING says base numbers come from `calibrated=False` on it.
+**The uncalibrated file: deferred earlier on 2026-08-24, EXECUTED 2026-08-24.**
+The author authorized the upload the same day, and `glotlidc_corrected.unilid`
+went up as `unilid-1940.unilid` in Hub commit `d2af7950`, atomically with the
+model card update. sha256 `31c3d956db7b00c939c4985c86a82a8e8d1af963f8cf3921cebaab257d0d74fd`
+verified before the upload and again by a fresh forced re-download.
+
+The filename was not prescribed anywhere. RERELEASE_PLAN decision 4 and section 6
+say only that the Hub carries both models. `unilid-1940.unilid` follows the
+author's stated default; `unilid-1940-base.unilid` was the alternative considered,
+parallel to `unilid-1940-calibrated.unilid`. Renaming is cheap until someone
+depends on the name.
+
+The two `.unilid` files hold the same weights, measured, not assumed: sha256 of
+the float32 weight matrix is
+`a4aeff199464032c223ae7c77eaa6f128307180f6758e28b1f8e8cd7c985662e` in both and
+sha256 of the language list is
+`00ad6a35b85c3b0b3816598c86534075cdc57f34e50d7e99bc7c74a379e53e19` in both. The
+first also equals `base_weight_matrix_sha256` in the bundled calibration
+artifact, whose provenance block names `corrected/glotlidc_corrected.unilid` as
+its source model. Only the container version differs (1 against 2).
+
+Package docs updated to match, on PR #4's branch (`generation-report`, commit
+`cf9f44c`): README's download table and wget block list both files, and
+REPRODUCING's "or use a version-1 `.unilid` file" now names the download it
+never had.
 
 **The 0.2.1 no-op hazard, and its mitigation.** A pre-0.3.0 loader takes each
 row's minimum over the whole row. In a corrected file the special tokens sit at

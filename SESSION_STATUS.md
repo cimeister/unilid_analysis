@@ -154,11 +154,11 @@ remainder.
 - ~~Corrected-weight filenames on the Hub~~ SETTLED 2026-08-24 (author):
   overwrite `unilid-1940-calibrated.unilid` and `calibration.json` in place.
   Shipped; see the release record at the bottom.
-- **Publish the corrected UNcalibrated (version-1) model?** The 2026-08-17
-  decision said yes, the 2026-08-24 decision named three files and it was not
-  uploaded. `glotlidc_corrected.unilid` (31c3d956db7b00c9...) is in the store,
-  ready. Until it ships, the package docs offer no version-1 download; base
-  numbers come from `calibrated=False` on the calibrated file.
+- ~~Publish the corrected UNcalibrated (version-1) model?~~ SHIPPED 2026-08-24
+  (author authorized): `unilid-1940.unilid` in Hub commit `d2af7950`, atomic with
+  the card update. The docs now name a version-1 download (PR #4, `cf9f44c`).
+  Open only if the filename should be `unilid-1940-base.unilid` instead; nothing
+  depends on the current name yet.
 - `commonlid_calibrated.py` asserts old-model reproduction and needs the
   carried npz regenerated first (`commonlid_carried` corrected run not yet
   done) -- the one remaining unparametrized corrected-chain piece.
@@ -177,14 +177,17 @@ All three readiness blockers cleared, then published. Full record in
   names it as the route to the superseded weights.
 - **Package**: PR #3 merged upstream 2026-08-24T19:24Z, merge commit a47d4f5.
   Annotated tag **v0.3.0** on a47d4f5, pushed to Ahmetcanyvz/UNILID.
-- **PR #4 OPEN**: https://github.com/Ahmetcanyvz/UNILID/pull/4, commit 6006095
-  on branch `generation-report` off a47d4f5. Carries the load-time real-token-mass
-  report and the corrected doc numbers. 119 tests pass. Not in v0.3.0; if the
-  tag should include it, v0.3.1 on the merge commit is the clean move.
-- **Uncommitted on purpose**: the `--max-sentence-length` changes (train.py,
-  unilid/constants.py, trainers/language_specific_trainer.py) are still in the
-  UNILID/ working tree, verified byte-identical to
-  `patches/unilid_max_sentence_length.patch`.
+- **PR #4 OPEN**: https://github.com/Ahmetcanyvz/UNILID/pull/4, now at commit
+  `cf9f44c` on branch `generation-report` off a47d4f5. Carries the load-time
+  real-token-mass report, the corrected doc numbers, and (2026-08-24) the
+  download entries for `unilid-1940.unilid`. 119 tests pass. Not in v0.3.0; if
+  the tag should include it, v0.3.1 on the merge commit is the clean move.
+- **PR #5 OPEN**: https://github.com/Ahmetcanyvz/UNILID/pull/5, commit `795e5db`
+  on branch `max-sentence-length` off a47d4f5, base `release`. The three
+  `--max-sentence-length` files only, no PR #4 content. 111 tests pass on the
+  branch. Committed from a temporary worktree, so the UNILID/ working tree still
+  carries the three modified files for the pending cap-arm job 3173500, still
+  byte-identical to `patches/unilid_max_sentence_length.patch`.
 - **The 0.2.1 no-op hazard**: a pre-0.3.0 loader modifies **0 of 1,940 rows**
   where 0.3.0 modifies 1,655, and prints a success line either way. Mitigated by
   merging and tagging 0.3.0 before the upload and by the model card leading with
