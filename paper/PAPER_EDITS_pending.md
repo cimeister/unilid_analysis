@@ -3,6 +3,15 @@
 Concrete edit list. Each row names the site, the current text, and either the new
 value or the run it waits on. Line numbers are `paper/submission.tex`.
 
+**Line numbers in entries A2.1 through A2.12 are pre-removal.** A2.13 deleted 15
+lines, so every site after the deletion has moved up. Measured anchors for the
+appendix sites quoted in earlier entries: `:1247` is now `:1232`, `:1253` is now
+`:1238`, `:1261` is now `:1246`, `:1298` is now `:1283`, the Mistral-Nemo transfer
+paragraph starting at `:1391` now starts at `:1376`, and the remaining-errors
+paragraph at `:1409` now starts at `:1394`. Sites before `:1182` are unmoved.
+Every edit in this file was matched on its text rather than on a line number, so
+the numbers are navigation aids, not addresses.
+
 No disclosure of selection history is included: the preprint is unreleased, so
 the paper states the procedure and the constant it selected.
 
@@ -11,256 +20,745 @@ the paper states the procedure and the constant it selected.
 clamp counts and selection both hit exactly). 1,655 of 1,940 rows are clamped and
 285 already lie below it.
 
+Status vocabulary used below: APPLIED (in the working tree, wrapped in
+`\corrrev{}`), IN-PROGRESS (a named run or agent is producing the number now),
+BLOCKED (a named run has to happen first), PENDING-DECISION (the number or the
+framing needs the author).
+
+---
+
+## A2. APPLIED 2026-08-24 (this round), working tree
+
+Every cell and every prose span below is wrapped in `\corrrev{}`. Sources:
+`outputs/rerelease/wave_2026-08-24_compilation.md` (WiLI wave, 14 SLURM jobs, all
+`COMPLETED 0:0`), `outputs/rerelease/corrected_chain_2026-08-24.md` (GlotLID-C
+chain), and the per-run JSON under `outputs/rerelease/` and the `.tex`/`.md`
+fragments under `outputs_corrected_round/tables/`. Every cell was read back from
+the JSON or fragment rather than from a summary. Brace balance re-checked per
+file after editing: every edited file balances, and `submission.tex` keeps its
+pre-existing delta of 1 (line 542, unchanged by this round).
+
+### A2.1 `tab:unilid_llm_comparison` (`paper/tables/unilid_llm_comparison.tex`)
+
+All seven \unilid rows moved to the retrained models. fastText row untouched.
+Source JSON: `outputs/rerelease/wili_eval_<model>_fp64.json`, 117,500 WiLI test
+lines each.
+
+| row | F1 old -> new | FPR old -> new | model |
+|---|---|---|---|
+| `\unilid (base)` | 0.960 -> 0.960 | 1.859e-4 -> **1.863e-4** | `wili_100k_500_fp64` (0.9600884 / 1.862884e-4) |
+| `\unilid-Mistral-Nemo` | 0.958 -> **0.959** | 1.925e-4 -> **1.894e-4** | `mistralnemo_wili_fp64` (0.9588978 / 1.893799e-4) |
+| `\unilid-Mistral` | 0.921 -> **0.920** | 3.365e-4 -> **3.380e-4** | `mistral7b_v02_wili_fp64` (0.9202152 / 3.379524e-4) |
+| `\unilid-LLaMA3.2` | 0.954 -> 0.954 | 2.084e-4 -> **2.081e-4** | `llama32_1b_wili_fp64` (0.9543169 / 2.081469e-4) |
+| `\unilid-LLaMA2` | 0.911 -> **0.910** | 3.698e-4 -> **3.733e-4** | `llama2_7b_wili_fp64` (0.9096351 / 3.732679e-4) |
+| `\unilid-DeepSeek3.2` | 0.955 -> 0.955 | 2.042e-4 -> **2.048e-4** | `deepseek_v3.2_wili_fp64` (0.9551710 / 2.048372e-4) |
+| `\unilid-Qwen3` | 0.949 -> **0.948** | 2.310e-4 -> **2.341e-4** | `qwen3_8b_wili_fp64` (0.9481253 / 2.341153e-4) |
+
+Bolding unchanged: the base row is still the best F1 and the best FPR in the
+table (0.960 against 0.959; 1.863e-4 against 1.894e-4).
+
+**Caption**, one added sentence pair, the minimal accurate statement:
+"For \unilid-Mistral and \unilid-LLaMA2 we could not confirm which repository the
+original variant's base tokenizer came from. From the base vocabulary of each we
+dropped the entries that contain a carriage return, 51 and 24 respectively,
+because the SentencePiece seed-vocabulary writer does not accept them."
+
+Not put in the caption, and not put in an appendix note either: that all seven
+rows are models trained in this round. Every number in the paper is a measurement
+of the authors' own models, so saying it for one table would read as a
+distinction that does not exist. The two facts a reader cannot reconstruct are
+the unconfirmed repository and the dropped entries, and those are stated.
+Counts and vocabulary sizes: 51 dropped / 31,950 entries (Mistral,
+`wili_mistral7b_v02_base_convert.json`), 24 dropped / 31,977 entries (LLaMA2,
+`wili_llama2_7b_base_convert.json`); both records carry
+`identity_rebuild_byte_identical: true` and `refused_entries_remaining: 0`.
+
+### A2.2 `tab:length_accuracy` (`paper/tables/length_accuracy.tex`)
+
+\unilid column only, from `outputs/rerelease/wili_length_accuracy_wili_100k_500_fp64.json`
+(retrained 100k). Sample counts unchanged, and they still reproduce the published
+column exactly (7,845 / 26,652 / 31,449 / 29,494 / 18,142 / 3,918 / 117,500).
+
+| bucket | old -> new |
+|---|---|
+| 101--150 | 93.10 -> **93.04** |
+| 151--200 | 94.17 -> **94.11** |
+| 201--300 | 95.86 -> **95.83** |
+| 301--500 | 96.78 -> **96.79** |
+| 501--1000 | 96.53 -> **96.60** |
+| 1000+ | 96.53 -> **96.61** |
+| Overall | 95.65 -> **95.64** |
+
+Bolding unchanged: \unilid is still above \fasttext in every row, by 0.31 pp at
+the narrowest (1000+: 96.61 against 96.30).
+
+### A2.3 `tab:tatoeba_udhr_comparison` (`paper/tables/tatoeba_udhr_comparison.tex`)
+
+\unilid row only. Tatoeba from `wili_tatoeba_wili_100k_500_fp64.json`
+(0.4199704 / 9.230050e-4, 201 languages, 11,848,300 rows); UDHR from
+`wili_udhr_wili_100k_500_fp64.json` (0.8659475 / 5.860380e-4, 142 languages,
+10,027 rows).
+
+| cell | old -> new |
+|---|---|
+| Tatoeba F1 | 0.414 -> **0.420** |
+| Tatoeba FPR | 9.61e-4 -> **9.23e-4** |
+| UDHR F1 | 0.868 -> **0.866** |
+| UDHR FPR | 5.88e-4 -> **5.86e-4** |
+
+Language counts in the column headers (201, 142) are unchanged and were
+re-confirmed against both JSONs.
+
+### A2.4 `tab:vocab_size_efficiency` (`paper/tables/vocab_size_efficiency.tex`)
+
+F1 and FPR for all five sizes, from
+`outputs/rerelease/wili_eval_wili_<size>_defaults_fp64.json`.
+
+| vocab | F1 old -> new | FPR old -> new |
+|---|---|---|
+| 10k | 0.945 -> **0.944** | 2.514e-4 -> **2.556e-4** |
+| 20k | 0.951 -> **0.950** | 2.278e-4 -> **2.303e-4** |
+| 50k | 0.957 -> 0.957 | 2.019e-4 -> **2.015e-4** |
+| 100k | 0.960 -> 0.960 | 1.859e-4 -> **1.863e-4** |
+| 200k | 0.9606 -> 0.9606 | 1.8382e-4 -> **1.8418e-4** |
+
+Latency and Samples/s: left as published, with a caption sentence saying so.
+They cannot be regenerated here: `analysis/wili_eval.py` writes no timing field
+and no throughput harness was run in this wave.
+
+**Caption**, added: "Macro F1 and macro FPR come from base tokenizers retrained
+for this table; at 100k the retrained vocabulary contains the same 100,000 tokens
+as the published one, in a different order at 132 of the positions. The latency
+and throughput columns are the original measurements and were not re-measured on
+the retrained models."
+
+The 132 is a measurement made for this edit, not a carried claim:
+`wili_vocab_repro_check.json` records only the first divergence (index 18,484)
+and full set overlap, so the ordered token lists of
+`results_wili_100k_defaults_fp64/tokenizers/langspec_base_tokenizer.json` and of
+the stored `wili_assets/wili_100k_500.unilid` base were loaded and compared
+directly: sets equal, 132 of 100,000 positions hold a different token. Consistent
+with this, `wili_eval_wili_100k_defaults_fp64.json` and
+`wili_eval_wili_100k_500_fp64.json` agree to 15 decimal places on macro F1, which
+is what an identical token set predicts, since a per-token log-probability does
+not depend on the token's index.
+
+### A2.5 `tab:calibrated_nemo` (`paper/tables/calibrated_nemo.tex`)
+
+From `outputs_corrected_round/tables/mistralnemo_eval.{md,tex}` (job 3158825,
+five stages, all gates passed; clamp 1,431 of 1,940 at c = -17).
+
+| row | full-pool F1 | Ma-FPR (x1e5) | held-out F1 |
+|---|---|---|---|
+| retrained baseline | 0.913 -> **0.912** | 1.79 -> **1.86** | 0.897 -> **0.895** |
+| + unseen-token constant | 0.940 -> **0.935** | 1.71 -> **1.79** | 0.928 -> **0.923** |
+| + re-examination (calibrated) | 0.954 -> **0.950** | 1.56 -> **1.62** | 0.947 -> **0.944** |
+
+Caption left as it stands: its only quantitative claim, that the retrained
+baseline is within 0.002 macro F1 of the \cref{tab:lid_main} variant row, still
+holds (measured difference -0.0001 against that row's 0.912).
+
+### A2.6 `tab:lid_main` calibrated row, GlotLID-C
+
+`\camrev{\textbf{.957}}` -> `\corrrev{\textbf{.956}}` (corrected 0.9564 against
+the released 0.9569). The FPR cell keeps its `\camrev{\textbf{1.77e-5}}`: the
+corrected value is 1.7745e-5, which prints as the same 1.77e-5, so nothing in
+that span is superseded. Bolding unchanged (still the best F1 in the column).
+The `\unilid` row's GlotLID-C cells already carried `\corrrev{.933}` /
+`\corrrev{2.02e-5}` from the 2026-08-19 round and are exactly this run's
+corrected baseline (0.9327 / 2.0187e-5); re-verified, not re-edited.
+
+### A2.7 `tab:calibrated_heldout` (`paper/tables/calibrated_heldout.tex`)
+
+This is item B3's first half, unblocked by the gate apply. Cell-for-cell from
+`outputs_corrected_round/tables/paper_eval_appendix.tex` and the 4-decimal table
+in `outputs_corrected_round/tables/paper_eval.md`, judge part, 27,002,441 lines.
+
+| cell | old -> new |
+|---|---|
+| \unilid F1 / FPR | 0.912 / 2.04 -> **0.916 / 2.03** |
+| calibrated \unilid F1 / FPR | 0.950 / 1.77 -> **0.949 / 1.78** |
+| \fasttext F1 / FPR | 0.933 / 2.72 -> unchanged (bit-identical input array in both rounds) |
+| bootstrap vs \unilid | +0.038 [+0.033, +0.043] -> **+0.034 [+0.029, +0.038]** |
+| bootstrap vs \fasttext | +0.017 [+0.011, +0.022] -> **+0.016**, interval unchanged |
+
+### A2.8 `tab:lenbias-norm` (`paper/tables/lenbias-norm.tex`)
+
+Item 11 of the 2026-08-19 round, held back then because it was regenerating.
+The regeneration is complete: `outputs_corrected_round/tables/lenbias_norm.{md,json}`,
+250,000 lines (the test half of the seed-42 500,000-line draw, the golden
+subset), Raw rescore reproduces the plain scorer at agreement 1.000000, which is
+the implementation check the table exists to report.
+
+| bucket | N old -> new | Original | Raw rescore | Normalized old -> new |
+|---|---|---|---|---|
+| <30 | 27,328 -> 13,708 | 0.792 -> 0.795 | 0.792 -> 0.795 | 0.566 -> **0.494** |
+| 30--75 | 177,256 -> 88,503 | 0.951 -> 0.951 | 0.951 -> 0.951 | 0.842 -> **0.776** |
+| 75--150 | 195,267 -> 97,861 | 0.978 -> 0.977 | 0.978 -> 0.977 | 0.925 -> **0.883** |
+| 150--300 | 87,096 -> 43,566 | 0.987 -> 0.988 | 0.987 -> 0.988 | 0.966 -> **0.946** |
+| 300+ | 13,053 -> 6,362 | 0.995 -> 0.994 | 0.995 -> 0.994 | 0.991 -> **0.986** |
+| Overall | 500,000 -> 250,000 | 0.960 -> 0.960 | 0.960 -> 0.960 | 0.885 -> **0.837** |
+
+Caption: "Evaluated on a $500k$-sample subset" becomes "Evaluated on the
+$250k$-line test half of a $500k$-line uniform sample"; the two quoted numbers
+follow the table (0.960 to 0.837; <30 chars 0.795 -> 0.494).
+
+### A2.9 Prose in `submission.tex`
+
+| line | old | new |
+|---|---|---|
+| 348 | "from `\corrrev{.933}` to .957" | ".957" -> **`\corrrev{.956}`** |
+| 847 | "from `\corrrev{0.933}` to 0.957" | "0.957" -> **`\corrrev{0.956}`** |
+| 852 | "the paired bootstrap interval of the improvement over \unilid is $+0.038$ with 95\% interval $[+0.033, +0.043]$" | **$+0.034$, $[+0.029, +0.038]$** (matches `tab:calibrated_heldout`) |
+| 974 | "more than doubling the Macro F1 of \fasttext on Tatoeba (0.414 vs. 0.160)" | **0.420**; "more than doubling" still holds (0.420 / 0.160 = 2.6) |
+| 989 | "all are `\camrev{within 0.025 macro F1}` of base UniLID on GlotLID-C" | **`\corrrev{within 0.03 macro F1}`**. The published claim is now false: the corrected base cell is .933 and the lowest variant cell is .904, a gap of 0.029. 0.03 holds under both the current variant cells (.912/.909/.904) and the corrected retrains (0.9119/0.9089/0.9049, gap 0.028), so it survives the B8 decision either way |
+| 1198 | "0.002 higher macro F1 (0.931 against 0.929) and 0.001 higher accuracy at approximately $2\times$ the inference cost" | **"(0.935 against 0.933) and the same accuracy to three decimals, at approximately $1.7\times$ the inference cost"**. Completes 2026-08-19 item 10, whose table edit landed but whose prose did not |
+| 542 (footnote) | "0.002 higher macro F1 and 0.001 higher accuracy ... but took roughly twice as much time" | **"and the same accuracy to three decimals ... roughly 1.7 times as much time"**. Same item 10 |
+| 1397 | "(two languages whose trained unseen-token values already lie below $c = -21$ are left unchanged)" | **"(509 languages whose trained unseen-token values already lie at or below $c = -17$ are left unchanged)"**, from the clamp line of job 3158825: 1,431 of 1,940 clamped, 509 already at or below. Closes item B7 |
+| 1401--1405 | "raises the variant's macro F1 from 0.913 to 0.954 ... $+0.050$ with 95\% interval $[+0.044, +0.057]$ ... ($+0.041$ against $+0.028$ in full-pool macro F1)" | **"from 0.912 to 0.950 ... $+0.0489$ with 95\% interval $[+0.0424, +0.0555]$ ... ($+0.039$ against $+0.024$)"**. The two gains were corrected from $+0.038$ / $+0.023$ to $+0.039$ / $+0.024$ on 2026-08-24, see A2.11 |
+
+The bootstrap interval at 1401--1405 is quoted at four decimals, as
+`mistralnemo_eval.md` reports it, rather than rounded to three. Rounding
++0.0555 to three decimals is a coin flip on the last digit and the source has no
+more precision to settle it; the paper already quotes a four-decimal interval two
+paragraphs earlier ($+0.0002$, $[-0.0003, +0.0006]$), so this is in house style.
+The two full-pool gains are differences computed at full precision and then
+rounded, the same convention as every other derived number in this round:
+0.9504030563 - 0.9118863405 = 0.0385167 -> $+0.039$, and
+0.9564272222 - 0.9327099739 = 0.0237172 -> $+0.024$. My first pass took them as
+differences of the printed three-decimal cells (0.950 - 0.912; 0.956 - 0.933),
+which gives $+0.038$ and $+0.023$; that convention is wrong here. It is
+inconsistent with the bootstrap cells in the same round, which are full-precision,
+and the published $+0.041$ / $+0.028$ are consistent with both conventions, so
+they cannot be cited as evidence for either.
+
+**Prose deliberately left unchanged**, each with the reason:
+
+| line | text | why left |
+|---|---|---|
+| 838 | "reduces FPR by roughly 25\% compared to \fasttext (`\corrrev{2.02e-5}` vs 2.71e-5)" | still true: 1 - 2.0187/2.7063 = 25.4\%. \fasttext's 2.7063e-5 is bit-identical in both rounds |
+| 849 | "lowering macro FPR from `\corrrev{2.02e-5}` to 1.77e-5" | corrected calibrated FPR is 1.7745e-5, which prints as 1.77e-5 |
+| 864--865 | UDHR and FLORES sentence | **updated after all**, see A2.10 |
+| 855--859 | "mean per-language F1 rises from 0.515 to 0.780 ... 0.628 to 0.892" | **updated**, see A2.14 |
+| 867--869, 1359--1366 | CommonLID 0.845 / 0.860 / 0.723 / 0.715 | **updated after all**, see A2.12 |
+| 1247, now 1232 | script gaps "F1 0.940 vs. 0.946", "Greek -0.248, Hebrew -0.227, Devanagari -0.121, Bengali -0.100" | **updated**, see A2.14 |
+| 1253 | resource-tier claim "matches or exceeds \fasttext for languages with 500+ training samples" | still true under the corrected within-stratum column, but the table it describes is not applied, see PD-2 |
+| 1261 | "on average 0.17 tokens shorter" | B9, `tab:lenbias-delta` |
+| 1279--1281 | high-entropy group "Scots, Banjar, Aragonese, and West Flemish" | re-measured on the corrected model and unchanged (`groupb_rederivation.json`) |
+| 1288--1290 | "the 26 of the 1,080 languages ... receive no threshold" | `build_release_calibration` on the corrected model reports exactly 1,080 group A rows with 26 excluded |
+| 1298 | "held-out macro F1 rises from 0.912 to 0.930" | B6; the second number has no corrected counterpart yet, see below |
+| 1354--1357 | balanced-draw 0.978 against 0.981 | no corrected balanced-draw run |
+| 1376 | "22,404 to 79,113" | development-time measurement on the released model, not regenerated |
+| 1379--1391 | the three within-family alternatives, including 0.953 and "+0.0002" | development-time measurements, not regenerated |
+| 1409--1413, now 1394--1398 | "926,299 wrong predictions ... 99.2\% ... 88.6\% ... 31,113" | **updated whole**, see A2.14 |
+| 1394--1396 | "(an independent training run; the published row in \cref{tab:lid_main} is unchanged)" | see PD-5, a framing question rather than a number |
+
+### A2.10 `tab:lid_main` UDHR and FLORES cells, \unilid and calibrated rows
+
+Applied 2026-08-24, after the two `external_bench_eval` blockers were cleared
+(addendum B of `outputs/rerelease/corrected_chain_2026-08-24.md`; both eval stages
+exited 0 against `external_bench/scored_glotlidc_corrected/`). This closes B2.
+
+| row | bench | old -> new |
+|---|---|---|
+| `\unilid` | UDHR | .859 / 1.43e-4 -> **.856 / 1.52e-4** (0.8560 / 1.52e-4) |
+| `\unilid` | FLORES | .932 / 2.78e-4 -> **.931 / 2.83e-4** (0.9313 / 2.83e-4) |
+| `\unilid (calibrated)` | UDHR | .838 / 2.08e-4 -> **.842 / 2.03e-4** (0.8419 / 2.03e-4) |
+| `\unilid (calibrated)` | FLORES | .933 / 2.91e-4 -> **.932** / 2.91e-4 (0.9324 / 2.91e-4) |
+
+The calibrated FLORES FPR keeps its printed 2.91e-4 and is left unwrapped: the
+corrected value prints the same. Bolding unchanged in all four columns (\glotlid
+holds the best UDHR and FLORES cells).
+
+Prose: `:864-865` "calibration lowers macro F1 (0.859 to 0.838) ... changes little
+(0.932 to 0.933)" becomes **(0.856 to 0.842) ... (0.931 to 0.932)**, inside the
+existing `\camrev{}` span. Both claims survive: calibration still lowers UDHR
+macro F1 and still moves FLORES by 0.001.
+
+Recorded direction, for the internal record and not for the paper: on UDHR the
+correction lowers the baseline row (-0.003 F1) and raises the calibrated row
+(+0.004 F1), the opposite sign to the internal GlotLID-C pool, where the
+correction lifted the baseline (+0.0035) and left the gate flat (-0.0005). On
+FLORES no cell moves by more than 0.001 F1. Both release gates, base and
+calibrated, now pass at exact equality for the corrected generation, so nothing
+further is expected to move these four cells.
+
+### A2.11 Fixes from the adversarial verification, applied 2026-08-24
+
+Source: `outputs/rerelease/paper_edit_verification_2026-08-24.md`. Every numeric
+cell of A2.1 through A2.10 was re-derived independently and confirmed, including
+the 132-position vocabulary re-measurement and the arithmetic behind every
+surviving claim. Three findings, all applied.
+
+| # | site | old -> new |
+|---|---|---|
+| V1 | `:1404` | "($+0.038$ against $+0.023$ in full-pool macro F1)" -> **"($+0.039$ against $+0.024$)"**. Full-precision differences: 0.0385167 and 0.0237172. See the convention note under A2.9 |
+| V2 | `:1298` | "held-out macro F1 rises from 0.912 to 0.930" -> **"rises from `\corrrev{0.916}` to 0.930"**. The 0.912 was the released judge-part baseline; `tab:calibrated_heldout` now prints 0.916 for the same quantity, so the paper was printing two values for one number. The 0.930 half is still B6 |
+| V3a | `tab:samples-accuracy`, 500-samples row | 95.65 $\pm$ 0.00 -> **`\corrrev{95.64}` $\pm$ 0.00**. This row is the all-500-samples case, that is the whole WiLI training split, so it is the same deterministic quantity as `tab:length_accuracy`'s Overall cell and needs none of the seeds PD-7 asks for. The standard deviation stays 0.00, which is what a single deterministic run gives |
+| V3b | `:953`, `fig:samples-accuracy` plot data | `(500,95.65) +- (0,0.00)` -> **`(500,95.64) +- (0,0.00)`**. The same quantity again, in the pgfplots coordinate list behind the figure |
+
+**V3b carries no `\corrrev{}` marker.** It sits inside a pgfplots `coordinates {...}`
+list, where a `\textcolor` wrapper is not valid syntax. It is the one number in
+this round that changes without the blue marking, recorded here so the sweep for
+`\corrrev` spans does not read the file as complete.
+
+`tab:noise_robustness`'s p=0\% \unilid accuracy cell (0.957) was the fourth site of
+the same quantity and was **not** touched at the time, because that table was then
+on hold. **Superseded later the same day:** the author ruled the noise analysis out
+of the paper, so the table and every sentence about it are gone (A2.13) and this
+mismatch no longer exists in the document.
+
+Two further occurrences of 95.65 sit in `submission.tex` at `:819` and `:1164` and
+were left alone: both lines are commented out, so neither renders. They are an
+older draft of the same figure and table.
+
+### A2.12 `tab:commonlid` and its prose, applied 2026-08-24
+
+Item B4, unblocked: the corrected CommonLID chain completed with its binding
+gates passing. Source, cross-checked cell by cell before editing:
+`outputs_corrected_round/tables/commonlid_calibrated.md` (373,230 rows, 109 tags,
+0 rows empty after preprocess, 0 rows with fewer than 5 saved candidates;
+FLOOR_TARGET -17.0 read from the corrected fingerprint).
+
+| row | accuracy old -> new | tag-level macro F1 old -> new | measured |
+|---|---|---|---|
+| `\unilid` | 0.845 -> **0.848** | 0.723 -> **0.722** | 0.8476 / 0.7218 |
+| `\unilid`, unseen-token constant only | 0.849 -> **0.851** | 0.718 -> **0.720** | 0.8512 / 0.7203 |
+| calibrated `\unilid` | 0.860 -> **0.862** | 0.715 -> **0.717** | 0.8624 / 0.7171 |
+
+Caption: out-of-set line counts 32,901 -> **32,525** and 25,884 -> **25,994**
+(measured baseline 32,525 lines over 1,095 distinct labels, gated 25,994 over
+810).
+
+Prose, both sites, every quoted number replaced: `:867-869` and `:1359-1366`
+"from 0.845 to 0.860 ... from 0.723 to 0.715 ... (32,901 to 25,884 lines)" become
+**0.848 to 0.862 ... 0.722 to 0.717 ... (32,525 to 25,994 lines)**. A sweep of
+`submission.tex` and every table for 0.845 / 0.849 / 0.860 / 0.723 / 0.718 /
+0.715 / 32,901 / 25,884 found no other CommonLID site; the one further hit,
+`tab:tatoeba_udhr_comparison`'s 0.849, is \fasttext's UDHR macro F1 and is
+unrelated.
+
+All three surrounding claims survive and no wording changed: calibration still
+raises accuracy (0.848 to 0.862), still lowers tag-level macro F1 (0.722 to
+0.717), and out-of-set predictions still fall (32,525 to 25,994). Neither
+sentence quotes a delta, so the changed magnitudes (accuracy +0.014 rather than
++0.015; tag-level macro F1 -0.005 rather than -0.008; 6,531 fewer out-of-set
+lines rather than 7,017) appear nowhere in the text. The caption's "decreases
+slightly" is still supported by a drop of 0.005.
+
+Recorded for the internal record: the module's own four informational
+comparisons against the released model all exceed its EVAL_GATE_TOL of 0.0005
+(baseline accuracy +0.0024, baseline tag F1 -0.0010, floor-21 tag F1 +0.0022,
+floor-21 accuracy +0.0021). That is the expected cross-model difference for a
+non-default model, not a reproduction failure, and the module states so itself.
+
+### A2.13 `tab:noise_robustness` removed from the paper, 2026-08-24
+
+Author ruling, verbatim: *"The script for creating the data for the noise tables
+got deleted. It may be best just to remove this analysis."* and *"See answer
+above about this table. It may be best to delete it."*
+
+Four spans were deleted. This is a deletion, not a `\corrrev{}` wrap, so each is
+recorded verbatim here and is recoverable from this entry alone.
+
+**1. `:1182`, the table input.**
+
+```
+\input{tables/noise_robustness}
+```
+
+**2. `:1202-1215`, the whole appendix subsection.**
+
+```
+\subsection{Robustness to Orthographic Noise}
+\label{app:noise_robustness}
+
+To evaluate robustness under realistic input corruption, we apply stochastic character-level perturbations to the WiLI test set: with probability $p$, each non-whitespace character is independently replaced with another character drawn uniformly from the inventory of characters observed in the WiLI training set. We evaluate at $p \in \{0\%, 5\%, 10\%, 25\%, 50\%\}$. Example inputs at $p=5\%$ and $p=10\%$ are shown below; \cref{tab:noise_robustness} reports accuracy, macro F1, and macro FPR for \unilid and \fasttext on the perturbed test sets.
+
+\paragraph{Example perturbations.}
+\begin{description}
+    \item[Original] \emph{Anton (or Antonius) Maria Schyrleus (also Schyrl, Schyrle) of Rheita (1604--1660) was an astronomer and optician. He developed several inverting and erecting eyepieces\ldots}
+    \item[$p=5\%$] \emph{Anton (or Antonius) Maria Schyrlezs $\ldots$ Anton\'in $\ldots$ astronmmer and optijian\ldots}
+    \item[$p=10\%$] \emph{Anton (or Aston,us) MDria SchyrKeus $\ldots$ of iheith\ldots}
+\end{description}
+
+At low noise ($p < 10\%$), \unilid maintains a small edge in F1 and accuracy. At moderate-to-high noise ($p \ge 25\%$), \fasttext degrades more gracefully than \unilid: the character n-gram representations underlying \fasttext appear to absorb localized character corruptions more robustly than \unilid's segmentation-based scoring, where corrupted characters can fragment otherwise-high-probability tokens. This points to a possible avenue for future work --- explicit noise-aware token scoring or character-level smoothing within the \unilid framework.
+```
+
+**3. `:428`, the clause in the introduction's "This work" paragraph.** The
+sentence read "On out-of-domain inputs it gives partial improvements; ...
+(\cref{sec:results})."; the deleted middle is
+
+```
+; \camrev{on orthographic noise \unilid and \fasttext are roughly tied at corruption rates up to 10\%, and \fasttext degrades less at higher rates}
+```
+
+and it now reads "On out-of-domain inputs it gives partial improvements
+(\cref{sec:results})."
+
+**4. `:986`, the second half of the "Robustness Analysis" paragraph.**
+
+```
+We additionally evaluate robustness to character-level corruption on WiLI by stochastically replacing non-whitespace characters at rates of 5\% and 10\%. Full setup details and results can be found in \cref{app:noise_robustness}. \camrev{In short, at corruption rates up to 10\% the two systems are roughly tied, with \unilid slightly ahead; at 25\% and above \fasttext degrades less (accuracy 0.906 against 0.824 at the 25\% rate; \cref{tab:noise_robustness}).}
+```
+
+The paragraph now ends at "such as determining the language of social media
+posts." and is about input length only. Its `\paragraph{Robustness Analysis.}`
+heading still names what is left, robustness to short inputs, so it was not
+touched.
+
+**Kept deliberately: `:424-425`, the related-work paragraph "Domain shift and
+orthographic noise".** It states a challenge in the literature with its own
+citations, it does not report our analysis, and the introduction's "the first
+two challenges" counts it. Deleting it would break that count and would remove
+cited background rather than a result of ours.
+
+**No dangling references.** `\cref{tab:noise_robustness}` and
+`\cref{app:noise_robustness}` appeared only inside the deleted spans; both labels
+are now defined nowhere the document reaches.
+
+**`paper/tables/noise_robustness.tex` is left on disk, unreferenced.** Nothing
+`\input`s it, so it does not compile into the paper. It is kept rather than
+deleted so the table survives if the author reverses this, and this entry plus
+that file together restore the analysis in full.
+
+### A2.14 PD-2 and PD-6 applied, 2026-08-24
+
+Source, cross-checked cell by cell before editing:
+`outputs/rerelease/pd_compute_2026-08-24.md`, with the corrected values read back
+from `outputs_corrected_round/tables/resource_tier_fpr.md`,
+`resource_tier_ntest.md`, `paper_breakdowns.md` and
+`diagnostic/promoted_residual_pairs.csv`. The instrument was gated on the
+released model first: all 24 published resource-tier F1 and FPR cells reproduce,
+worst relative FPR gap 4.0% at the two cells the paper prints to one significant
+figure, worst F1 gap 0.0004.
+
+#### `tab:resource-tier`, five cells
+
+| tier | UniLID F1 | UniLID FPR | measured |
+|---|---|---|---|
+| `<500` | 0.871 -> **0.857** | 7.2e-5 -> **6.5e-5** | 0.8572 / 6.5053e-05 |
+| `500--1k` | 0.975 -> **0.973** | 1.5e-5 -> **1.0e-5** | 0.9731 / 9.8602e-06 |
+| `1k--12k` | 0.990 (same) | 8.0e-6 (same) | 0.9895 / 8.0751e-06 |
+| `12k--18k` | 0.997 (same) | 2.0e-6 (same) | 0.9971 / 1.9765e-06 |
+| `18k--35k` | 0.992 (same) | 7.0e-6 (same) | 0.9918 / 6.7805e-06 |
+| `35k+` | 0.958 (same) | 5.3e-5 -> **5.4e-5** | 0.9576 / 5.3737e-05 |
+
+$N_{\text{test}}$ and both \fasttext columns are unchanged, and that is verified
+rather than assumed: the `support` and `N` columns of the released and corrected
+per-language CSVs are element-wise identical, and `pred_fasttext.npy` and
+`y_true.npy` are byte-identical across the two scratch roots. The caption's claim
+that \unilid matches or exceeds \fasttext above 500 training samples survives
+(0.973/0.964, 0.990/0.979, 0.997/0.986, 0.992/0.981, 0.958/0.942), and `<500` is
+still the exception (0.857 against 0.915).
+
+#### `tab:script-breakdown`, seven \unilid cells and seven $\Delta$ cells
+
+| script | \unilid | $\Delta$ |
+|---|---|---|
+| Latn | 0.940 -> **0.944** | -0.006 -> **-0.002** |
+| Cyrl | 0.877 -> **0.880** | -0.093 -> **-0.090** |
+| Arab | 0.691 -> **0.693** | -0.056 -> **-0.054** |
+| Deva | 0.811 (same) | -0.121 (same) |
+| Beng | 0.885 -> **0.879** | -0.100 -> **-0.106** |
+| Grek | 0.677 -> **0.675** | -0.248 -> **-0.250** |
+| Hebr | 0.740 -> **0.738** | -0.227 -> **-0.229** |
+| Armn | 0.974 -> **0.972** | -0.012 -> **-0.014** |
+| Other | 0.937 (same) | -0.036 (same) |
+
+The Other row uses the paper's 82-language basis (0.9374), not the
+`paper_breakdowns_script.tex` fragment's 84-language Other, which is why that
+fragment's Other cell was not applied. The caption's claim that Greek, Hebrew and
+Devanagari are the largest gaps survives: -0.250, -0.229, -0.121, with Bengali
+fourth at -0.106.
+
+#### `tab:calibrated_views`, 16 of 36 cells
+
+Global view: `<500` 0.515 -> **0.596** and 0.780 -> **0.781**; `500--1k`
+0.628 -> **0.676** and 0.892 -> **0.893**; `1k--12k` 0.891 -> **0.894** and
+0.945 -> **0.944**; `18k--35k` 0.963 -> **0.962**; `35k+` 0.958 -> **0.957** and
+0.957 -> **0.956**. Within-stratum view: `<500` 0.871 -> **0.857** and
+0.827 -> **0.820**; `500--1k` 0.975 -> **0.973** and 0.955 -> **0.954**;
+`1k--12k` 0.987 -> **0.986**; `35k+` 0.958 -> **0.957** in the calibrated column.
+Every \fasttext cell and the `12k--18k` row are unchanged.
+
+The two tables that print the same quantity now agree, which is what PD-2 asked
+for: this table's within-stratum \unilid column and `tab:resource-tier`'s \unilid
+F1 column are both 0.857 / 0.973 / 0.990 / 0.997 / 0.992 / 0.958. The caption's
+mechanism claim survives: the views still rank the methods oppositely in the
+smallest tier (global 0.596 -> 0.781, within-stratum 0.857 -> 0.820).
+
+#### Prose, three sites
+
+| line (post-A2.13) | old -> new |
+|---|---|
+| `:857-858` | "rises from 0.515 to 0.780 ... and from 0.628 to 0.892" -> **0.596 to 0.781 ... 0.676 to 0.893** |
+| `:1232` | "F1 0.940 vs. 0.946" -> **0.944 vs. 0.946**; "Greek -0.248, Hebrew -0.227, Devanagari -0.121, Bengali -0.100" -> **-0.250, -0.229, -0.121, -0.106** |
+| `:1238` | untouched: its only claim, that \unilid matches or exceeds \fasttext above 500 training samples, quotes no number and still holds |
+
+#### PD-6, the remaining-errors sentence at `:1394-1398`
+
+| quantity | old -> new | exact |
+|---|---|---|
+| wrong predictions | 926,299 -> **930,576** | 930,576 |
+| share with a head true language | 99.2\% -> **99.1\%** | 922,578 / 930,576 = 0.9914053 |
+| of those, share confused with another head language | 88.6\% -> 88.6\% | 816,947 / 922,578 = 0.8855045, a rounding boundary checked rather than assumed |
+| Indonesian and Standard Malay | 31,113 -> **31,105 lines** | 31,105 |
+
+The two other pairs the sentence names keep their places in the ranking: Standard
+Arabic and Najdi Arabic 2nd in both rounds, Mandarin and Wu Chinese 9th in both.
+Nothing qualitative in the sentence moved.
+
+**Correction to this ledger's own PD-6 text.** It said the pair count was one
+"which the corrected round does not report". That was wrong:
+`outputs_corrected_round/diagnostic/promoted_residual_pairs.csv` and
+`outputs_corrected_round/tables/promoted_residual.md` carry all twenty pairs, and
+the released-model run of the same script reproduces the published 926,299 /
+99.2\% / 88.6\% / 31,113 exactly, which is what gates the instrument.
+
 ---
 
 ## A. APPLIED 2026-08-19, commit `6374b67`
 
-All wrapped in a new `\corrrev{}` macro (blue), kept separable from the
-camera-ready `\camrev{}` pass. To accept all of this round, redefine as
-`\newcommand{\corrrev}[1]{#1}`. Brace balance checked before and after: my edits
-introduced no imbalance (the file carries a pre-existing delta of 1 that my
-crude check flags in both versions).
+All wrapped in the `\corrrev{}` macro (blue), kept separable from the
+camera-ready `\camrev{}` pass. To accept all of both rounds, redefine as
+`\newcommand{\corrrev}[1]{#1}`.
 
-Item 11 (`tab:lenbias-norm`) is **not** applied; it is being regenerated, see
-below.
+Item 11 (`tab:lenbias-norm`) was held back then and is applied in this round as
+A2.8. Item 10's table edit landed then; its two prose sites are applied in this
+round as A2.9.
 
 | # | Site | Current | New |
 |---|---|---|---|
 | 1 | `:754` | "shared unseen-token constant $c = -21$" | **$c = -17$** |
 | 2 | `:1287` | "$c = -21$ ... sweep over $\{-17,-19,-21,-23\}$" | **$c = -17$, sweep over $\{-15,-17,-19,-21\}$** |
 | 3 | `:627-628` | "every unseen-token value exceeds $c$, so all of them are set to $c$" | **1,655 of the 1,940 exceed $c$ and are set to it; the remaining 285 already lie below and are left unchanged** |
-| 4 | `:629-631` | "byproduct of the training-time probability floor of $10^{-12}$ and renormalization" | **the smallest value the per-language fit assigns, scaling as one count in the training-token count $T$; the floor is never reached.** Wording in the appendix draft, item 1 |
+| 4 | `:629-631` | "byproduct of the training-time probability floor of $10^{-12}$ and renormalization" | **the smallest value the per-language fit assigns, scaling as one count in the training-token count $T$; the floor is never reached** |
 | 5 | `tab:lid_main`, \unilid row, GlotLID-C | `.929` / `2.03e-5` | **`.933` / `2.02e-5`** |
 | 6 | `tab:lid_main`, \unilid-Mistral-Nemo, GlotLID-C | `.912` / `1.84e-5` | **`.912` / `1.86e-5`** (F1 unchanged to three decimals) |
-| 7 | `:344`, `:833` | "from .929 to .957" | `.929` becomes **`.933`**; the `.957` is B1 |
-| 8 | `:824` | "2.03e-5 vs 2.71e-5", "roughly 25\%" | **`2.02e-5`**; "roughly 25\%" still holds (25.5\%) |
+| 7 | `:344`, `:833` | "from .929 to .957" | `.929` becomes **`.933`**; the `.957` is settled in this round as `.956` (A2.6) |
+| 8 | `:824` | "2.03e-5 vs 2.71e-5", "roughly 25\%" | **`2.02e-5`**; "roughly 25\%" still holds (25.4\%) |
 | 9 | `tab:calibration_provenance` | "unseen-token constant $c=-21$" | **$c=-17$** |
-| 10 | `tab:viterbi_vs_marginal` | `.961`/`.929`, `.962`/`.931` | **`.961`/`.933`, `.961`/`.935`.** The "+0.002 from marginalization" claim survives (+0.0023). **Two caption fixes:** the accuracy cells now round to the same value so the bolding must go, and measured cost is about 1.7x Viterbi, not "approximately $2\times$" |
-| 11 | `tab:lenbias-norm` | Original / Raw rescore / Normalized, overall `.960`/`.960`/`.885` | **REGENERATING**, job 3129778. See below |
-
-### `tab:lenbias-norm`: regenerating rather than applying
-
-The published table came from `outputs/tables/normalized_comparison.md`
-(2026-04-04), whose per-bin figures match it exactly. Its Original column is the
-sample pickle's stored `pred_UniLID`.
-
-The first corrected run omitted that column, because half of the 500,000-line
-draw is the validation half that the full-pool runs exclude, so the corrected
-model has no plain-scorer prediction there. Per the author's instruction to redo
-it on a new subset, it is being rebuilt on the **golden subset**: the test half
-of the same draw, 250,000 lines, which is inside the scored pool. That fills
-Original from this model's own `pred_baseline.npy`, restores the implementation
-check (Raw rescore must reproduce the plain scorer exactly, enforced as a hard
-gate), and keeps the validation half out of a reported number. It is the same
-subset both release gates use.
-
-The caption's sample size changes from 500k to 250k accordingly.
+| 10 | `tab:viterbi_vs_marginal` | `.961`/`.929`, `.962`/`.931` | **`.961`/`.933`, `.961`/`.935`**; bolding on accuracy removed; cost 1.7x. Prose completed this round |
+| 11 | `tab:lenbias-norm` | overall `.960`/`.960`/`.885` | applied this round, A2.8 |
 
 ---
 
-## B. Blocked, each on a named run
+## Marking conventions used by this round
 
-| # | Site | Blocked on |
+Recorded because a later sweep for `\corrrev{}` spans, or a decision to accept
+the round wholesale, depends on knowing them.
+
+**1. Cells whose printed value did not change.** Two rules are in force, and
+which one applies depends on whether the table was regenerated wholesale.
+
+- *Whole-table regeneration: wrap every regenerated cell, including the ones that
+  print the same value.* This holds for `tab:unilid_llm_comparison` (base F1
+  0.960, LLaMA3.2 F1 0.954, DeepSeek3.2 F1 0.955 all print as before),
+  `tab:vocab_size_efficiency` (50k F1 0.957, 100k F1 0.960, 200k F1 0.9606),
+  `tab:lenbias-norm` (the Original and Raw rescore 0.951 and the Overall 0.960),
+  and `tab:length_accuracy` and `tab:tatoeba_udhr_comparison`, where every cell in
+  the regenerated column moved anyway. The marker there means "this cell is a
+  measurement of the new model", not "this digit changed".
+- *Single-cell substitution inside an otherwise carried table: wrap only what
+  changed.* This holds for `tab:lid_main`, where the calibrated row's GlotLID-C
+  FPR keeps `\camrev{\textbf{1.77e-5}}` and its FLORES FPR stays unwrapped at
+  2.91e-4 because both print the same, and for `tab:calibrated_heldout`, where the
+  \fasttext row and the \fasttext confidence interval are unwrapped. In
+  `tab:calibrated_heldout` the \fasttext row is not a regenerated cell at all: the
+  same prediction array (sha256 `4ff74fb55ce5668b...`) is the input in both rounds,
+  so the number is bit-identical rather than coincidentally equal.
+
+**2. Two `\camrev{}` spans were replaced by `\corrrev{}` and have lost their
+camera-ready marking.** Both are recorded here so the camera-ready pass is
+recoverable if the author wants that marking back:
+
+| site | original span | now |
 |---|---|---|
-| B1 | `tab:lid_main` calibrated row GlotLID-C cells (`.957`/`1.77e-5`); `:344`, `:833`, `:835` | jobs 3123324 (group-A thresholds) and 3127704 (topk), then `gate_variants apply` |
-| B2 | `tab:lid_main` \unilid and calibrated UDHR / FLORES cells; `:850-851` | `external_bench_eval.py`, after B1 |
-| B3 | `tab:calibrated_heldout`, `tab:calibrated_views` | after B1 |
-| B4 | `tab:commonlid` | `commonlid_carried.py` then `commonlid_calibrated.py`, after B1 |
-| B5 | `tab:resource-tier`, `tab:script-breakdown`, `tab:per_language_f1` | `paper_breakdowns.py`, `regen_resource_tier_counts.py`, after B1 |
-| B6 | `:1284` "held-out macro F1 rises from 0.912 to 0.930" | after B1 |
-| B7 | `:1383-1384` Mistral-Nemo unseen-token parenthetical; its high-entropy group; `tab:calibrated_nemo` | Mistral-Nemo stages after `baseline`, which clamp |
-| B8 | `tab:lid_main` \unilid-DeepSeek3.2 and \unilid-Qwen3 rows | retrains 3112879 / 3112846, then evals 3117575 / 3117576 |
-| B9 | `tab:lenbias-delta`; `:1247`'s "0.17 tokens" | `length_bias.py`, plus the instrument decision below |
+| `tab:lid_main`, calibrated row, GlotLID-C F1 | `\camrev{\textbf{.957}}` | `\corrrev{\textbf{.956}}` |
+| `submission.tex:989` | `\camrev{within 0.025 macro F1}` | `\corrrev{within 0.03 macro F1}` |
+
+Nothing else in either round removed a `\camrev{}` span. Where a corrected number
+sits inside a longer camera-ready sentence, the `\corrrev{}` is nested inside the
+surviving `\camrev{}` (`:864-865`, `:1198`, and the `:542` footnote), so both
+marks are preserved and the inner colour wins.
+
+**3. `paper/initial_version.tex` is deliberately untouched.** It is a frozen
+record of the original submission and still carries every pre-correction value
+(.929, c = -21, 0.885, 95.65, and the rest). A sweep for stale numbers will hit it
+on every one of them. That is what the file is for; it is not a site to edit. The
+same holds for `paper/review_notes_2026-08-09.md`, which records the camera-ready
+review pass as it stood on its date and quotes the CommonLID pair 0.723 -> 0.715
+twice; it is a dated record, not a paper source.
+
+**4. The $\Delta$ column of `tab:script-breakdown` is the difference of the
+printed cells, not of the full-precision values.** This was determined on the
+released model rather than assumed: the two conventions disagree at Cyrl, Armn
+and Other, and at all three the published $\Delta$ is the difference of the two
+printed cells (Cyrl 0.877 - 0.970 = -0.093, where full precision gives -0.092).
+A2.14's corrected $\Delta$ column follows the same rule. The full-precision
+alternative is -0.0022, -0.0896, -0.0548, -0.1208, -0.1056, -0.2504, -0.2290,
+-0.0135, -0.0352, which differs in one cell only (Arab, -0.055 rather than
+-0.054), if the author prefers it.
+
+**5. `tab:resource-tier`'s FPR cells are printed at two precisions.** Read off
+the released model's measurements: cells at or above 1e-5 print to two
+significant figures (5.2873e-05 -> 5.3e-5), cells below 1e-5 print to one with a
+trailing zero (6.7179e-06 -> 7.0e-6, not 6.7e-6). Every unchanged cell holds
+under that reading and `35k+` moves under it (5.3737e-05 -> 5.4e-5) where one
+significant figure would hide the move. The `500--1k` cell is the one the two
+rules split: its corrected 9.8602e-06 has crossed below 1e-5, so the sub-1e-5
+rule gives **1.0e-5** and the two-figure rule would give 9.9e-6. Applied as
+1.0e-5 per the author's instruction. Either way it is a real move from the
+published 1.5e-5, and the measured value is 9.8602e-06.
+
+**6. New constant: `FPR_GATE_REL_TOL = 0.05`**, in
+`analysis/regen_resource_tier_counts.py`, alongside the existing
+`F1_GATE_TOL = 0.005` that `paper_breakdowns.py` had already pre-registered for
+the same column. It governs the published-cell comparison and nothing else, and
+it binds only for the released model. It is 5% because the published FPR cells
+are printed at one or two significant figures, so neither an absolute bound nor a
+significant-figure test expresses "agrees at printed precision"; 5% is the
+smallest round bound above the 4.0% worst case the released model produces
+against the one-significant-figure cells. Flagged here because it is a new
+threshold in the codebase.
+
 
 ---
 
-## C. Ownership, re-triaged 2026-08-19
+## B. The blocked list, re-stated 2026-08-24
 
-The earlier version of this section said six tables "need the co-author". That was
-too coarse. Checked properly:
+| # | Site | State |
+|---|---|---|
+| B1 | `tab:lid_main` calibrated row GlotLID-C cells; `:344`, `:833`, `:835` | **DONE.** Jobs 3123324 and 3127704 then `gate_variants apply` (job 3157817, both stages verified). Applied as A2.6 and A2.9 |
+| B2 | `tab:lid_main` \unilid and calibrated UDHR / FLORES cells | **DONE, applied 2026-08-24** (A2.10). The eval stage's two non-default-model spots were fixed (fingerprint-derived floor target; the acceptance gate made informational for a non-default model, matching `paper_breakdowns`), both benches then exited 0, and the four cells plus the prose at `:864-865` carry the corrected values |
+| B3 | `tab:calibrated_heldout`, `tab:calibrated_views` | **DONE.** `tab:calibrated_heldout` applied 2026-08-24 (A2.7), `tab:calibrated_views` applied the same day with the other two linked tables (A2.14) |
+| B4 | `tab:commonlid`; `:867-869`, `:1359-1366` | **DONE, applied 2026-08-24** (A2.12). The corrected chain completed with its binding gates passing (baseline exact equality, floor-21 agreement 1.000000); source `outputs_corrected_round/tables/commonlid_calibrated.md`. Six table cells, two caption counts and both prose sites carry the corrected values |
+| B5 | `tab:resource-tier`, `tab:script-breakdown`, `tab:per_language_f1`; the prose now at `:1232` and `:1238` | **DONE.** `tab:resource-tier` and `tab:script-breakdown` applied 2026-08-24 (A2.14), together with the `:1232` prose; `:1238` quotes no number and still holds. `tab:per_language_f1` needs nothing: it is the DSL-ML dialect table and DSL-ML is `em`-trained, so the defect never touched it (C0) |
+| B6 | the held-out sentence, now `:1283`: "held-out macro F1 rises from `\corrrev{0.916}` to 0.930" | **HALF APPLIED, and the sentence is knowingly mixed-generation until the rest lands.** The first number is now the corrected judge-part baseline, 0.9159 -> 0.916 (applied as V2, because `tab:calibrated_heldout` prints the same quantity and the paper cannot print two values for it). The second number, 0.930, is still the released model's floor-21-only judge-part macro F1 and has no corrected counterpart: `paper_eval` scores only `baseline` and `gate_flat4_prox21`. **What it needs:** macro F1 for the floor-21-only configuration (unseen-token constant applied, no re-examination) on the 27,002,441-line judge part of the corrected base model. Until that runs, this one sentence pairs a corrected number with a released one |
+| B7 | `:1383-1384` Mistral-Nemo unseen-token parenthetical; its high-entropy group; `tab:calibrated_nemo` | **DONE.** Applied as A2.5 and A2.9. The high-entropy group needed no edit: the corrected variant's flat set is still `{bjn_Latn, sco_Latn, srp_Latn}`, that is Banjar, Scots, and Serbian in Latin script (`outputs_corrected_round/tables/mistralnemo_flat_set.md`) |
+| B8 | `tab:lid_main` \unilid-DeepSeek3.2 and \unilid-Qwen3 rows | **CLOSED, rows left carried**, by the author's PD-3 ruling and the failed \cld-subset feasibility gate. The retrains and their GlotLID-C evals are done and match the published cells at paper precision; they are not applied because six of each row's twelve columns cannot be produced |
+| B9 | `tab:lenbias-delta`; the "0.17 tokens" sentence, now `:1246` | **BLOCKED on the run only.** PD-4 is decided (author, 2026-08-24: *"Do the obvious match"*), so the basis is settled: the same golden subset as `tab:lenbias-norm`, the 250,000-line test half of the seed-42 500,000-line draw. What remains is running `length_bias.py` on the corrected predictions over that subset. No `lenbias_delta` artifact exists in `outputs_corrected_round/` yet, so all six rows, the caption's 1,789,423 misclassifications and 45.6M samples, and the 0.17 tokens in the prose are still released-model values |
+
+---
+
+## Author decisions, 2026-08-24, and what each one left
+
+Every open decision has a ruling. Four are applied; four wait on numbers another
+agent is computing; one is closed by verification. Rulings are quoted where the
+wording matters.
+
+| # | ruling | state |
+|---|---|---|
+| PD-1 | *"accept that fasttext numbers"* | **DECIDED, no paper edit needed.** The \fasttext column of `tab:length_accuracy` and the \fasttext row of `tab:tatoeba_udhr_comparison` stay as published, alongside \unilid numbers from this round's retrains. Verified before closing that no caption claims either was re-measured: `tab:length_accuracy`'s caption states only what the columns are, `tab:tatoeba_udhr_comparison`'s states only the training set and the two benchmarks, and the provenance sentence added in A2.4 is in `tab:vocab_size_efficiency`, a \unilid-only table. Carrying them is now a stated choice on the record rather than a silent one |
+| PD-2 | *"apply all 3"* | **DECIDED, APPLIED as A2.14.** All three tables carry the corrected cells and the two tables printing the same quantity now agree. Both movements this ledger predicted are confirmed: Beng within-stratum 0.885 -> 0.879, and the `<500` tier 0.871 -> 0.857 within-stratum while its global value rises 0.515 -> 0.596 |
+| PD-3 | *"Do the swap if the other columns can be computed. Otherwise leave it"* | **DECIDED, CLOSED: leave the rows carried.** The condition fails. Of the twelve columns in each variant row, the three \cld-subset FPR pairs cannot be produced: the subset definition files are here (`unilid_resources/{glotlidc_cld3subset_83,udhr_cld3subset_80,flores_cld3subset_77}.txt`) but the subset-evaluation instrument is not, which is the standing C3 ask. `outputs/tables/paper_eval_cld3_subset.md` records the reconstruction attempt: it reproduces the published \unilid GlotLID-C subset F1 (.971) but no tested convention reproduces the printed subset FPR (measured 9.71e-5 and 7.77e-5 against 1.63e-4), and it fails the published \fasttext subset F1 as well. Swapping would put six new cells beside six carried ones inside one row. Evidence: `outputs/rerelease/pd_compute_2026-08-24.md` section 3. The variant UDHR and FLORES stages were deliberately not run, since six cells cannot complete a row |
+| PD-4 | *"Do the obvious match"* | **DECIDED, awaiting the run.** PD-4 asked what `tab:lenbias-delta` should be computed over: the published table used all 45,627,279 lines, and the corrected predictions exclude the 250,000 validation lines, so the table needed a basis. The obvious match, now ruled: the same golden subset `tab:lenbias-norm` was rebuilt on, the 250,000-line test half of the seed-42 500,000-line draw. That settles the instrument; no `lenbias_delta` artifact exists yet, so no cell changed. See B9 |
+| PD-5 | *"If this repo's corrected variant is available and all columns can be computed, then use it"* | **DECIDED, CLOSED: leave the row carried**, on the same failed condition as PD-3. The corrected Mistral-Nemo variant exists, but its \cld-subset columns are not computable either. One residual follows from this closure and needs a line from the author, see PD-5r |
+| PD-6 | *"run the pair breakdown on promoted_residual_pairs.csv to keep the paper consistent"* | **DECIDED, APPLIED as A2.14.** 930,576 wrong predictions, 99.1\%, 88.6\% unchanged at the printed precision, Indonesian and Standard Malay 31,105 lines. This ledger's earlier claim that the corrected round does not report the pair count was wrong and is corrected in A2.14 |
+| PD-7 | *"We do not have these [seeds]. Can it be left? We also do not have the fasttext models."* | **DECIDED, closed, no paper edit.** The eight sampled rows of `tab:samples-accuracy`, 5 through 400 samples per language, stay as published. The seeds and repeat count behind their standard deviations are not available, and neither are the \fasttext models. The correction's effect where it can be measured is at most about 0.001 on these quantities, which sits inside those rows' own printed standard deviations (0.02 to 0.90), so carrying them does not put a visibly wrong number in the table. The 500-samples row is the deterministic whole-split case and was corrected to 95.64 in A2.11 |
+| PD-8 | *"The script for creating the data for the noise tables got deleted. It may be best just to remove this analysis."* | **DECIDED, APPLIED as A2.13.** `tab:noise_robustness` is removed from the paper: the table input, the whole appendix subsection, the introduction clause and the results sentences. Every removed span is recorded verbatim in A2.13 and `paper/tables/noise_robustness.tex` is left on disk unreferenced, so the analysis is recoverable. This also retires the known-stale p=0\% accuracy cell that PD-8 was tracking |
+| PD-9 | *"yes, it is"* | **DECIDED, closed, no paper edit.** The \unilid-LLaMA3.2 base tokenizer is the repository the original variant used. Verified after the ruling that `tab:unilid_llm_comparison`'s caption names exactly \unilid-Mistral and \unilid-LLaMA2 as the unconfirmed pair and does not mention LLaMA3.2, which is now correct rather than merely defensible. `SESSION_STATUS.md`'s open-decision line listing three unconfirmed repositories is superseded by this ruling |
+| PD-5r | **New, and the only open paper item.** `tab:lid_main`'s caption says the rows other than \unilid and calibrated "carry over from the original submission, computed on all 45,627,279 lines". Verified after the PD-3 and PD-5 closure: that is exactly true of the \unilid-DeepSeek3.2 and \unilid-Qwen3 rows, which carry no corrected cell. It is **not** true of one cell of the \unilid-Mistral-Nemo row, whose GlotLID-C FPR reads `\corrrev{1.86e-5}` from the 2026-08-19 round. That value is this repo's corrected retrain measured on the 45,377,279-line pool (1.8583e-5), so a single cell of an otherwise carried row is from another generation, which is the mixing PD-5's condition was written to prevent | One line from the author: revert that cell to the original submission's `1.84e-5`, which makes the row fully carried and the caption exactly true, or keep it and add a clause to the caption naming the exception. I did not revert unilaterally, because the change was applied and committed in an earlier round (`6374b67`, item 6) and reverting a landed edit is not mine to decide |
+
+---
+
+## C. Ownership, standing asks
 
 ### C0. RESOLVED: DSL-ML needs nothing; the defect is `sp`-only
 
-**Author confirmation 2026-08-19: DSL-ML was trained entirely with
-`--method em`, so no correction applies and no DSL-ML result is regenerated.**
-`tab:dialect_stats` and the dialect column of `tab:per_language_f1` are off the
-list. The reasoning below is retained because it is what decides the WiLI tables
-too.
+DSL-ML was trained entirely with `--method em` (author confirmation 2026-08-19),
+so no DSL-ML result is regenerated. `tab:dialect_stats` and the dialect column of
+`tab:per_language_f1` are off the list. The `sp` training path is the only one
+that carried the defect: `language_specific_trainer.py:203-204` sits inside
+`train_with_sentencepiece_direct`, and the pure-Python EM path left the special
+tokens at the training floor.
 
-**Author confirmation 2026-08-19: the latency discrepancy is resolved and is not
-to be revisited.** Latency varies with hardware and with label-set size, so the
+The latency discrepancy is resolved and is not to be revisited (author,
+2026-08-19): latency varies with hardware and with label-set size, so the
 `full_prob` run's 1,075 samples/s and `tab:latency_glotlid`'s 3,253 are not
-expected to agree. Removed from the ask list.
+expected to agree.
 
-### C0b. The special-token defect is in the `sp` training path ONLY
+### C1. The WiLI ask list, closed out 2026-08-24
 
-`language_specific_trainer.py:203-204` before the fix read
-`logp = float(vocab_dict.get(p_hf, 0.0))`, and that line sits inside
-`train_with_sentencepiece_direct`. The pure-Python EM path never had it: it left
-the special tokens at the training floor, so its rows already carried a real-token
-mass near 1.0.
+The three stored WiLI models carry 0.800000 special-token mass in every row, so
+they are `sp`-trained and the WiLI tables did need regenerating
+(`outputs/rerelease/wili_models_inspect.json`). That regeneration is now
+complete. Of the eight model files missing from the GitHub draft releases, all
+eight were retrained here in the 2026-08-23 wave and all nine models in that wave
+pass the post-training instrument gate (235 languages, real-token mass 1.000000
+to six decimals, no defect).
 
-**Consequence: a model trained with `--method em` does not carry the defect and
-needs no correction.** `submission.tex:873` records, in a commented-out author
-note, that DSL-ML was trained with the EM method because SentencePiece errored on
-it. If that holds, **the DSL-ML results need no regeneration at all**, and
-`tab:dialect_stats` plus the dialect column of `tab:per_language_f1` come off the
-list entirely. This is an inference from the code plus that note, not a
-measurement; confirming it needs one look at a DSL-ML model's real-token mass,
-which is a two-minute check once the file is here.
+Remaining from the original ask list:
 
-**The same question decides the five WiLI tables.** If the WiLI models were
-trained with EM, they are unaffected and nothing needs redoing. If with `sp`, they
-carry the defect and need correcting. **Ask this first**, because a single answer
-may remove this whole section.
+1. The `tab:samples-accuracy` seeds and repeat count (PD-7).
+2. Whether the LLaMA3.2 tokenizer repository matches the original (PD-9); the
+   Mistral and LLaMA2 repositories are recorded as unconfirmed in the caption.
+3. `datasets_reduced.zip` (5 MB) in the datasets release, contents unidentified.
 
-### C1. Checked against github.com/Ahmetcanyvz/UNILID/releases, 2026-08-21
+### C2. Weights to publish
 
-Two draft releases carry most of it. **Question 0 is answered by measurement
-rather than by asking: all three WiLI models carry 0.800000 special-token mass in
-every row, so they were trained with `sp` and the WiLI tables do need
-regenerating.** (`outputs/rerelease/wili_models_inspect.json`.)
+Per the author instruction of 2026-08-19, every re-fitted or corrected weight
+file goes to the HuggingFace Hub rather than being reproduced by the co-author:
+corrected base GlotLID-C uncalibrated (ready), corrected base calibrated at
+c = -17 (needs the version-2 pack, see below), corrected Mistral-Nemo (ready),
+retrained DeepSeek3.2 and Qwen3-8B (ready), the nine WiLI models of the
+2026-08-23 wave (ready), corrected Apertus 200k / 131k (ready; in no paper
+table).
 
-**Present and downloaded.**
+Both release gates now pass for the corrected generation, each against a
+reference recorded from that generation: `--mode base` at 250,000/250,000, and
+`--mode calibrated` at 250,000/250,000 with `n_disagree` 0, against the version-2
+bundle `glotlidc_corrected_calibrated.unilid` packed 2026-08-24 from
+`outputs_corrected_round/release/calibration_glotlidc_corrected.json` (c = -17,
+group A 1,080, group B the expected four, weight matrix bit-identical to the
+version-1 input).
 
-| asset | covers |
-|---|---|
-| `wili-2018.zip` | **both** the WiLI test set and the training corpus: 117,500 train and 117,500 test lines, 235 languages, 500 samples per language, matching `tab:noise_robustness`'s stated 117,500 / 235 |
-| `tatoeba.zip` (980 MB) | `tab:tatoeba_udhr_comparison`'s missing half |
-| `wili_100k_500.unilid` | the `\unilid (base)` row: 235 languages, 100k vocabulary, label set identical to WiLI's |
-| `deepseek_v3.2_wili.unilid` | the `\unilid-DeepSeek3.2` WiLI row |
-| `qwen3_8b_wili.unilid` | the `\unilid-Qwen3` WiLI row |
-| `uhdr.zip`, `flores200_dataset.zip` | already held here |
-| `DSL-ML-2024.zip` | not needed; DSL-ML is EM-trained |
+### C3. Standing asks only the co-author can answer
 
-**Missing: 8 of the 11 model files.** All are reproducible here now that the
-training corpus is available, so these are a compute question rather than a
-blocking dependency.
-
-| missing | needed for | to reproduce here |
-|---|---|---|
-| `\unilid-Mistral-Nemo` (WiLI) | `tab:unilid_llm_comparison` | its base tokenizer |
-| `\unilid-Mistral` (WiLI) | same | its base tokenizer |
-| `\unilid-LLaMA3.2` (WiLI) | same | its base tokenizer |
-| `\unilid-LLaMA2` (WiLI) | same | its base tokenizer |
-| vocabulary 10k / 20k / 50k / 200k | `tab:vocab_size_efficiency` | nothing extra; `train.py --vocab-size` builds each base |
-
-**Encouraging on the second defect.** None of the three WiLI models has a row at
-the training floor, so none shows the catastrophic EM-corruption signature. That
-is not conclusive, because the DeepSeek3.2 GlotLID-C model's corruption was milder
-and only the retrain gate caught it, but WiLI corpora are 500 lines per language,
-so the 142,136-byte line that triggered the overflow cannot occur. Each corrected
-WiLI model still gets the retrain gate before use.
-
-**Remaining asks, now short:**
-
-1. **The exact base tokenizers for the Mistral, LLaMA3.2 and LLaMA2 variants**
-   (HuggingFace repo plus snapshot hash, as recorded for Mistral-Nemo). Needed
-   only if those four are retrained here rather than uploaded.
-2. **The seeds and repeat count behind `tab:samples-accuracy`'s mean plus or minus
-   standard deviation.** The sweep is reproducible from the corpus, but the
-   spread cannot be matched without knowing how many runs it averages.
-3. **Whether the eight missing models exist elsewhere.** Uploading them is
-   cheaper than retraining them here.
-4. `datasets_reduced.zip` (5 MB) is in the datasets release and its contents are
-   unidentified; worth one line of explanation in case it matters.
-
-### C2. Weights to publish so he can run against them
-
-Per the author instruction of 2026-08-19, every re-fitted or corrected weight file
-goes to the HuggingFace Hub and he is pointed at it, rather than being asked to
-reproduce the fit:
-
-| artifact | state |
-|---|---|
-| corrected base GlotLID-C, uncalibrated | ready |
-| corrected base GlotLID-C, calibrated at c = -17 | after the threshold chain |
-| corrected Mistral-Nemo variant | ready |
-| retrained DeepSeek3.2 (patched fp64 trainer) | job 3112879 |
-| retrained Qwen3-8B (patched fp64 trainer) | job 3112846 |
-| corrected Apertus 200k / 131k | ready; appear in no paper table, publish only if wanted |
-
-### C3. Genuinely only he can answer
-
-- **Which training method the WiLI and DSL-ML models used** (C0). Decides whether
-  five or six tables need anything at all.
-- **The latency configuration.** `tab:latency_glotlid` reports 3,253 samples/s
-  while his own `full_prob` run reports 1,075 for the same 45,627,279 samples, an
-  unexplained factor of 3.0.
-- **The subset-evaluation script or command** behind the \cld-subset cells, and
-  the UDHR-subset FPR of 1.06e-5. Both are standing asks predating this work.
-- **The DSL-ML competitor-score source and split**, also a standing ask.
+- The subset-evaluation script or command behind the \cld-subset cells, and the
+  UDHR-subset FPR of 1.06e-5 (the editorial note in `tab:lid_main`'s caption).
+- The DSL-ML competitor-score source and split.
 
 ## D. Unaffected
 
 `tab:latency_glotlid`, `tab:latency_wili`, `tab:training_time`,
-`tab:dialect_stats`, `tab:fasttext_epoch_sweep`, and every \fasttext, \glotlid
-and \cld row. Also `:754`'s statement that token probabilities are floored at
-$10^{-12}$ during training, which remains true of the code; only the claim that
-the floor explains the unseen-token values changes.
+`tab:dialect_stats`, `tab:fasttext_epoch_sweep`, `tab:calibration_provenance`
+(other than the c value already applied), and every \glotlid and \cld row. Also
+`:754`'s statement that token probabilities are floored at $10^{-12}$ during
+training, which remains true of the code.
 
 ---
 
-## Caption and framing work
+## Caption and framing work still open
 
-- **`tab:lid_main`'s caption loses its split.** It currently says the \unilid and
-  calibrated rows are on the 45,377,279-line scored pool while the others carry
-  over from the original submission on all 45,627,279 lines. The DeepSeek3.2 and
-  Qwen3 rows are being recomputed on the scored pool, so the table becomes
-  internally consistent for the first time and that sentence goes.
-- **`:975` "all within 0.025 macro F1"** no longer straddles model generations,
-  since both variants are being retrained. Recheck the span against the new
-  numbers rather than assuming it still holds.
+- **`tab:lid_main`'s caption split.** It says the \unilid and calibrated rows use
+  the 45,377,279-line scored pool while the others carry over from the original
+  submission on all 45,627,279 lines. That sentence goes only if PD-3 is decided
+  in favour of swapping the variant rows. `paper_eval` also prints a standing
+  note: if the camera-ready table restates N per row, every row's N has to move,
+  not only the new one.
 - **The stratum regressions are reported alongside the overall gain** (author
   decision 2026-08-18), with the mechanism stated. Full-pool, uncalibrated:
-  overall +0.0035, tail -0.0087, magnets -0.0071. Under the clamp the tail lands
-  at 0.8875 within-stratum against the released model's 0.8928, while global
-  per-language tail F1 rises to 0.7743 against 0.7655 with false positives into
-  tail labels down to 8,727 from 22,522. Both views belong in the appendix; they
-  disagree by construction (Exp 24).
-- The existing editorial note about the UDHR-subset FPR of 1.06e-5 is unresolved
-  and independent of this work.
+  overall +0.0035, tail -0.0087, magnets -0.0071. The two views disagree by
+  construction and both belong in the appendix (Exp 24).
+- **The proximity bound 21** is a score difference in natural-log units and the
+  correction moves score differences, so it is the one selected constant that was
+  never re-derived. The paper states that macro F1 on the development part varies
+  by less than 0.0003 across bounds from roughly 15 to 35, which is why this may
+  not matter and also why it should be checked rather than assumed. Cost: one
+  pass over 18.0M lines.
 
----
 
-## Gap found 2026-08-19: which calibration constants still need re-deriving
+## PD-5r resolution (2026-08-24, coordinator, applying the author's PD-5 principle)
 
-`tab:calibration_provenance` lists five selected components. Sorting them by
-whether the special-token correction can move them:
-
-| component | moves? | status |
-|---|---|---|
-| unseen-token constant $c$ | **yes**, it is an absolute target in log space | re-derived, $c = -17$ |
-| thresholds $\tau_\lang$ | **yes**, percentiles of score margins | job 3123324 |
-| high-entropy-group membership | **yes**, identified from predictions | not started |
-| **proximity bound $21$** | **yes, and this is not tracked anywhere** | see below |
-| $100{,}000$-sample requirement | no, a corpus-size property | unchanged |
-| $18{,}000$-sample boundary (`head_n`) | no, a corpus-size property | unchanged |
-| $q_\lang$ form, percentiles, rank cutoff | no, dimensionless | unchanged |
-
-**The proximity bound is the gap.** It is a score difference in natural-log units:
-a replacement candidate is accepted when the top candidate's score minus the
-candidate's score is at most 21. Score differences between two languages are
-exactly the quantity the correction moves, because each language segments a line
-into a different number of tokens and each token gained $\log 5$. This is the
-same mechanism that moved the per-language thresholds by up to 123% when it was
-probed, and none of that reasoning was applied to the proximity bound.
-
-It was selected by a grid search from 0.5 to 100 on the development part, and the
-paper states that overall macro F1 on that part varies by less than 0.0003 across
-bounds from roughly 15 to 35, so 21 is a representative value of a plateau rather
-than a tuned optimum. **That flat plateau is the reason this may not matter, and
-it is also the reason it has to be checked rather than assumed**: if the plateau
-has moved or narrowed on the corrected model, 21 may no longer sit inside it.
-
-Cost: the recorded grid search ran on the development part, so re-running it is
-one pass over 18.0M lines, comparable to the other full-pool jobs.
-
----
-
-## Open items needing an author call
-
-- **`tab:lenbias-delta`'s basis**, the same question as `tab:lenbias-norm` but not
-  yet resolved: the corrected predictions exclude the 250,000 validation lines
-  while the published table used all 45,627,279. The golden-subset treatment
-  applied to `lenbias-norm` is the obvious match.
+The Mistral-Nemo lid_main row's GlotLID-C FPR cell is reverted from
+\corrrev{1.86e-5} (commit 6374b67, this repo's corrected retrain on the scored
+pool) to its pre-6374b67 form \camrev{1.84e-5}, verified against
+`git show 6374b67~1:paper/tables/lid_main.tex`. Reason: the author's PD-5
+ruling makes corrected values conditional on ALL columns of the row being
+computable; the CLD-subset instrument is absent, so the row stays fully
+carried, and one corrected-generation cell inside it was exactly the mixing
+the condition forbids. The corrected value (1.858e-5, rounds to 1.86e-5)
+remains on record in EXPERIMENTS_RESULTS.md and outputs_corrected_round/ if
+the row is ever swapped whole.

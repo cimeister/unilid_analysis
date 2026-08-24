@@ -6,13 +6,13 @@
 \toprule
 \textbf{Length (chars)} & \textbf{N} & \textbf{Original} & \textbf{Raw rescore} & \textbf{Normalized} \\
 \midrule
-$<$30    &  27,328 & 0.792 & 0.792 & 0.566 \\
-30--75   & 177,256 & 0.951 & 0.951 & 0.842 \\
-75--150  & 195,267 & 0.978 & 0.978 & 0.925 \\
-150--300 &  87,096 & 0.987 & 0.987 & 0.966 \\
-300+     &  13,053 & 0.995 & 0.995 & 0.991 \\
+$<$30    &  \corrrev{13,708} & \corrrev{0.795} & \corrrev{0.795} & \corrrev{0.494} \\
+30--75   & \corrrev{88,503} & \corrrev{0.951} & \corrrev{0.951} & \corrrev{0.776} \\
+75--150  & \corrrev{97,861} & \corrrev{0.977} & \corrrev{0.977} & \corrrev{0.883} \\
+150--300 &  \corrrev{43,566} & \corrrev{0.988} & \corrrev{0.988} & \corrrev{0.946} \\
+300+     &  \corrrev{6,362} & \corrrev{0.994} & \corrrev{0.994} & \corrrev{0.986} \\
 \midrule
-Overall  & 500,000 & 0.960 & 0.960 & 0.885 \\
+Overall  & \corrrev{250,000} & \corrrev{0.960} & \corrrev{0.960} & \corrrev{0.837} \\
 \bottomrule
 \end{tabular}}
 \caption{%
@@ -21,8 +21,8 @@ Overall  & 500,000 & 0.960 & 0.960 & 0.885 \\
   segmentation length ($\mathrm{score}/n_{\mathrm{tokens}}^{\alpha}$ with $\alpha=1$).
   \emph{Raw rescore} re-runs the unnormalized scorer ($\alpha=0$) through the same code path
   and reproduces the original predictions exactly ($100\%$ agreement), validating the
-  implementation. Evaluated on a $500k$-sample subset. Full normalization lowers overall accuracy from $0.960$ to $0.885$, with the
-  largest degradation on short inputs ($<$30 chars: $0.792 \to 0.566$) and almost none on long
+  implementation. \corrrev{Evaluated on the $250k$-line test half of a $500k$-line uniform sample.} Full normalization lowers overall accuracy from $0.960$ to \corrrev{$0.837$}, with the
+  largest degradation on short inputs ($<$30 chars: \corrrev{$0.795 \to 0.494$}) and almost none on long
   inputs: the opposite of where the token-count bias in \cref{tab:lenbias-delta} is
   largest. 
 }
