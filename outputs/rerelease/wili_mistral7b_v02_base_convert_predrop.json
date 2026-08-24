@@ -1,0 +1,20 @@
+{
+  "source_tokenizer": "/capstor/scratch/cscs/cmeister747/unilid_analysis/hf_tokenizers/Mistral-7B-v0.2/tokenizer.json",
+  "source_sha256": "fc4f0bd70b3709312d9d1d9e5ba674794b6bc5abc17429897a540f93882f25fc",
+  "source_model_vocab_entries": 32000,
+  "source_model_type": "BPE",
+  "results_dir": "/capstor/scratch/cscs/cmeister747/unilid_analysis/results_mistral7b_v02_wili_fp64",
+  "base_tokenizer": "/capstor/scratch/cscs/cmeister747/unilid_analysis/results_mistral7b_v02_wili_fp64/tokenizers/langspec_base_tokenizer.json",
+  "vocab_size": 32001,
+  "model_type": "Unigram",
+  "special_token_indices": [
+    1,
+    2,
+    32000,
+    0
+  ],
+  "specials_absent_from_source_model_vocab": [
+    "<pad>"
+  ],
+  "base_tokenizer_sha256": "1e59ff82a41f50fdc398996662bd29f1e4ec60e11aac18f28602054cc2b5caa3"
+}

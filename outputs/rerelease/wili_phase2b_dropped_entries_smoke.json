@@ -1,0 +1,86 @@
+{
+  "measured_utc": "2026-08-23T12:19:22.826860+00:00",
+  "git_commit": "dd9c570ad761ceba672aea5fa9ed57f492144c07",
+  "what": "End-to-end smoke test of the Phase 2b train.py argv on a two-language mini corpus (afr + deu, 500 lines each, copied from wili_corpus_shared) with the patched fp64 spm_train, for the two bases rebuilt under the author's 2026-08-23 dropped-entry decision. Same argv as slurm_wili_train_llm_tokenizer.sh, then convert.py, then analysis.inspect_variant_models.",
+  "decision": {
+    "date": "2026-08-23",
+    "statement": "For LLM tokenizers whose vocabularies contain entries the per-language SentencePiece seed-vocab writer refuses (raw tab, newline or carriage return; UNILID/unilid/vocab_io.py:119-120), the offending entries are DROPPED WHOLE from the converted base vocabulary. Nothing is stripped, sanitized or re-encoded.",
+    "applied_by": "analysis/convert_llm_tokenizer_base.py --drop-refused-entries (default OFF)",
+    "supersedes": "the BLOCKED branches of slurm_wili_train_llm_tokenizer.sh and the FAIL rows of outputs/rerelease/wili_phase2_conversion_smoke.json"
+  },
+  "filter_fidelity": {
+    "predicate_mirrored": "UNILID/unilid/vocab_io.py:119  ('\\t' in t) or ('\\n' in t) or ('\\r' in t)",
+    "specials_skipped": "UNILID/unilid/vocab_io.py:113,117-118 (the four UNILID specials); none was flagged in either vocabulary",
+    "checked_against_real_writer": "every dropped token was passed to the real _write_sp_seed_vocab_file and confirmed to raise 'Token contains tab/newline'; the surviving vocabulary was passed through it in one call and confirmed accepted",
+    "identity_rebuild": "rebuilding the converted base with an EMPTY drop set reproduced train.py:_convert_to_unigram_base's own output byte for byte, for both models",
+    "inertness_no_offending_entries": "meta-llama/Llama-3.2-1B converted WITH the flag gives sha256 52773b2470a130d50c4b7556d626005b531af47ed88a0578ad989485c5744703, identical to the pre-existing base recorded in the case table",
+    "inertness_flag_off": "mistral-community/Mistral-7B-v0.2 converted WITHOUT the flag gives sha256 1e59ff82a41f50fdc398996662bd29f1e4ec60e11aac18f28602054cc2b5caa3, identical to the pre-drop base; only an added non-fatal WARNING on stderr differs"
+  },
+  "superseded_artifacts": {
+    "pre_drop_bases": "/capstor/scratch/cscs/cmeister747/unilid_analysis/superseded_bases_20260823/",
+    "pre_drop_conversion_records": [
+      "outputs/rerelease/wili_mistral7b_v02_base_convert_predrop.json",
+      "outputs/rerelease/wili_llama2_7b_base_convert_predrop.json"
+    ]
+  },
+  "mini_corpus": "afr_train.txt + deu_train.txt, 1000 lines",
+  "results": {
+    "mistral7b_v02_wili": {
+      "base_tokenizer": "/capstor/scratch/cscs/cmeister747/unilid_analysis/results_mistral7b_v02_wili_fp64/tokenizers/langspec_base_tokenizer.json",
+      "base_tokenizer_sha256": "25030a1fa3ac71c9cd865618c1200b3ab52748ee519e1ae6d524fb92b84d73e9",
+      "base_vocab_pre_drop": 32001,
+      "dropped_entries": 51,
+      "base_vocab_after_drop": 31950,
+      "train_vocab_size_arg": 31950,
+      "outcome": "PASS",
+      "vocab_io_refusal_hit": false,
+      "base_tokenizer_reused": true,
+      "per_lang_counts_method": "sp",
+      "train_seconds": 2.54,
+      "packed": true,
+      "vocab_size_packed": 31950,
+      "special_columns": [
+        1,
+        2,
+        31949,
+        0
+      ],
+      "real_token_mass_min": 1.0000000000412665,
+      "real_token_mass_max": 1.000000011102529,
+      "defect_present": false,
+      "train_log": "/capstor/scratch/cscs/cmeister747/unilid_analysis/logs/smoke_dropped_entries_20260823_mistral7b_v02.log",
+      "byte_level_arg": true,
+      "byte_level_effective": false
+    },
+    "llama2_7b_wili": {
+      "base_tokenizer": "/capstor/scratch/cscs/cmeister747/unilid_analysis/results_llama2_7b_wili_fp64/tokenizers/langspec_base_tokenizer.json",
+      "base_tokenizer_sha256": "1cbf107fa57108ba9b74d69d6cea29f14adc5f20a7bde4b82bec571ac9cc4c75",
+      "base_vocab_pre_drop": 32001,
+      "dropped_entries": 24,
+      "base_vocab_after_drop": 31977,
+      "train_vocab_size_arg": 31977,
+      "outcome": "PASS",
+      "vocab_io_refusal_hit": false,
+      "base_tokenizer_reused": true,
+      "per_lang_counts_method": "sp",
+      "train_seconds": 2.03,
+      "packed": true,
+      "vocab_size_packed": 31977,
+      "special_columns": [
+        1,
+        2,
+        31976,
+        0
+      ],
+      "real_token_mass_min": 0.9999999916367392,
+      "real_token_mass_max": 1.0000000137841851,
+      "defect_present": false,
+      "train_log": "/capstor/scratch/cscs/cmeister747/unilid_analysis/logs/smoke_dropped_entries_20260823_llama2_7b.log",
+      "byte_level_arg": true,
+      "byte_level_effective": false
+    }
+  },
+  "finding": "Both rows now train, pack and inspect clean. The per-language SentencePiece path no longer reaches the vocab_io.py:119 refusal for either model; base_tokenizer_reused is true, real-token mass is 1.0 and the special-token defect is absent in both. What the dropped entries cost is coverage of literal carriage returns inside a token, which the corpus writer strips per line anyway; nothing else about the two models changes.",
+  "not_submitted": "The full 235-language jobs were NOT submitted; the sbatch commands are in the handoff.",
+  "note_byte_level": "--byte-level is passed by the job script but is NOT what is used: language_specific_trainer.py:263 takes the byte-level setting from the base tokenizer and logs 'regardless of user input: byte-level=False' for both of these SentencePiece-style bases. That was true before the dropped-entry decision too."
+}

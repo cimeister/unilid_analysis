@@ -6,7 +6,8 @@ Three configurations: baseline (pred_baseline.npy), the promoted gate
 gate_flat4_prox21 (pred_gate_flat4_prox21.npy, promoted 2026-08-06), and the
 imported external fastText prediction file (pred_fasttext.npy, built by
 analysis/import_external_pred.py). No new scoring happens here; every number is
-recomputed from saved prediction memmaps under analysis.full_test_eval.SCRATCH_DIR.
+recomputed from saved prediction memmaps under the run's scratch root (default:
+analysis.full_test_eval.SCRATCH_DIR; --scratch-dir moves it).
 
 Two reporting instruments, named at every table and gate below (no delta pairs terms
 from different line sets, Exp 16 conclusion 3):
@@ -48,7 +49,65 @@ Outputs: outputs/tables/paper_eval.md, outputs/tables/paper_eval_table1_row.tex
 (full-pool instrument), outputs/tables/paper_eval_appendix.tex (judge-part instrument
 plus the bootstrap contrasts), outputs/diagnostic/paper_eval_per_lang_f1_fullpool.csv
 and _judge.csv.
+
+Which model this scores (2026-08-23): --model / --scratch-dir / --out-dir, resolved
+through analysis.model_context, let this script run against a model other than the
+released one. With no flags nothing changes: the released model, its own scratch
+root, and the outputs/ tree, byte for byte as before. See the input inventory below
+for what a non-default model moves and what it deliberately does not.
 """
+# ---------------------------------------------------------------------------
+# INPUT INVENTORY (checked line by line 2026-08-23; the classification is what a
+# non-default --model changes and what it must not).
+#
+# (a) MODEL-DERIVED -- must come from the run's own model / scratch / output root,
+#     and must abort naming the artifact when it is absent there:
+#       - the .unilid model itself, read by _load_model_data(ctx.model_path) for the
+#         canonical language list                                    [gate 1]
+#       - <scratch>/y_true.npy                                       [gate 1]
+#       - <scratch>/pred_<config>.npy for every loaded config: the requested
+#         --configs, plus CARRIED (7) and GATE_B_CONFIGS (2) when the released-model
+#         reference gates run. pred_fasttext.npy is an EXTERNAL model's predictions,
+#         but it is still a per-line array that must be positionally aligned with
+#         THIS run's y_true, so it is required in the run's own scratch root and is
+#         never read from another tree.
+#       - <out-root>/diagnostic/carried_set_per_lang_f1.csv          [gate A]
+#       - <out-root>/diagnostic/mixed_eval_judge_f1_gate_flat4_prox21.csv [gate B]
+#     The last two are per-language F1 recorded from the RELEASED weights and there
+#     is no way to regenerate them for another model (the corrected tree has no
+#     freq_prior / learned_bias / margin_q5 / margin_q5_head / gt_margin_adaptive
+#     predictions). Gates A, B and C therefore only mean something for the released
+#     model; a non-default model must state the choice with
+#     --waive-released-model-gates or the run refuses to start. Nothing is ever read
+#     from the released copy of these two CSVs under a non-default model.
+#
+# (b) CORPUS-DERIVED / MODEL-INVARIANT -- keeps its shared location under a
+#     non-default model, each with the reason it cannot carry model information:
+#       - PRF_CSV (outputs/diagnostic/full_test_per_lang_prf.csv), read with
+#         usecols=PRF_USECOLS: `lang` is the label inventory and `N` the per-language
+#         TRAINING line count (analysis.transfer_sweep._load_train_counts), both
+#         properties of the corpus. The file's prec/rec/f1/fp columns ARE
+#         model-derived (released weights) and are structurally excluded by the
+#         usecols read; `lang` is additionally gated against this run's own model.
+#       - DRAW_DIR/val_lines_seed{101,201}.npy: line-index draws over the test file,
+#         drawn from the corpus by analysis/balanced_split.py, no model involved.
+#       - SPLIT_PATH (rule_split_seed301.npz): a deterministic function of the kept
+#         pool, the two draws and RULE_SPLIT_SEED/RULE_SPLIT_FRACTION. It is
+#         re-derived here from THIS run's own y_true and required to match
+#         bit-for-bit before use (gate 2), so a divergence aborts instead of
+#         importing the released run's line set.
+#
+# (c) CONFIG CONSTANTS: CONFIGS, GATE_*_TOL, FPR_SCALE, TOTAL_LINES, EXPECTED_KEPT,
+#     EXPECTED_REMAINDER, EXPECTED_DERIVATION, EXPECTED_JUDGE, BOOT_B, BOOT_SEED.
+#     The line-count constants are corpus properties and stay in force for every
+#     model. GATE_B_ANCHORS, GATE_C_F1_RECORDED and GATE_C_FPR_RECORDED are the
+#     exception: they are RELEASED-MODEL measurements that happen to live in the
+#     source, and they are only compared against under the default model.
+#
+# NOT READ, here or transitively: outputs/diagnostic/lang_diagnostic.csv (its
+# derived `category` column reaches PRF_CSV but this script never reads that
+# column), any tau CSV, any fingerprint json.
+# ---------------------------------------------------------------------------
 from __future__ import annotations
 
 import argparse
@@ -70,6 +129,9 @@ from analysis.format_utils import to_latex, to_markdown
 from analysis.full_test_eval import SCRATCH_DIR
 from analysis.margin_diagnostic import PRF_CSV
 from analysis.metric_decomposition import EXPECTED_KEPT, _per_lang_stats
+from analysis.model_context import (DEFAULT_OUT_ROOT, UnsafeModelContext,
+                                    add_arguments, default_scratch_dir, resolve,
+                                    resolve_out_root)
 from analysis.transfer_sweep import _load_model_data
 
 # The camera-ready E1 reporting set. gate_flat4_prox21 is the promoted configuration
@@ -110,13 +172,53 @@ FPR_HEADER = "Ma-FPR (x1e5)"
 GATE_C_F1_RECORDED = 0.9292
 GATE_C_FPR_RECORDED = 2.0263e-5
 
-MIXED_EVAL_JUDGE_CSV = "outputs/diagnostic/mixed_eval_judge_f1_gate_flat4_prox21.csv"
+# Every path this script writes, and every category-(a) CSV it reads back, stated
+# relative to an output root so that --out-dir moves the whole set together. The
+# module-level constants below keep the exact strings they had before --out-dir
+# existed (os.path.join("outputs", "tables/paper_eval.md") is "outputs/tables/
+# paper_eval.md"), because they are printed into the reports themselves and other
+# modules import them.
+OUT_REL = {
+    "md": "tables/paper_eval.md",
+    "tex_table1": "tables/paper_eval_table1_row.tex",
+    "tex_appendix": "tables/paper_eval_appendix.tex",
+    "csv_fullpool": "diagnostic/paper_eval_per_lang_f1_fullpool.csv",
+    "csv_judge": "diagnostic/paper_eval_per_lang_f1_judge.csv",
+    # Read, not written: the released-model reference CSVs of wiring gates A and B.
+    # They sit in the output root because that is where the scripts that produce
+    # them write, so a run with its own --out-dir looks for its own copies.
+    "csv_carried_ref": "diagnostic/carried_set_per_lang_f1.csv",
+    "csv_mixed_judge_ref": "diagnostic/mixed_eval_judge_f1_gate_flat4_prox21.csv",
+}
 
-OUT_MD = "outputs/tables/paper_eval.md"
-OUT_TEX_TABLE1 = "outputs/tables/paper_eval_table1_row.tex"
-OUT_TEX_APPENDIX = "outputs/tables/paper_eval_appendix.tex"
-OUT_CSV_FULLPOOL = "outputs/diagnostic/paper_eval_per_lang_f1_fullpool.csv"
-OUT_CSV_JUDGE = "outputs/diagnostic/paper_eval_per_lang_f1_judge.csv"
+
+def out_path(name: str, out_dir: str = None) -> str:
+    """Path of one of this chain's artifacts under `out_dir` (default: outputs/)."""
+    return os.path.join(out_dir or DEFAULT_OUT_ROOT, OUT_REL[name])
+
+
+MIXED_EVAL_JUDGE_CSV = out_path("csv_mixed_judge_ref")
+
+OUT_MD = out_path("md")
+OUT_TEX_TABLE1 = out_path("tex_table1")
+OUT_TEX_APPENDIX = out_path("tex_appendix")
+OUT_CSV_FULLPOOL = out_path("csv_fullpool")
+OUT_CSV_JUDGE = out_path("csv_judge")
+
+# analysis.carried_set_comparison owns gate A's reference CSV and names it with its
+# own literal; if that literal ever moves, this module's out-root-relative copy would
+# silently point somewhere else under --out-dir. Fail at import instead.
+if out_path("csv_carried_ref") != CARRIED_CSV:
+    raise RuntimeError(
+        f"gate A reference path disagrees: analysis.carried_set_comparison.OUT_CSV "
+        f"is {CARRIED_CSV!r} but this module's out-root-relative form resolves to "
+        f"{out_path('csv_carried_ref')!r}; update OUT_REL['csv_carried_ref'].")
+
+# PRF_CSV carries model-derived prec/rec/f1/fp columns alongside the two columns
+# this script uses. Reading only these two makes the model-invariance structural:
+# `lang` is the corpus label inventory (and is gated against this run's own model
+# below), `N` the per-language training line count.
+PRF_USECOLS = ["lang", "N"]
 
 FULLPOOL_INSTRUMENT = f"full kept pool, {EXPECTED_KEPT:,} lines"
 JUDGE_INSTRUMENT = f"judge part, {EXPECTED_JUDGE:,} lines"
@@ -143,35 +245,87 @@ def _require_file(path: str) -> None:
         raise FileNotFoundError(f"required artifact missing: {path}")
 
 
-def run(configs=CONFIGS, out_md: str = OUT_MD) -> str:
+def run(configs=CONFIGS, out_md: str = None, model_path: str = None,
+        scratch_dir: str = None, out_dir: str = None,
+        waive_released_model_gates: bool = False) -> str:
     configs = tuple(dict.fromkeys(configs))
+
+    # --- which model, which scratch root, which output root: resolved before any
+    # artifact is read, so an unsafe pair cannot get as far as opening a file ---
+    if default_scratch_dir() != SCRATCH_DIR:
+        raise RuntimeError(
+            f"analysis.model_context's default scratch root ({default_scratch_dir()}) "
+            f"and analysis.full_test_eval.SCRATCH_DIR ({SCRATCH_DIR}) have diverged; "
+            "this script's default would no longer be the released model's root.")
+    ctx = resolve(model_path, scratch_dir, purpose="camera-ready E1 reporting")
+    out_root = resolve_out_root(ctx, out_dir, purpose="camera-ready E1 reporting")
+    gates_on = not waive_released_model_gates
+
+    if waive_released_model_gates and ctx.is_default_model:
+        raise UnsafeModelContext(
+            "--waive-released-model-gates was passed for the released model. Wiring "
+            "gates A, B and C are exactly the released model's correctness checks; "
+            "waiving them for the model they were recorded from would remove the "
+            "only thing keeping this script honest. Drop the flag.")
+    if not ctx.is_default_model:
+        print(f"Camera-ready E1 against {ctx.describe()}\n  reports {out_root}",
+              flush=True)
+        if gates_on:
+            raise UnsafeModelContext(
+                f"refusing to run wiring gates A, B and C against "
+                f"{ctx.model_path}.\n"
+                f"  gate A reads {out_path('csv_carried_ref', out_dir)}\n"
+                f"  gate B reads {out_path('csv_mixed_judge_ref', out_dir)} and the "
+                f"pre-registered anchors {GATE_B_ANCHORS}\n"
+                f"  gate C compares against the recorded {GATE_C_F1_RECORDED} / "
+                f"{GATE_C_FPR_RECORDED}\n"
+                "All three are per-language F1 and macro values recorded from the "
+                "RELEASED weights, and gate A additionally needs the seven CARRIED "
+                "prediction memmaps, which exist only for the released model. They "
+                "cannot be regenerated for another model, and this script will not "
+                "read the released model's copies while scoring a different one. "
+                "Re-run with --waive-released-model-gates to state that the run "
+                "proceeds without them; the report then records that they were "
+                "waived, and gates 1 and 2 (language order, seed-301 split) still "
+                "run.")
 
     # A --configs override must not overwrite the canonical camera-ready artifacts:
     # every output path gets a config-derived suffix unless the full default set runs.
+    default_md = out_path("md", out_dir)
+    if out_md is None:
+        out_md = default_md
     if configs == CONFIGS:
-        out_tex_table1, out_tex_appendix = OUT_TEX_TABLE1, OUT_TEX_APPENDIX
-        out_csv_fullpool, out_csv_judge = OUT_CSV_FULLPOOL, OUT_CSV_JUDGE
+        out_tex_table1 = out_path("tex_table1", out_dir)
+        out_tex_appendix = out_path("tex_appendix", out_dir)
+        out_csv_fullpool = out_path("csv_fullpool", out_dir)
+        out_csv_judge = out_path("csv_judge", out_dir)
     else:
         suffix = "_" + "-".join(configs)
-        if out_md == OUT_MD:
-            out_md = OUT_MD.replace(".md", f"{suffix}.md")
-        out_tex_table1 = OUT_TEX_TABLE1.replace(".tex", f"{suffix}.tex")
-        out_tex_appendix = OUT_TEX_APPENDIX.replace(".tex", f"{suffix}.tex")
-        out_csv_fullpool = OUT_CSV_FULLPOOL.replace(".csv", f"{suffix}.csv")
-        out_csv_judge = OUT_CSV_JUDGE.replace(".csv", f"{suffix}.csv")
+        if out_md == default_md:
+            out_md = default_md.replace(".md", f"{suffix}.md")
+        out_tex_table1 = out_path("tex_table1", out_dir).replace(".tex", f"{suffix}.tex")
+        out_tex_appendix = out_path("tex_appendix", out_dir).replace(".tex", f"{suffix}.tex")
+        out_csv_fullpool = out_path("csv_fullpool", out_dir).replace(".csv", f"{suffix}.csv")
+        out_csv_judge = out_path("csv_judge", out_dir).replace(".csv", f"{suffix}.csv")
+
+    carried_csv = out_path("csv_carried_ref", out_dir)
+    mixed_eval_judge_csv = out_path("csv_mixed_judge_ref", out_dir)
 
     # --- gate 1: canonical language order ---
-    weights, langs, _m = _load_model_data()
+    weights, langs, _m = _load_model_data(ctx.model_path)
     del weights
     n_lang = len(langs)
+    # Category (b): PRF_CSV's `lang` (corpus label inventory) and `N` (per-language
+    # TRAINING line count) are model-invariant; its per-config prec/rec/f1/fp columns
+    # are not, and PRF_USECOLS keeps them out of this read entirely.
     _require_file(PRF_CSV)
-    prf = pd.read_csv(PRF_CSV)
+    prf = pd.read_csv(PRF_CSV, usecols=PRF_USECOLS)
     if prf.lang.tolist() != langs:
         raise RuntimeError(f"language order gate failed: {PRF_CSV} lang column does "
                            "not match _load_model_data's canonical language list")
     N = prf.N.values
 
-    y_path = os.path.join(SCRATCH_DIR, "y_true.npy")
+    y_path = os.path.join(ctx.scratch_dir, "y_true.npy")
     _require_file(y_path)
     y = np.asarray(np.lib.format.open_memmap(y_path, mode="r"))
     if y.shape != (TOTAL_LINES,):
@@ -184,7 +338,13 @@ def run(configs=CONFIGS, out_md: str = OUT_MD) -> str:
                            f"({EXPECTED_KEPT:,})")
     yk = y[kept]
 
-    # --- gate 2: seed-301 rule split, re-derived exactly as mixed_eval.py does ---
+    # --- gate 2: seed-301 rule split, re-derived exactly as mixed_eval.py does.
+    # Category (b) throughout: the draws are line-index samples drawn from the corpus
+    # by analysis/balanced_split.py and SPLIT_PATH is a deterministic function of the
+    # kept pool, those draws and the seed. Both keep their shared locations under a
+    # non-default model, and the bit-equality check below is what makes that safe:
+    # if this run's own y_true implied a different split, it aborts here rather than
+    # adopting the released run's line set. ---
     val101 = _load_draw(SEEDS[0])
     test201 = _load_draw(TEST_SEED)
     if np.intersect1d(val101, test201).size:
@@ -227,14 +387,21 @@ def run(configs=CONFIGS, out_md: str = OUT_MD) -> str:
           f"judge) and matches {SPLIT_PATH}.")
 
     # --- load prediction memmaps: CARRIED (gate A) + requested configs + the fixed
-    # gate B configs, union, so every gate can run regardless of a --configs override ---
-    all_pred_configs = list(dict.fromkeys(
-        list(CARRIED) + list(configs) + list(GATE_B_CONFIGS)))
+    # gate B configs, union, so every gate can run regardless of a --configs override.
+    # With the released-model gates waived, CARRIED and GATE_B_CONFIGS are not loaded
+    # at all: those memmaps exist only for the released model, and pulling them from
+    # the released scratch root while scoring another model is the substitution this
+    # whole mechanism exists to prevent. ---
+    if gates_on:
+        all_pred_configs = list(dict.fromkeys(
+            list(CARRIED) + list(configs) + list(GATE_B_CONFIGS)))
+    else:
+        all_pred_configs = list(dict.fromkeys(configs))
     preds = {}
     prov = {}
     empty_counts = {}
     for c in all_pred_configs:
-        p = os.path.join(SCRATCH_DIR, f"pred_{c}.npy")
+        p = os.path.join(ctx.scratch_dir, f"pred_{c}.npy")
         _require_file(p)
         preds[c] = np.asarray(np.lib.format.open_memmap(p, mode="r"))
         st = os.stat(p)
@@ -253,77 +420,87 @@ def run(configs=CONFIGS, out_md: str = OUT_MD) -> str:
                 "that produced it is incomplete")
         empty_counts[c] = int((preds[c][kept] == -1).sum())
 
-    # --- gate 3: wiring gate A, carried set on the full remainder ---
-    _require_file(CARRIED_CSV)
-    carried_df = pd.read_csv(CARRIED_CSV)
-    if carried_df.lang.tolist() != langs:
-        raise RuntimeError(f"{CARRIED_CSV} language order does not match the "
-                           "canonical language list")
     gate_a_diffs = {}
-    for c in CARRIED:
-        f1_here = _per_lang_stats(preds[c][remainder_mask], yr, n_lang)[2]
-        diff = float(np.abs(f1_here - carried_df[f"f1_{c}"].values).max())
-        gate_a_diffs[c] = diff
-        if diff > GATE_A_TOL:
-            raise RuntimeError(f"wiring gate A failed for {c}: max |diff| {diff:.2e} "
-                               f"vs {CARRIED_CSV} (tol {GATE_A_TOL:.0e})")
-    print(f"Wiring gate A passed: full-remainder per-language F1 reproduces "
-          f"{CARRIED_CSV} for all {len(CARRIED)} carried configs (max diff "
-          f"{max(gate_a_diffs.values()):.2e}).")
-
-    # --- gate 4: wiring gate B, judge-part mean F1 for baseline and gate_flat4_prox21 ---
-    _require_file(MIXED_EVAL_JUDGE_CSV)
-    judge_ref = pd.read_csv(MIXED_EVAL_JUDGE_CSV)
-    if judge_ref.lang.tolist() != langs:
-        raise RuntimeError(f"{MIXED_EVAL_JUDGE_CSV} language order does not match "
-                           "the canonical language list")
-    stats_judge_gate = {c: _per_lang_stats(preds[c][judge_idx], yj, n_lang)
-                        for c in GATE_B_CONFIGS}
     gate_b_diffs = {}
-    for c in GATE_B_CONFIGS:
-        f1_vec = stats_judge_gate[c][2]
-        vec_diff = float(np.abs(f1_vec - judge_ref[f"f1_{c}"].values).max())
-        if vec_diff > GATE_B_TOL:
-            raise RuntimeError(f"wiring gate B failed for {c}: max per-language "
-                               f"|diff| {vec_diff:.2e} vs {MIXED_EVAL_JUDGE_CSV} "
-                               f"(tol {GATE_B_TOL:.0e})")
-        recomputed_mean = float(f1_vec.mean())
-        anchor = GATE_B_ANCHORS[c]
-        anchor_diff = abs(recomputed_mean - anchor)
-        if anchor_diff > GATE_B_ANCHOR_TOL:
-            raise RuntimeError(f"wiring gate B failed for {c}: recomputed judge-part "
-                               f"mean F1 {recomputed_mean:.6f} vs pre-registered "
-                               f"anchor {anchor} (diff {anchor_diff:.2e}, tol "
-                               f"{GATE_B_ANCHOR_TOL:.0e})")
-        gate_b_diffs[c] = (recomputed_mean, anchor, vec_diff)
-    print("Wiring gate B passed: judge-part per-language F1 matches "
-          f"{MIXED_EVAL_JUDGE_CSV} at {GATE_B_TOL:.0e}, and means match the "
-          "pre-registered anchors: "
-          + ", ".join(f"{c} {r:.6f} (anchor {a})"
-                       for c, (r, a, v) in gate_b_diffs.items()) + ".")
+    fullpool_baseline_f1 = fullpool_baseline_fpr = diff_f1 = diff_fpr = None
+    if gates_on:
+        # --- gate 3: wiring gate A, carried set on the full remainder ---
+        _require_file(carried_csv)
+        carried_df = pd.read_csv(carried_csv)
+        if carried_df.lang.tolist() != langs:
+            raise RuntimeError(f"{carried_csv} language order does not match the "
+                               "canonical language list")
+        for c in CARRIED:
+            f1_here = _per_lang_stats(preds[c][remainder_mask], yr, n_lang)[2]
+            diff = float(np.abs(f1_here - carried_df[f"f1_{c}"].values).max())
+            gate_a_diffs[c] = diff
+            if diff > GATE_A_TOL:
+                raise RuntimeError(f"wiring gate A failed for {c}: max |diff| {diff:.2e} "
+                                   f"vs {carried_csv} (tol {GATE_A_TOL:.0e})")
+        print(f"Wiring gate A passed: full-remainder per-language F1 reproduces "
+              f"{carried_csv} for all {len(CARRIED)} carried configs (max diff "
+              f"{max(gate_a_diffs.values()):.2e}).")
 
-    # --- gate 5: wiring gate C, full-pool baseline reproduces the Exp 16 numbers ---
-    prec_b, rec_b, f1_b, tp_b, fp_b, fn_b = _per_lang_stats(
-        preds["baseline"][kept], yk, n_lang)
-    fullpool_baseline_f1 = float(f1_b.mean())
-    diff_f1 = abs(fullpool_baseline_f1 - GATE_C_F1_RECORDED)
-    if diff_f1 > GATE_C_F1_TOL:
-        raise RuntimeError(f"wiring gate C failed: full-pool baseline macro F1 "
-                           f"{fullpool_baseline_f1:.6f} vs recorded "
-                           f"{GATE_C_F1_RECORDED} (diff {diff_f1:.2e}, tol "
-                           f"{GATE_C_F1_TOL:.0e})")
-    support_fullpool = np.bincount(yk, minlength=n_lang).astype(float)
-    fpr_b = _macro_fpr(fp_b, support_fullpool, n_kept)
-    fullpool_baseline_fpr = float(fpr_b.mean())
-    diff_fpr = abs(fullpool_baseline_fpr - GATE_C_FPR_RECORDED)
-    if diff_fpr > GATE_C_FPR_TOL:
-        raise RuntimeError(f"wiring gate C failed: full-pool baseline macro FPR "
-                           f"{fullpool_baseline_fpr:.8f} vs recorded "
-                           f"{GATE_C_FPR_RECORDED} (diff {diff_fpr:.2e}, tol "
-                           f"{GATE_C_FPR_TOL:.0e})")
-    print(f"Wiring gate C passed: full-pool baseline macro F1 "
-          f"{fullpool_baseline_f1:.6f} (recorded {GATE_C_F1_RECORDED}), macro FPR "
-          f"{fullpool_baseline_fpr:.8f} (recorded {GATE_C_FPR_RECORDED}).")
+        # --- gate 4: wiring gate B, judge-part mean F1 for baseline and gate_flat4_prox21 ---
+        _require_file(mixed_eval_judge_csv)
+        judge_ref = pd.read_csv(mixed_eval_judge_csv)
+        if judge_ref.lang.tolist() != langs:
+            raise RuntimeError(f"{mixed_eval_judge_csv} language order does not match "
+                               "the canonical language list")
+        stats_judge_gate = {c: _per_lang_stats(preds[c][judge_idx], yj, n_lang)
+                            for c in GATE_B_CONFIGS}
+        for c in GATE_B_CONFIGS:
+            f1_vec = stats_judge_gate[c][2]
+            vec_diff = float(np.abs(f1_vec - judge_ref[f"f1_{c}"].values).max())
+            if vec_diff > GATE_B_TOL:
+                raise RuntimeError(f"wiring gate B failed for {c}: max per-language "
+                                   f"|diff| {vec_diff:.2e} vs {mixed_eval_judge_csv} "
+                                   f"(tol {GATE_B_TOL:.0e})")
+            recomputed_mean = float(f1_vec.mean())
+            anchor = GATE_B_ANCHORS[c]
+            anchor_diff = abs(recomputed_mean - anchor)
+            if anchor_diff > GATE_B_ANCHOR_TOL:
+                raise RuntimeError(f"wiring gate B failed for {c}: recomputed judge-part "
+                                   f"mean F1 {recomputed_mean:.6f} vs pre-registered "
+                                   f"anchor {anchor} (diff {anchor_diff:.2e}, tol "
+                                   f"{GATE_B_ANCHOR_TOL:.0e})")
+            gate_b_diffs[c] = (recomputed_mean, anchor, vec_diff)
+        print("Wiring gate B passed: judge-part per-language F1 matches "
+              f"{mixed_eval_judge_csv} at {GATE_B_TOL:.0e}, and means match the "
+              "pre-registered anchors: "
+              + ", ".join(f"{c} {r:.6f} (anchor {a})"
+                           for c, (r, a, v) in gate_b_diffs.items()) + ".")
+
+        # --- gate 5: wiring gate C, full-pool baseline reproduces the Exp 16 numbers ---
+        prec_b, rec_b, f1_b, tp_b, fp_b, fn_b = _per_lang_stats(
+            preds["baseline"][kept], yk, n_lang)
+        fullpool_baseline_f1 = float(f1_b.mean())
+        diff_f1 = abs(fullpool_baseline_f1 - GATE_C_F1_RECORDED)
+        if diff_f1 > GATE_C_F1_TOL:
+            raise RuntimeError(f"wiring gate C failed: full-pool baseline macro F1 "
+                               f"{fullpool_baseline_f1:.6f} vs recorded "
+                               f"{GATE_C_F1_RECORDED} (diff {diff_f1:.2e}, tol "
+                               f"{GATE_C_F1_TOL:.0e})")
+        support_fullpool = np.bincount(yk, minlength=n_lang).astype(float)
+        fpr_b = _macro_fpr(fp_b, support_fullpool, n_kept)
+        fullpool_baseline_fpr = float(fpr_b.mean())
+        diff_fpr = abs(fullpool_baseline_fpr - GATE_C_FPR_RECORDED)
+        if diff_fpr > GATE_C_FPR_TOL:
+            raise RuntimeError(f"wiring gate C failed: full-pool baseline macro FPR "
+                               f"{fullpool_baseline_fpr:.8f} vs recorded "
+                               f"{GATE_C_FPR_RECORDED} (diff {diff_fpr:.2e}, tol "
+                               f"{GATE_C_FPR_TOL:.0e})")
+        print(f"Wiring gate C passed: full-pool baseline macro F1 "
+              f"{fullpool_baseline_f1:.6f} (recorded {GATE_C_F1_RECORDED}), macro FPR "
+              f"{fullpool_baseline_fpr:.8f} (recorded {GATE_C_FPR_RECORDED}).")
+    else:
+        # Waived (a non-default model, stated with --waive-released-model-gates).
+        # Nothing above is read; the full-pool support vector the tables below need
+        # is a property of y_true alone, so it is computed here instead.
+        support_fullpool = np.bincount(yk, minlength=n_lang).astype(float)
+        print("Wiring gates A, B and C WAIVED: their reference CSVs and recorded "
+              f"values were produced by {ctx.default_model_path}, and this run "
+              f"scores {ctx.model_path}. Gates 1-2 above still ran.")
 
     # --- per-config per-instrument per-language stats ---
     stats_fullpool = {c: _per_lang_stats(preds[c][kept], yk, n_lang) for c in configs}
@@ -389,6 +566,21 @@ def run(configs=CONFIGS, out_md: str = OUT_MD) -> str:
         f"{JUDGE_INSTRUMENT}. No delta pairs terms from different line sets.\n",
         "## Gates passed\n",
     ]
+    if not ctx.is_default_model:
+        # Only a non-default model adds this block, so a default run's report is
+        # byte-for-byte what it was before --model existed.
+        L[1:1] = [
+            "**NON-DEFAULT MODEL RUN.** Every number below was computed from "
+            f"`{ctx.model_path}`, scored into `{ctx.scratch_dir}`, and written under "
+            f"`{out_root}`. It is NOT the released model "
+            f"(`{ctx.default_model_path}`) and these cells must not be compared "
+            "term-by-term with the released model's tables, which come from a "
+            "different scoring run. Wiring gates A, B and C were waived "
+            "(--waive-released-model-gates): their reference CSVs and their "
+            "pre-registered anchors are released-model measurements that cannot be "
+            "regenerated for this model. Gates 1 and 2 (canonical language order, "
+            "seed-301 rule split re-derived from this run's own y_true) did run.\n",
+        ]
     L.append(f"- Language order: _load_model_data's {n_lang:,}-language list matches "
              f"the lang column of {PRF_CSV}.")
     L.append(f"- y_true memmap shape {tuple(int(x) for x in y.shape)} matches "
@@ -402,20 +594,29 @@ def run(configs=CONFIGS, out_md: str = OUT_MD) -> str:
              f"(EXPECTED_DERIVATION {EXPECTED_DERIVATION:,}), judge part "
              f"{len(judge_idx):,} lines (EXPECTED_JUDGE {EXPECTED_JUDGE:,}); matches "
              f"the split recorded at {SPLIT_PATH}.")
-    L.append(f"- Wiring gate A (full-remainder per-language F1 vs {CARRIED_CSV}): "
-             f"max absolute difference {max(gate_a_diffs.values()):.2e} over "
-             f"{len(CARRIED)} carried configs (tol {GATE_A_TOL:.0e}). Per-config: "
-             + ", ".join(f"{c} {d:.2e}" for c, d in gate_a_diffs.items()) + ".")
-    L.append(f"- Wiring gate B (judge-part mean F1 vs {MIXED_EVAL_JUDGE_CSV}, tol "
-             f"{GATE_B_TOL:.0e}): "
-             + "; ".join(f"{c} recomputed {r:.6f} vs csv {m:.6f} (diff {d:.2e})"
-                         for c, (r, m, d) in gate_b_diffs.items()) + ".")
-    L.append(f"- Wiring gate C (full-pool baseline reproduces the Exp 16 recorded "
-             f"values): macro F1 {fullpool_baseline_f1:.6f} vs recorded "
-             f"{GATE_C_F1_RECORDED} (diff {diff_f1:.2e}, tol {GATE_C_F1_TOL:.0e}); "
-             f"macro FPR {fullpool_baseline_fpr:.8f} vs recorded "
-             f"{GATE_C_FPR_RECORDED} (diff {diff_fpr:.2e}, tol "
-             f"{GATE_C_FPR_TOL:.0e}).")
+    if gates_on:
+        L.append(f"- Wiring gate A (full-remainder per-language F1 vs {carried_csv}): "
+                 f"max absolute difference {max(gate_a_diffs.values()):.2e} over "
+                 f"{len(CARRIED)} carried configs (tol {GATE_A_TOL:.0e}). Per-config: "
+                 + ", ".join(f"{c} {d:.2e}" for c, d in gate_a_diffs.items()) + ".")
+        L.append(f"- Wiring gate B (judge-part mean F1 vs {mixed_eval_judge_csv}, tol "
+                 f"{GATE_B_TOL:.0e}): "
+                 + "; ".join(f"{c} recomputed {r:.6f} vs csv {m:.6f} (diff {d:.2e})"
+                             for c, (r, m, d) in gate_b_diffs.items()) + ".")
+        L.append(f"- Wiring gate C (full-pool baseline reproduces the Exp 16 recorded "
+                 f"values): macro F1 {fullpool_baseline_f1:.6f} vs recorded "
+                 f"{GATE_C_F1_RECORDED} (diff {diff_f1:.2e}, tol {GATE_C_F1_TOL:.0e}); "
+                 f"macro FPR {fullpool_baseline_fpr:.8f} vs recorded "
+                 f"{GATE_C_FPR_RECORDED} (diff {diff_fpr:.2e}, tol "
+                 f"{GATE_C_FPR_TOL:.0e}).")
+    else:
+        L.append(f"- Wiring gates A, B and C: WAIVED. Gate A's reference "
+                 f"({carried_csv}), gate B's reference ({mixed_eval_judge_csv}) and "
+                 f"its anchors {GATE_B_ANCHORS}, and gate C's recorded "
+                 f"{GATE_C_F1_RECORDED} / {GATE_C_FPR_RECORDED} are all measurements "
+                 f"of {ctx.default_model_path}; none of them was read or compared "
+                 f"against while scoring {ctx.model_path}. The seven CARRIED "
+                 "prediction memmaps gate A needs were likewise not loaded.")
 
     L.append("\nSentinel guard: zero UNSEEN/EXCLUDED values on the kept pool for "
              "every loaded memmap. EMPTY (-1) counts on the kept pool: "
@@ -526,15 +727,29 @@ def run(configs=CONFIGS, out_md: str = OUT_MD) -> str:
     return out_md
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(
         description="Camera-ready E1 evaluation: baseline, gate_flat4_prox21, "
                     "fastText on the full kept pool and the judge part.")
     parser.add_argument("--configs", nargs="+", default=list(CONFIGS),
                         help="override the evaluated config set (default: all "
                              f"three E1 configs: {', '.join(CONFIGS)})")
-    args = parser.parse_args()
-    run(tuple(args.configs))
+    parser.add_argument("--out-dir", default=None,
+                        help="root for the tables/ and diagnostic/ files this "
+                             f"script writes and reads back (default: "
+                             f"{DEFAULT_OUT_ROOT}); required, and required to be "
+                             "outside the default root, when --model is not the "
+                             "released model")
+    add_arguments(parser)
+    parser.add_argument("--waive-released-model-gates", action="store_true",
+                        help="state that wiring gates A, B and C are skipped "
+                             "because they are released-model measurements. Only "
+                             "accepted together with a non-default --model; without "
+                             "it a non-default model refuses to run.")
+    args = parser.parse_args(argv)
+    run(tuple(args.configs), model_path=args.model_path,
+        scratch_dir=args.scratch_dir, out_dir=args.out_dir,
+        waive_released_model_gates=args.waive_released_model_gates)
 
 
 if __name__ == "__main__":

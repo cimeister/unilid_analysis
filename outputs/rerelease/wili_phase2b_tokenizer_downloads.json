@@ -1,0 +1,118 @@
+{
+  "downloaded_utc": "2026-08-23T11:50:48.433788+00:00",
+  "note": "Author-designated candidate tokenizers for the WiLI Phase 2b rows. UNCONFIRMED against the tokenizers the published models actually used: the HuggingFace cache held only dangling symlinks, so it is not evidence. Revisions are the repositories' current main as resolved by the HF API on the download date; both meta-llama repos are gated (gated=manual) and were downloaded with the HF_TOKEN in the environment.",
+  "models": {
+    "Mistral-7B-v0.2": {
+      "repo": "mistral-community/Mistral-7B-v0.2",
+      "revision": "80cf49b18de6354fd8a6d1e81c177dd830e05eea",
+      "gated": false,
+      "local_dir": "/capstor/scratch/cscs/cmeister747/unilid_analysis/hf_tokenizers/Mistral-7B-v0.2",
+      "files": {
+        "config.json": {
+          "bytes": 596,
+          "sha256": "375f7c2d4c5cfcda3cb68425a1881e228a219a523beea9d4f2dbb37e2771b876"
+        },
+        "special_tokens_map.json": {
+          "bytes": 414,
+          "sha256": "6fa06efa2785e450051989a6f8fb4416b10149ded485ddd3f127a40734f5cfd0"
+        },
+        "tokenizer.json": {
+          "bytes": 1795303,
+          "sha256": "fc4f0bd70b3709312d9d1d9e5ba674794b6bc5abc17429897a540f93882f25fc"
+        },
+        "tokenizer_config.json": {
+          "bytes": 960,
+          "sha256": "51a9fb33d4a4352c1d127a62c3ffcd9db01f6fb1a8d0e4a8e739ada14978347a"
+        }
+      },
+      "tokenizer_model_type": "BPE",
+      "tokenizer_model_vocab_entries": 32000,
+      "tokenizer_added_tokens": 3,
+      "config_vocab_size": 32000,
+      "converted_base": {
+        "path": "/capstor/scratch/cscs/cmeister747/unilid_analysis/results_mistral7b_v02_wili_fp64/tokenizers/langspec_base_tokenizer.json",
+        "vocab_size": 32001,
+        "sha256": "1e59ff82a41f50fdc398996662bd29f1e4ec60e11aac18f28602054cc2b5caa3",
+        "specials_appended": [
+          "<pad>"
+        ]
+      },
+      "plan_discrepancy": "The plan's Phase 2 table expects 32,768 entries for mistral-community/Mistral-7B-v0.2. Measured 32,000. The 32,768-entry Mistral release is v0.3, a different repository. The plan's conclusion (this is not Mistral-Nemo) survives; its expected number does not. Which repository the published \\unilid-Mistral row used is an open question for the author."
+    },
+    "Llama-3.2-1B": {
+      "repo": "meta-llama/Llama-3.2-1B",
+      "revision": "4e20de362430cd3b72f300e6b0f18e50e7166e08",
+      "gated": true,
+      "local_dir": "/capstor/scratch/cscs/cmeister747/unilid_analysis/hf_tokenizers/Llama-3.2-1B",
+      "files": {
+        "config.json": {
+          "bytes": 843,
+          "sha256": "bfb5d39c327ee5c3a65e3574596ff30b052a445cfc59a25bdf3b4c0c5a44f4d2"
+        },
+        "special_tokens_map.json": {
+          "bytes": 301,
+          "sha256": "cc2e013b7545f183ef03e079a3c91c6f364fa37e4068c512d7dd843e59024535"
+        },
+        "tokenizer.json": {
+          "bytes": 9085657,
+          "sha256": "79e3e522635f3171300913bb421464a87de6222182a0570b9b2ccba2a964b2b4"
+        },
+        "tokenizer_config.json": {
+          "bytes": 50500,
+          "sha256": "8004530facf809ac432114de2a4dcc65fcb632da5ec16d666091aeb6a2ee444a"
+        }
+      },
+      "tokenizer_model_type": "BPE",
+      "tokenizer_model_vocab_entries": 128000,
+      "tokenizer_added_tokens": 256,
+      "config_vocab_size": 128256,
+      "converted_base": {
+        "path": "/capstor/scratch/cscs/cmeister747/unilid_analysis/results_llama32_1b_wili_fp64/tokenizers/langspec_base_tokenizer.json",
+        "vocab_size": 128260,
+        "sha256": "52773b2470a130d50c4b7556d626005b531af47ed88a0578ad989485c5744703",
+        "specials_appended": [
+          "<s>",
+          "</s>",
+          "<pad>",
+          "<unk>"
+        ]
+      }
+    },
+    "Llama-2-7b-hf": {
+      "repo": "meta-llama/Llama-2-7b-hf",
+      "revision": "01c7f73d771dfac7d292323805ebc428287df4f9",
+      "gated": true,
+      "local_dir": "/capstor/scratch/cscs/cmeister747/unilid_analysis/hf_tokenizers/Llama-2-7b-hf",
+      "files": {
+        "config.json": {
+          "bytes": 609,
+          "sha256": "9242e7db1bc2a17873e66084c3b1c6ed10883076e156b338fd6a7775748e2e3c"
+        },
+        "special_tokens_map.json": {
+          "bytes": 414,
+          "sha256": "6fa06efa2785e450051989a6f8fb4416b10149ded485ddd3f127a40734f5cfd0"
+        },
+        "tokenizer.json": {
+          "bytes": 1842767,
+          "sha256": "bcd04f0eadf90287bd26e1a183ac487d8a141b09b06aecb7725bbdd343640f2e"
+        },
+        "tokenizer_config.json": {
+          "bytes": 776,
+          "sha256": "f514e7c3008881b6ba7e6a0cdb44c71ce47dc335920dac143ae7bc788197e53a"
+        }
+      },
+      "tokenizer_model_type": "BPE",
+      "tokenizer_model_vocab_entries": 32000,
+      "tokenizer_added_tokens": 3,
+      "config_vocab_size": 32000,
+      "converted_base": {
+        "path": "/capstor/scratch/cscs/cmeister747/unilid_analysis/results_llama2_7b_wili_fp64/tokenizers/langspec_base_tokenizer.json",
+        "vocab_size": 32001,
+        "sha256": "1854d6e5f032718cade57c340dde0c25edaf29230b27f9ecf5365c9331a56975",
+        "specials_appended": [
+          "<pad>"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "scope": "model-langs",
+  "n_lines_in_file": 13101022,
+  "total_samples": 11848300,
+  "n_languages_scored": 201,
+  "n_empty_after_preprocess": 0,
+  "n_rows_outside_model_label_set": 1252722,
+  "n_gold_labels_outside_model_label_set": 227,
+  "accuracy": 0.7658063182059873,
+  "macro_f1": 0.40303028239498706,
+  "macro_fpr": 0.0009910309622266499,
+  "elapsed_s": 321.13390254974365,
+  "bench": "tatoeba",
+  "model": "/capstor/scratch/cscs/cmeister747/unilid_analysis/wili_assets/qwen3_8b_wili.unilid",
+  "model_name": "qwen3_8b_wili",
+  "source": "/capstor/scratch/cscs/cmeister747/unilid_analysis/wili_assets/tatoeba/tatoeba_full.txt",
+  "limit": null,
+  "tatoeba_split": "full"
+}

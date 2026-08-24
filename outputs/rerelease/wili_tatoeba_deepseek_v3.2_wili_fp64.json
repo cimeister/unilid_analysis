@@ -1,0 +1,19 @@
+{
+  "scope": "model-langs",
+  "n_lines_in_file": 13101022,
+  "total_samples": 11848300,
+  "n_languages_scored": 201,
+  "n_empty_after_preprocess": 0,
+  "n_rows_outside_model_label_set": 1252722,
+  "n_gold_labels_outside_model_label_set": 227,
+  "accuracy": 0.7695811213423023,
+  "macro_f1": 0.4033585033327052,
+  "macro_fpr": 0.0009768892295033379,
+  "elapsed_s": 289.9470624923706,
+  "bench": "tatoeba",
+  "model": "/capstor/scratch/cscs/cmeister747/unilid_analysis/deepseek_v3.2_wili_fp64.unilid",
+  "model_name": "deepseek_v3.2_wili_fp64",
+  "source": "/capstor/scratch/cscs/cmeister747/unilid_analysis/wili_assets/tatoeba/tatoeba_full.txt",
+  "limit": null,
+  "tatoeba_split": "full"
+}

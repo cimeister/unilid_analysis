@@ -1,0 +1,20 @@
+[
+  {
+    "model": "/capstor/scratch/cscs/cmeister747/unilid_analysis/llama32_1b_wili_fp64.unilid",
+    "n_languages": 235,
+    "vocab_size": 128260,
+    "special_columns": [
+      128256,
+      128257,
+      128258,
+      128259
+    ],
+    "special_mass_min": 3.999998465179331e-12,
+    "special_mass_max": 3.999998465179331e-12,
+    "real_mass_min": 0.9999999182880754,
+    "real_mass_max": 1.000000108440137,
+    "plateau_min": -16.676959991455078,
+    "plateau_max": -12.945372581481934,
+    "defect_present": false
+  }
+]

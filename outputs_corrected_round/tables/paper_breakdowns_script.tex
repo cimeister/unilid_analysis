@@ -1,0 +1,25 @@
+% NON-DEFAULT MODEL: regenerated from /capstor/scratch/cscs/cmeister747/unilid_analysis/corrected/glotlidc_corrected.unilid
+%   predictions: /capstor/scratch/cscs/cmeister747/unilid_analysis/full_test_eval_corrected
+%   NOT the released model (/capstor/scratch/cscs/cmeister747/unilid_analysis/glotlidc.unilid); these cells are
+%   NOT the paper/submission.tex published numbers.
+\begin{table}[htbp]
+\centering
+\small
+\begin{tabular}{lrrrrrrr}
+\toprule
+\textbf{Script} & \textbf{# Langs} & \textbf{baseline (global)} & \textbf{gate-flat4-prox21 (global)} & \textbf{fastText (global)} & \textbf{baseline (within-stratum)} & \textbf{gate-flat4-prox21 (within-stratum)} & \textbf{fastText (within-stratum)} \\
+\midrule
+Latn & 1,700 & 0.944 & 0.966 & 0.946 & 0.944 & 0.966 & 0.946 \\
+Cyrl & 70 & 0.874 & 0.922 & 0.968 & 0.880 & 0.922 & 0.970 \\
+Arab & 38 & 0.691 & 0.745 & 0.747 & 0.693 & 0.745 & 0.747 \\
+Deva & 32 & 0.811 & 0.871 & 0.931 & 0.811 & 0.871 & 0.932 \\
+Beng & 6 & 0.879 & 0.947 & 0.984 & 0.879 & 0.947 & 0.985 \\
+Grek & 4 & 0.674 & 0.747 & 0.925 & 0.675 & 0.747 & 0.925 \\
+Hebr & 4 & 0.694 & 0.770 & 0.967 & 0.738 & 0.771 & 0.967 \\
+Armn & 2 & 0.972 & 0.972 & 0.986 & 0.972 & 0.972 & 0.986 \\
+Other & 84 & 0.935 & 0.946 & 0.972 & 0.938 & 0.946 & 0.973 \\
+\bottomrule
+\end{tabular}
+\caption{Camera-ready script breakdown, both views (global = per-language F1 with all false positives counted; within-stratum = examples restricted to true labels in the group, cross-group false positives excluded; full kept pool, 45,377,279 lines). Uses the full 1,940-language basis (all 84 Other languages); the paper's original basis excluded jpn-Jpan and kor-Hang from Other.}
+\label{tab:paper_breakdowns_script}
+\end{table}

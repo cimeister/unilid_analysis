@@ -176,7 +176,88 @@ FLOOR_TARGET, MARGIN_Q, CALIB_MAX, CALIB_SEED, MIN_CALIB_LINES, TOPK_MARGIN,
 ZH_MAGNET, ZH_EXTREME, MAGNET_RATIO_MIN, BOOT_B, BOOT_SEED, the seed-301
 split constants) is IMPORTED from its origin module, never re-typed as a
 literal here.
+
+Which model this scores, where it writes, and at what floor (2026-08-23):
+--model / --scratch-dir / --base-scratch / --out-dir / --floor-target, resolved
+through analysis.model_context by configure(). With no flags nothing changes:
+this chain's own packed model, its own scratch root, the outputs/ tree and
+FLOOR_TARGET = analysis.full_test_floor21.FLOOR_TARGET, byte for byte as before.
+See the input inventory below for what a non-default model moves and what it
+deliberately does not.
 """
+# ---------------------------------------------------------------------------
+# INPUT INVENTORY (checked line by line 2026-08-23, following
+# analysis/paper_eval.py's own precedent; the classification is what a
+# non-default --model changes and what it must not).
+#
+# (a) MODEL-DERIVED -- must come from the run's own model / scratch root /
+#     output root, and must abort naming the artifact when it is absent there:
+#       - PACKED_MODEL_PATH, the .unilid file itself                [--model]
+#       - everything under SCRATCH_DIR_NEMO: the three prediction memmaps, the
+#         baseline/calibval/floor-21/top-k fingerprints, the progress files and
+#         the per-chunk top-k banking       [--scratch-dir, via resolve()]
+#       - <out-root>/diagnostic/mistralnemo_flat_set.csv, both tau CSVs, and
+#         the four reports/tables this module writes. The flat set is recomputed
+#         from THIS model's weight matrix, the tau values are calibrated under
+#         THIS model's floor-21 matrix, and the tables are this model's numbers;
+#         all nine move with --out-dir       [--out-dir, via resolve_out_root()]
+#       - <out-root>/tables/degenerate_rows_mistralnemo.md (DEGENERACY_OUT_MD),
+#         READ by the eval stage for the degeneracy caveat. It is a scan of the
+#         packed model's own weight rows, so it is model-derived and moves with
+#         --out-dir; analysis/degeneracy_scan_mistralnemo.py must be run for the
+#         run's own model first. It is NEVER read from the released tree while a
+#         different model is scored: the eval stage aborts naming the missing
+#         path instead.
+#       - FLOOR_TARGET, the floor-21 clamp constant. Not a file, but the same
+#         hazard: a measured per-model selection whose module default belongs to
+#         the released chain, so a non-default model must state it explicitly
+#         (--floor-target) and it is cross-checked against the record that
+#         selected it                                       [--floor-target]
+#
+# (b) CORPUS-DERIVED / MODEL-INVARIANT -- keeps its shared location under a
+#     non-default model, each with the reason it cannot carry model information:
+#       - <base-scratch>/y_true.npy: the label index per test line, a property of
+#         the test file and the canonical language order, not of any model
+#         (verified bit-identical between the released and corrected base runs
+#         over all 45,627,279 entries, 2026-08-18). --base-scratch moves it
+#         anyway so a corrected run reads nothing from the released tree.
+#       - VAL_MASK (outputs/diagnostic/val_mask.npy): the position-parity mask
+#         over the seed-42 500k sample. Re-derived here from DEFAULT_SAMPLE_SIZE
+#         and required to match bit-for-bit before use (_val_lines_sorted), so a
+#         divergence aborts rather than importing another run's split.
+#       - DRAW_DIR/val_lines_seed{101,201}.npy: line-index draws over the test
+#         file, drawn from the corpus by analysis/balanced_split.py.
+#       - SPLIT_PATH (rule_split_seed301.npz, under the RELEASED base model's
+#         scratch root and not moved by --base-scratch): re-derived in
+#         _load_judge_split from THIS run's own kept pool plus the two draws and
+#         RULE_SPLIT_SEED/RULE_SPLIT_FRACTION, and required to match
+#         bit-for-bit before use, so it cannot import the released run's line set.
+#       - CORPUS_DIR/{lang}_train.txt (analysis.margin_diagnostic): the training
+#         corpus the tau stage calibrates own-train margins on.
+#       - analysis.transfer_sweep._load_train_counts(): per-language TRAINING
+#         line counts, a corpus property.
+#       - _canonical_langs(): the BASE model's language order, deliberately the
+#         base model's, because it is the order y_true.npy's indices are aligned
+#         to; the variant's own order is then required to be identical position
+#         for position (_verify_variant_langs) or the run aborts.
+#
+# (c) CONFIG CONSTANTS: HEAD_N, RES_CAP, D3_PROX, MARGIN_Q, CALIB_MAX,
+#     CALIB_SEED, MIN_CALIB_LINES, TOPK_MARGIN, ZH_MAGNET, ZH_EXTREME,
+#     MAGNET_RATIO_MIN, BOOT_B, BOOT_SEED, the seed-301 split sizes, TOTAL_LINES,
+#     EXPECTED_KEPT. Per the E3 pre-registration these transfer UNCHANGED to any
+#     variant (the no-refitting transfer test), so they are not per-model.
+#     PAPER_MISTRALNEMO_F1_FULLPOOL / _FPR_FULLPOOL are the exception: they are
+#     the paper team's own Mistral-Nemo cell, compared against as a recorded
+#     measurement, never as a gate.
+#
+# NOT READ, here or transitively: PRF_CSV, outputs/diagnostic/lang_diagnostic.csv
+# (read by analysis/degeneracy_scan_mistralnemo.py, not by this module), and no
+# artifact of the base model's own gate chain (pred_floor21*.npy,
+# fingerprint_floor21.json, gate_topk_*.npy, tau_flat4.csv) -- this module builds
+# and calibrates its own floor-21 matrix and its own tau CSVs from scratch. The
+# ONE exception is the read-only floor-target cross-check below, which opens
+# <base-scratch>/fingerprint_floor21.json for its `floor_target` field alone.
+# ---------------------------------------------------------------------------
 from __future__ import annotations
 
 import argparse
@@ -198,12 +279,14 @@ from analysis.config import DEFAULT_SAMPLE_SIZE, TEST_FILE, TOTAL_LINES
 from analysis.diagnostic import (MAGNET_RATIO_MIN, ZH_EXTREME, ZH_MAGNET,
                                  _empirical_magnet, _probs_and_logprobs)
 from analysis.external_bench_eval import _gate_walk_and_merge
-from analysis.floor_equalization import build_equalized_weights
+from analysis.floor_equalization import (build_equalized_weights,
+                                         _special_columns,
+                                         verify_one_sided_clamp)
 from analysis.format_utils import to_latex, to_markdown
 from analysis.full_test_eval import (CHUNK_LINES, EMPTY, EXCLUDED, SCRATCH_DIR
                                      as BASE_SCRATCH, UNSEEN, _parse_line,
                                      _sample_line_indices)
-from analysis.full_test_floor21 import FLOOR_TARGET
+from analysis.full_test_floor21 import FLOOR_TARGET as DEFAULT_FLOOR_TARGET
 from analysis.full_test_margin import HEAD_N
 from analysis.gate_variants import (D3_PROX, SCORE_BATCH_MAX, _load_tau_csv,
                                     _read_wanted_lines)
@@ -216,6 +299,8 @@ from analysis.mistralnemo_constants import (DEGENERACY_OUT_MD,
                                             EXPECTED_TOKENIZER_SHA256,
                                             PACKED_MODEL_PATH, SNAPSHOT_HASH,
                                             TOKENIZER_JSON)
+from analysis.model_context import (DEFAULT_OUT_ROOT, UnsafeModelContext,
+                                    add_arguments, resolve, resolve_out_root)
 from analysis.paper_eval import (FPR_HEADER, FPR_SCALE, FULLPOOL_INSTRUMENT,
                                  JUDGE_INSTRUMENT, _macro_fpr)
 from analysis.sample_data import load_sample
@@ -288,22 +373,137 @@ PRED_NEMO_GATED = os.path.join(SCRATCH_DIR_NEMO, "pred_nemo_gated.npy")
 # packed model and root, not the base model's, so the ordinary invocation is
 # unaffected.
 # ---------------------------------------------------------------------------
+# The same hazard has two more axes, both fixed here:
+#
+#   * the nine repo-side artifacts below were bare "outputs/..." literals. Those
+#     nine files are the RELEASED model's E3 record and outputs/tables/
+#     mistralnemo_eval.md is cited by paper/tables/calibrated_nemo.tex, so the
+#     flatrule/tau/eval stages would have overwritten the published record in
+#     place for any --model. They now resolve under an --out-dir routed through
+#     analysis.model_context.resolve_out_root, which refuses a non-default model
+#     paired with the default root, anything inside it, or a store-backed root.
+#
+#   * FLOOR_TARGET was imported from analysis.full_test_floor21 and used
+#     unchanged by the tau/topk/eval stages. That module constant (-21.0) is the
+#     RELEASED chain's guard-selected value; the corrected chain's own round-grid
+#     sweep selected a different one (-17.0, recorded in
+#     full_test_eval_corrected/fingerprint_floor21.json, 2026-08-18). A corrected
+#     run would therefore have built and calibrated against the wrong clamp and
+#     produced floor-21/gated numbers indistinguishable in the tables from a
+#     correctly-targeted run. It is now --floor-target, mandatory for a
+#     non-default model and cross-checked against the record that selected it.
+# ---------------------------------------------------------------------------
 DEFAULT_PACKED_MODEL_PATH = PACKED_MODEL_PATH
 DEFAULT_SCRATCH_DIR_NEMO = SCRATCH_DIR_NEMO
 DEFAULT_BASE_SCRATCH = BASE_SCRATCH
 
+# The floor-21 clamp target actually in force. Rebound by configure(); the
+# imported DEFAULT_FLOOR_TARGET stays the released chain's own value and is what
+# a run with no --floor-target gets, so the default run is unchanged. It is a
+# module global rather than a parameter threaded through the stage functions for
+# the same reason PACKED_MODEL_PATH/SCRATCH_DIR_NEMO are: every stage entry point
+# in this module takes no arguments and reads its configuration from globals.
+FLOOR_TARGET = DEFAULT_FLOOR_TARGET
+
+# The base model's floor-21 fingerprint, by name only. Read for exactly one
+# field (`floor_target`) by _resolve_floor_target, to cross-check the value a run
+# was given against the record of the sweep that selected it.
+BASE_FLOOR21_FP_NAME = "fingerprint_floor21.json"
+
+
+def _resolve_floor_target(ctx, floor_target: float = None,
+                          base_scratch: str = None) -> float:
+    """The floor-21 clamp target this run builds and calibrates at.
+
+    The module default is the RELEASED chain's guard-selected -21.0. It is not a
+    universal constant: it is a per-model measured selection, and the corrected
+    base model's own round-grid sweep selected -17.0. So:
+
+      * the default model keeps the module default (nothing changes);
+      * any other model MUST state the value, because inheriting the released
+        chain's constant would produce floor-21 and gated numbers for the wrong
+        clamp, indistinguishable in the output tables from a correct run;
+      * whenever --base-scratch is given, the value is cross-checked against the
+        `floor_target` recorded in that root's own fingerprint_floor21.json, the
+        record of the sweep that selected it. A mismatch names both numbers and
+        aborts; a missing fingerprint aborts too for a non-default model, rather
+        than proceeding on an unverified constant.
+    """
+    if floor_target is None:
+        if not ctx.is_default_model:
+            raise UnsafeModelContext(
+                f"refusing to run {ctx.model_path} without an explicit "
+                f"--floor-target.\n"
+                f"  module default: {DEFAULT_FLOOR_TARGET} "
+                f"(analysis.full_test_floor21.FLOOR_TARGET)\n"
+                "That default is the RELEASED chain's guard-selected clamp, not "
+                "a universal constant: the floor target is a measured "
+                "per-model selection (the corrected base model's own round-grid "
+                "sweep selected -17.0, recorded in its "
+                f"{BASE_FLOOR21_FP_NAME}). Building this variant's floor-21 "
+                "matrix at the released chain's value would produce floor-21 "
+                "and gated numbers for the wrong clamp that look exactly like "
+                "correct ones in the tables. State the value explicitly.")
+        floor_target = DEFAULT_FLOOR_TARGET
+    floor_target = float(floor_target)
+
+    if base_scratch is None:
+        if not ctx.is_default_model:
+            raise UnsafeModelContext(
+                f"--floor-target {floor_target} was given for "
+                f"{ctx.model_path} with no --base-scratch, so there is nothing "
+                f"to check it against.\n"
+                "The floor target is a measured selection and its record is the "
+                f"base run's own {BASE_FLOOR21_FP_NAME}. Pass --base-scratch "
+                "pointing at that model's base scratch root so the value can be "
+                "verified before any matrix is built.")
+        return floor_target
+
+    fp_path = os.path.join(base_scratch, BASE_FLOOR21_FP_NAME)
+    if not os.path.exists(fp_path):
+        if not ctx.is_default_model:
+            raise UnsafeModelContext(
+                f"cannot verify --floor-target {floor_target} for "
+                f"{ctx.model_path}: {fp_path} does not exist.\n"
+                "That file is the record of the floor sweep that selected the "
+                "value. Run the base model's floor-21 stage against "
+                f"{base_scratch} first, or correct --base-scratch. This run "
+                "will not proceed on an unverified clamp target.")
+        return floor_target
+    with open(fp_path) as f:
+        recorded = json.load(f).get("floor_target")
+    if recorded is None:
+        raise RuntimeError(
+            f"{fp_path} records no floor_target field, so --floor-target "
+            f"{floor_target} cannot be verified against it.")
+    if float(recorded) != floor_target:
+        raise UnsafeModelContext(
+            f"floor-target mismatch against the base run's own record.\n"
+            f"  --floor-target: {floor_target}\n"
+            f"  {fp_path} records floor_target: {float(recorded)}\n"
+            "The floor target is a measured per-model selection; these two "
+            "disagree, so one of them is wrong and this run would build its "
+            "floor-21 matrix at a clamp the base sweep did not select.")
+    return floor_target
+
 
 def configure(model_path: str = None, scratch_dir: str = None,
-              base_scratch: str = None):
-    """Resolve the (packed model, output root) pair and re-derive every path.
+              base_scratch: str = None, out_dir: str = None,
+              floor_target: float = None):
+    """Resolve the (packed model, scratch root, output root, floor target) and
+    re-derive every path.
 
     ``base_scratch`` names the base model's output root, which this chain reads
     y_true.npy from. That array is model-independent (verified 2026-08-18:
     bit-identical between the released and corrected base runs over all
     45,627,279 entries), so the default is safe, but a corrected run should point
-    at its own root so it reads nothing from the released model's directory.
+    at its own root so it reads nothing from the released model's directory. It
+    is also where the floor-target cross-check finds its record.
+
+    ``out_dir`` is the repo-side counterpart of ``scratch_dir``: the nine tables,
+    CSVs and .tex fragments this chain writes, plus the degeneracy scan it reads.
+    ``floor_target`` is the floor-21 clamp; see _resolve_floor_target.
     """
-    from analysis.model_context import resolve
     global PACKED_MODEL_PATH, SCRATCH_DIR_NEMO, BASE_SCRATCH
     global FP_BASELINE_PATH, PROGRESS_BASELINE_PATH, PRED_NEMO_BASELINE
     global FP_CALIBVAL_PATH, CALIBVAL_IDX_PATH, PRED_NEMO_CALIBVAL
@@ -311,6 +511,10 @@ def configure(model_path: str = None, scratch_dir: str = None,
     global CHUNKS_FP_PATH, GATE_TOPK_LINES_NEMO, GATE_TOPK_IDS_NEMO
     global GATE_TOPK_SCORES_NEMO, GATE_TOPK_FP_NEMO
     global PRED_NEMO_FLOOR21, PRED_NEMO_GATED
+    global OUT_ROOT, FLAT_SET_CSV, FLAT_SET_MD, TAU_FLOOR21_NEMO_CSV
+    global TAU_FLAT_NEMO_CSV, TAU_BUILD_MD, OUT_MD, OUT_TEX
+    global OUT_CSV_FULLPOOL, OUT_CSV_JUDGE, DEGENERACY_MD
+    global FLOOR_TARGET
 
     ctx = resolve(model_path, scratch_dir,
                   default_model=DEFAULT_PACKED_MODEL_PATH,
@@ -335,19 +539,78 @@ def configure(model_path: str = None, scratch_dir: str = None,
     GATE_TOPK_FP_NEMO = os.path.join(d, "gate_topk_fingerprint_nemo.json")
     PRED_NEMO_FLOOR21 = os.path.join(d, "pred_nemo_floor21.npy")
     PRED_NEMO_GATED = os.path.join(d, "pred_nemo_gated.npy")
-    print(f"Mistral-Nemo chain against {ctx.describe()}\n  base y_true from {BASE_SCRATCH}", flush=True)
+
+    OUT_ROOT = r = resolve_out_root(ctx, out_dir,
+                                    purpose="Mistral-Nemo variant reporting")
+    FLAT_SET_CSV = out_path("flat_set_csv", r)
+    FLAT_SET_MD = out_path("flat_set_md", r)
+    TAU_FLOOR21_NEMO_CSV = out_path("tau_floor21_csv", r)
+    TAU_FLAT_NEMO_CSV = out_path("tau_flat_csv", r)
+    TAU_BUILD_MD = out_path("tau_build_md", r)
+    OUT_MD = out_path("eval_md", r)
+    OUT_TEX = out_path("eval_tex", r)
+    OUT_CSV_FULLPOOL = out_path("per_lang_fullpool_csv", r)
+    OUT_CSV_JUDGE = out_path("per_lang_judge_csv", r)
+    DEGENERACY_MD = out_path("degeneracy_md", r)
+
+    FLOOR_TARGET = _resolve_floor_target(ctx, floor_target, base_scratch)
+
+    print(f"Mistral-Nemo chain against {ctx.describe()}\n  base y_true from {BASE_SCRATCH}"
+          f"\n  reports {OUT_ROOT}\n  floor target {FLOOR_TARGET}", flush=True)
     return ctx
 
-# Repo-side artifact names (outputs/).
-FLAT_SET_CSV = "outputs/diagnostic/mistralnemo_flat_set.csv"
-FLAT_SET_MD = "outputs/tables/mistralnemo_flat_set.md"
-TAU_FLOOR21_NEMO_CSV = "outputs/diagnostic/tau_mistralnemo_floor21_gate.csv"
-TAU_FLAT_NEMO_CSV = "outputs/diagnostic/tau_mistralnemo_flat.csv"
-TAU_BUILD_MD = "outputs/tables/mistralnemo_tau_build.md"
-OUT_MD = "outputs/tables/mistralnemo_eval.md"
-OUT_TEX = "outputs/tables/mistralnemo_eval.tex"
-OUT_CSV_FULLPOOL = "outputs/diagnostic/mistralnemo_per_lang_f1_fullpool.csv"
-OUT_CSV_JUDGE = "outputs/diagnostic/mistralnemo_per_lang_f1_judge.csv"
+# Repo-side artifact names, stated relative to an output root so that --out-dir
+# moves the whole set together (analysis/paper_eval.py's OUT_REL/out_path
+# precedent). The module-level constants below keep the exact strings they had
+# before --out-dir existed -- os.path.join("outputs", "tables/x.md") is
+# "outputs/tables/x.md" -- because they are printed into the reports themselves.
+OUT_REL = {
+    # Written by "flatrule".
+    "flat_set_csv": "diagnostic/mistralnemo_flat_set.csv",
+    "flat_set_md": "tables/mistralnemo_flat_set.md",
+    # Written by "tau", read back by "topk" and "eval".
+    "tau_floor21_csv": "diagnostic/tau_mistralnemo_floor21_gate.csv",
+    "tau_flat_csv": "diagnostic/tau_mistralnemo_flat.csv",
+    "tau_build_md": "tables/mistralnemo_tau_build.md",
+    # Written by "eval".
+    "eval_md": "tables/mistralnemo_eval.md",
+    "eval_tex": "tables/mistralnemo_eval.tex",
+    "per_lang_fullpool_csv": "diagnostic/mistralnemo_per_lang_f1_fullpool.csv",
+    "per_lang_judge_csv": "diagnostic/mistralnemo_per_lang_f1_judge.csv",
+    # READ, not written, by "eval": analysis/degeneracy_scan_mistralnemo.py's
+    # scan of THIS model's own weight rows. Model-derived, so it sits in the
+    # output root and a run with its own --out-dir looks for its own copy.
+    "degeneracy_md": "tables/degenerate_rows_mistralnemo.md",
+}
+
+
+def out_path(name: str, out_dir: str = None) -> str:
+    """Path of one of this chain's artifacts under `out_dir` (default: outputs/)."""
+    return os.path.join(out_dir or DEFAULT_OUT_ROOT, OUT_REL[name])
+
+
+# analysis.mistralnemo_constants owns the degeneracy scan's path and names it
+# with its own literal; if that literal ever moves, this module's
+# out-root-relative copy would silently point somewhere else under --out-dir.
+# Fail at import instead (analysis/paper_eval.py's gate-A check, same rationale).
+if out_path("degeneracy_md") != DEGENERACY_OUT_MD:
+    raise RuntimeError(
+        f"degeneracy-scan path disagrees: analysis.mistralnemo_constants."
+        f"DEGENERACY_OUT_MD is {DEGENERACY_OUT_MD!r} but this module's "
+        f"out-root-relative form resolves to {out_path('degeneracy_md')!r}; "
+        f"update OUT_REL['degeneracy_md'].")
+
+OUT_ROOT = DEFAULT_OUT_ROOT
+FLAT_SET_CSV = out_path("flat_set_csv")
+FLAT_SET_MD = out_path("flat_set_md")
+TAU_FLOOR21_NEMO_CSV = out_path("tau_floor21_csv")
+TAU_FLAT_NEMO_CSV = out_path("tau_flat_csv")
+TAU_BUILD_MD = out_path("tau_build_md")
+OUT_MD = out_path("eval_md")
+OUT_TEX = out_path("eval_tex")
+OUT_CSV_FULLPOOL = out_path("per_lang_fullpool_csv")
+OUT_CSV_JUDGE = out_path("per_lang_judge_csv")
+DEGENERACY_MD = out_path("degeneracy_md")
 
 # The paper's UniLID-Mistral-Nemo cell, GlotLID-C test (full 1,940-label
 # pool), verified against paper/tables/lid_main.tex ("\unilid-Mistral-Nemo"
@@ -390,6 +653,38 @@ def _git_commit() -> str:
     except (subprocess.CalledProcessError, OSError) as e:
         raise RuntimeError(f"git rev-parse HEAD failed: {e}") from e
     return out.stdout.strip()
+
+
+def _floor_target_provenance() -> str:
+    """Where the floor target in force came from, for the reports that state it.
+    Renders identically to the pre---floor-target text for a default run."""
+    return ("analysis.full_test_floor21" if FLOOR_TARGET == DEFAULT_FLOOR_TARGET
+            else "--floor-target override")
+
+
+def _check_fingerprint_floor_target(fp: dict, path: str) -> None:
+    """The floor-21 matrix a later stage consumes must have been built at the
+    clamp this run is configured for.
+
+    _build_and_fingerprint_floor21_nemo enforces this by whole-dict equality
+    whenever it rebuilds the matrix, but the topk stage's already-finalized early
+    return and the eval stage both read the fingerprint WITHOUT rebuilding, so
+    they check the one field here. For a run whose scratch state and
+    --floor-target agree this is a no-op."""
+    recorded = fp.get("floor_target")
+    if recorded is None:
+        raise RuntimeError(
+            f"{path} records no floor_target field, so the floor-21 matrix it "
+            f"describes cannot be paired with this run's clamp target "
+            f"{FLOOR_TARGET}.")
+    if float(recorded) != float(FLOOR_TARGET):
+        raise RuntimeError(
+            f"floor-target mismatch: {path} records floor_target "
+            f"{float(recorded)}, this run is configured for {FLOOR_TARGET}. "
+            "The floor-21 matrix, the tau values calibrated under it and the "
+            "banked top-k candidates all belong to the recorded clamp; rerun "
+            "the tau/topk stages with the matching --floor-target, or point "
+            "--scratch-dir at the root built for this one.")
 
 
 def _canonical_langs() -> list[str]:
@@ -456,11 +751,16 @@ def _val_lines_sorted() -> np.ndarray:
     return val_lines
 
 
-def _read_degenerate_langs(path: str = DEGENERACY_OUT_MD) -> list[str]:
+def _read_degenerate_langs(path: str = None) -> list[str]:
     """Parses the `lang` column out of analysis/degeneracy_scan_mistralnemo.py's
     own markdown table (`| lang | estimated tokens | script |` rows) rather
     than hardcoding a duplicate list of the 32 flagged codes: the file is the
-    single source of truth."""
+    single source of truth.
+
+    The default is bound at CALL time (DEGENERACY_MD, which configure() re-derives
+    under --out-dir), not at def time: a scan of the model's own weight rows is
+    model-derived, so a non-default model must read its own copy or abort."""
+    path = DEGENERACY_MD if path is None else path
     if not os.path.exists(path):
         raise FileNotFoundError(f"degeneracy scan report missing: {path}")
     langs = []
@@ -940,7 +1240,23 @@ def _build_and_fingerprint_floor21_nemo(langs: list[str]) -> tuple[np.ndarray, s
     W = np.array(weights, dtype=np.float32)
     del weights
 
-    matrix, n_mod = build_equalized_weights(W, FLOOR_TARGET)
+    # special_idx is REQUIRED here: 0.3.0-packed (corrected) containers park
+    # the four specials at the training floor BELOW every real token, so
+    # without it build_equalized_weights takes the row minimum over the
+    # specials, reports zero modified rows, and returns the matrix unchanged
+    # -- an unclamped baseline masquerading as the floor-21 matrix
+    # (review finding, 2026-08-23). On the released container (specials at
+    # log 0.2, the row MAXIMUM) passing special_idx is a measured no-op.
+    special_cols = _special_columns(PACKED_MODEL_PATH)
+    if sorted(special_cols) != sorted(SPECIAL_COLS_NEMO):
+        raise RuntimeError(
+            f"{PACKED_MODEL_PATH}: special columns {sorted(special_cols)} "
+            f"read from the vocabulary differ from the recorded "
+            f"SPECIAL_COLS_NEMO {sorted(SPECIAL_COLS_NEMO)}")
+    real_cols = np.setdiff1d(np.arange(W.shape[1]), np.array(special_cols))
+    matrix, n_mod = build_equalized_weights(W, FLOOR_TARGET, special_cols)
+    verify_one_sided_clamp(W, FLOOR_TARGET, special_cols, n_mod,
+                           label="mistralnemo ")
     # The recorded mechanism (Exp 20) is a DOWNWARD clamp, min(floor_L, F),
     # nothing raised, so a row whose natural floor already sits at or below
     # FLOOR_TARGET is legitimately left unchanged. The base model had no such
@@ -951,7 +1267,7 @@ def _build_and_fingerprint_floor21_nemo(langs: list[str]) -> tuple[np.ndarray, s
     # UNmodified row's pre-existing floor must be <= FLOOR_TARGET. Any other
     # skip reason is a wiring error and aborts.
     if n_mod != len(langs):
-        row_mins = W[:, 4:].min(axis=1)
+        row_mins = W[:, real_cols].min(axis=1)
         unmodified = np.where((matrix == W).all(axis=1))[0]
         illegitimate = [i for i in unmodified if row_mins[i] > FLOOR_TARGET]
         if illegitimate:
@@ -981,9 +1297,19 @@ def _build_and_fingerprint_floor21_nemo(langs: list[str]) -> tuple[np.ndarray, s
         if not np.array_equal(matrix[:, c], W[:, c]):
             raise RuntimeError(f"special-token column {c} was modified by "
                                "the floor clamp")
-        if not np.allclose(W[:, c], np.log(0.2), atol=1e-4):
-            raise RuntimeError(f"special-token column {c} does not hold the "
-                               "packing convention's log(0.2) value")
+        col = W[:, c]
+        real_min = W[:, real_cols].min(axis=1)
+        # Generation-aware packing check: defective (pre-0.3.0) containers
+        # store each special at p = 0.2 (the row maximum); corrected (0.3.0)
+        # containers park them at the training floor, at or below every real
+        # token. Either is a valid packing; anything else is a wiring error.
+        defective_packing = np.allclose(col, np.log(0.2), atol=1e-4)
+        corrected_packing = bool((col <= real_min).all())
+        if not (defective_packing or corrected_packing):
+            raise RuntimeError(
+                f"special-token column {c} holds neither the defective "
+                f"packing's log(0.2) value nor the 0.3.0 packing's "
+                f"at-or-below-every-real-token value")
     sha_w = _sha256_bytes(W.tobytes())
     sha_w21 = _sha256_bytes(matrix.tobytes())
     del W
@@ -1080,6 +1406,11 @@ def _calibrate_group(model, langs: list[str], N: np.ndarray, idx: np.ndarray,
 
 
 def run_tau() -> str:
+    # Both directories, not just tables/: _calibrate_group writes the two tau
+    # CSVs under diagnostic/ before TAU_BUILD_MD's own makedirs is reached, so a
+    # fresh --out-dir would otherwise fail partway through the calibration.
+    os.makedirs(os.path.join(OUT_ROOT, "diagnostic"), exist_ok=True)
+    os.makedirs(os.path.join(OUT_ROOT, "tables"), exist_ok=True)
     if not os.path.exists(FLAT_SET_CSV):
         raise FileNotFoundError(f"{FLAT_SET_CSV} missing; run --stage "
                                 "flatrule first")
@@ -1137,7 +1468,7 @@ def run_tau() -> str:
     L = ["# Mistral-Nemo variant: tau recalibration under the floor-21 "
         "matrix (E3 pre-registration)\n",
         f"floor-21 matrix: FLOOR_TARGET={FLOOR_TARGET} "
-        "(analysis.full_test_floor21), fingerprint at "
+        f"({_floor_target_provenance()}), fingerprint at "
         f"{FP_FLOOR21_NEMO_PATH}.\n",
         f"Group A (N < HEAD_N={HEAD_N:,}): {len(tail_idx)} languages, "
         f"size-adaptive quantile q_L = MARGIN_Q * (1 - min(N,HEAD_N)/HEAD_N), "
@@ -1292,6 +1623,7 @@ def run_topk() -> str:
                                 "--stage tau first")
     with open(FP_FLOOR21_NEMO_PATH) as f:
         fp_floor21 = json.load(f)
+    _check_fingerprint_floor_target(fp_floor21, FP_FLOOR21_NEMO_PATH)
     sha_w = fp_floor21["sha256_base_W"]
     sha_w21 = fp_floor21["sha256_w21"]
 
@@ -1302,6 +1634,14 @@ def run_topk() -> str:
     # standard fingerprint-mismatch abort in _finalize_topk, even though
     # this stage's own affected-line selection (expanded_mask, just above)
     # depends only on N and flat_mask, not on the tau values themselves.
+    # No "floor_target" key here, deliberately. It would bind the clamp into
+    # this fingerprint, but sha256_w21 -- the hash of the floor-21 matrix bytes
+    # themselves -- already binds it strictly more tightly, and the fingerprint
+    # is compared to the stored one by whole-dict equality, so adding a key would
+    # make every already-completed run (including the RELEASED model's, whose
+    # gate_topk_fingerprint_nemo.json has the pre-existing 17 keys) abort on
+    # resume instead of returning idempotently. The clamp is checked directly
+    # against FP_FLOOR21_NEMO_PATH's own floor_target field, just above.
     fp_base = {
         "sha256_base_W": sha_w,
         "sha256_w21": sha_w21,
@@ -1650,8 +1990,8 @@ def _load_judge_split(kept: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndar
 
 
 def run_eval() -> str:
-    os.makedirs("outputs/tables", exist_ok=True)
-    os.makedirs("outputs/diagnostic", exist_ok=True)
+    os.makedirs(os.path.join(OUT_ROOT, "tables"), exist_ok=True)
+    os.makedirs(os.path.join(OUT_ROOT, "diagnostic"), exist_ok=True)
 
     canonical = _canonical_langs()
     langs, lang_to_idx = _verify_variant_langs(canonical)
@@ -1704,6 +2044,9 @@ def run_eval() -> str:
         fp_baseline = json.load(f)
     with open(FP_FLOOR21_NEMO_PATH) as f:
         fp_floor21 = json.load(f)
+    # The clamp this report is about to state as a constant must be the clamp the
+    # floor-21 matrix behind the numbers was actually built at.
+    _check_fingerprint_floor_target(fp_floor21, FP_FLOOR21_NEMO_PATH)
     if fp_baseline["weight_matrix_sha256"] != fp_floor21["sha256_base_W"]:
         raise RuntimeError(
             f"weight-matrix sha mismatch: {FP_BASELINE_PATH}'s recorded "
@@ -1989,7 +2332,7 @@ def run_eval() -> str:
         "## Degeneracy caveat\n",
         f"{len(degenerate_langs)} of {n_lang:,} rows are flagged degenerate "
         f"(fewer than 100 estimated tokens; "
-        f"{DEGENERACY_OUT_MD}), adjudicated as an accepted model property "
+        f"{DEGENERACY_MD}), adjudicated as an accepted model property "
         "(base-vocab script coverage in minority scripts: Ethiopic, "
         "Canadian syllabics, Syriac, Tibetan, and similar; "
         "EXPERIMENTS_CHRONOLOGICAL.md, 2026-08-07), not gated on here. "
@@ -2000,7 +2343,7 @@ def run_eval() -> str:
         f"- HEAD_N = {HEAD_N:,} (analysis.full_test_margin)",
         f"- RES_CAP = {RES_CAP:,} (analysis.hierarchical_pool)",
         f"- D3_PROX = {D3_PROX} (analysis.gate_variants)",
-        f"- FLOOR_TARGET = {FLOOR_TARGET} (analysis.full_test_floor21)",
+        f"- FLOOR_TARGET = {FLOOR_TARGET} ({_floor_target_provenance()})",
         f"- TOPK_MARGIN = {TOPK_MARGIN} (analysis.margin_diagnostic)",
         f"- {TAU_FLOOR21_NEMO_CSV} (group A, {len(thresholds['step1_langs'])} "
         f"languages, sha256 {thresholds['sha_tau1'][:16]}...)",
@@ -2066,13 +2409,28 @@ def main() -> None:
                     "model), flatrule (login node), tau, topk (SLURM), eval "
                     "(login node).")
     parser.add_argument("--stage", required=True, choices=list(STAGES))
-    from analysis.model_context import add_arguments
     add_arguments(parser)
     parser.add_argument("--base-scratch", default=None,
                         help="the base model's output root, read for y_true.npy "
+                             "and for the floor-target cross-check "
                              "(default: the released base model's)")
+    parser.add_argument("--out-dir", default=None,
+                        help="root for the tables/ and diagnostic/ files the "
+                             "flatrule, tau and eval stages write and read back "
+                             f"(default: {DEFAULT_OUT_ROOT}); required, and "
+                             "required to be outside the default root, when "
+                             "--model is not this chain's own packed model")
+    parser.add_argument("--floor-target", type=float, default=None,
+                        help="floor-21 clamp target the tau/topk/eval stages "
+                             f"build and calibrate at (default: "
+                             f"{DEFAULT_FLOOR_TARGET}, analysis.full_test_"
+                             "floor21.FLOOR_TARGET); REQUIRED when --model is "
+                             "not this chain's own packed model, because the "
+                             "value is a measured per-model selection, not a "
+                             "universal constant")
     args = parser.parse_args()
-    configure(args.model_path, args.scratch_dir, args.base_scratch)
+    configure(args.model_path, args.scratch_dir, args.base_scratch,
+              out_dir=args.out_dir, floor_target=args.floor_target)
     STAGES[args.stage]()
 
 

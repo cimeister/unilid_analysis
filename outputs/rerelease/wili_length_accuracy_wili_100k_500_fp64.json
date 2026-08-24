@@ -1,0 +1,46 @@
+{
+  "model": "/capstor/scratch/cscs/cmeister747/unilid_analysis/wili_100k_500_fp64.unilid",
+  "split": "test",
+  "wili_dir": "/capstor/scratch/cscs/cmeister747/unilid_analysis/wili_assets/wili-2018",
+  "length_definition": "len(raw_line) in Unicode characters, unpreprocessed",
+  "total_samples": 117500,
+  "n_empty_after_preprocess": 0,
+  "n_gold_labels_absent_from_model": 0,
+  "bins": {
+    "101-150": {
+      "samples": 7845,
+      "correct": 7299,
+      "accuracy_pct": 93.04015296367113
+    },
+    "151-200": {
+      "samples": 26652,
+      "correct": 25083,
+      "accuracy_pct": 94.11301215668618
+    },
+    "201-300": {
+      "samples": 31449,
+      "correct": 30137,
+      "accuracy_pct": 95.82816623740024
+    },
+    "301-500": {
+      "samples": 29494,
+      "correct": 28548,
+      "accuracy_pct": 96.79256797992812
+    },
+    "501-1000": {
+      "samples": 18142,
+      "correct": 17526,
+      "accuracy_pct": 96.60456399514938
+    },
+    "1000+": {
+      "samples": 3918,
+      "correct": 3785,
+      "accuracy_pct": 96.60541092394078
+    },
+    "Overall": {
+      "samples": 117500,
+      "correct": 112378,
+      "accuracy_pct": 95.64085106382979
+    }
+  }
+}

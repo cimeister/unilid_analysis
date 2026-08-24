@@ -1,0 +1,18 @@
+{
+  "scope": "model-langs",
+  "n_lines_in_file": 27757,
+  "total_samples": 10027,
+  "n_languages_scored": 142,
+  "n_empty_after_preprocess": 0,
+  "n_rows_outside_model_label_set": 17730,
+  "n_gold_labels_outside_model_label_set": 277,
+  "accuracy": 0.8481101027226489,
+  "macro_f1": 0.8669904217626073,
+  "macro_fpr": 0.0005224995055873906,
+  "elapsed_s": 1.1897132396697998,
+  "bench": "udhr",
+  "model": "/capstor/scratch/cscs/cmeister747/unilid_analysis/wili_assets/qwen3_8b_wili.unilid",
+  "model_name": "qwen3_8b_wili",
+  "source": "/capstor/store/cscs/swissai/a0229/cmeister/huggingface/hub/datasets--cis-lmu--udhr-lid/snapshots/6908db2a27c296158da7e69782d15df911652184/udhr-lid.csv",
+  "limit": null
+}

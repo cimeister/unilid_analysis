@@ -1,0 +1,98 @@
+{
+  "model": "/capstor/scratch/cscs/cmeister747/unilid_analysis/wili_assets/wili_100k_500.unilid",
+  "split": "test",
+  "wili_dir": "/capstor/scratch/cscs/cmeister747/unilid_analysis/wili_assets/wili-2018",
+  "length_definition": "len(raw_line) in Unicode characters, unpreprocessed",
+  "total_samples": 117500,
+  "n_empty_after_preprocess": 0,
+  "n_gold_labels_absent_from_model": 0,
+  "bins": {
+    "101-150": {
+      "samples": 7845,
+      "correct": 7304,
+      "accuracy_pct": 93.10388782664117
+    },
+    "151-200": {
+      "samples": 26652,
+      "correct": 25097,
+      "accuracy_pct": 94.16554104757617
+    },
+    "201-300": {
+      "samples": 31449,
+      "correct": 30148,
+      "accuracy_pct": 95.86314350217813
+    },
+    "301-500": {
+      "samples": 29494,
+      "correct": 28545,
+      "accuracy_pct": 96.78239641961076
+    },
+    "501-1000": {
+      "samples": 18142,
+      "correct": 17513,
+      "accuracy_pct": 96.53290706647559
+    },
+    "1000+": {
+      "samples": 3918,
+      "correct": 3782,
+      "accuracy_pct": 96.52884124553344
+    },
+    "Overall": {
+      "samples": 117500,
+      "correct": 112389,
+      "accuracy_pct": 95.65021276595745
+    }
+  },
+  "gate": [
+    {
+      "bin": "101-150",
+      "got_pct": 93.10388782664117,
+      "published_pct": 93.1,
+      "delta_pp": 0.0038878266411757068,
+      "match": true
+    },
+    {
+      "bin": "151-200",
+      "got_pct": 94.16554104757617,
+      "published_pct": 94.17,
+      "delta_pp": -0.0044589524238318745,
+      "match": true
+    },
+    {
+      "bin": "201-300",
+      "got_pct": 95.86314350217813,
+      "published_pct": 95.86,
+      "delta_pp": 0.003143502178133417,
+      "match": true
+    },
+    {
+      "bin": "301-500",
+      "got_pct": 96.78239641961076,
+      "published_pct": 96.78,
+      "delta_pp": 0.0023964196107613134,
+      "match": true
+    },
+    {
+      "bin": "501-1000",
+      "got_pct": 96.53290706647559,
+      "published_pct": 96.53,
+      "delta_pp": 0.0029070664755863618,
+      "match": true
+    },
+    {
+      "bin": "1000+",
+      "got_pct": 96.52884124553344,
+      "published_pct": 96.53,
+      "delta_pp": -0.0011587544665587757,
+      "match": true
+    },
+    {
+      "bin": "Overall",
+      "got_pct": 95.65021276595745,
+      "published_pct": 95.65,
+      "delta_pp": 0.00021276595744268434,
+      "match": true
+    }
+  ],
+  "gate_passed": true
+}

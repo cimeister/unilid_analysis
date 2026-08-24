@@ -1,0 +1,14 @@
+{
+ "mode": "calibrated",
+ "n_lines": 250000,
+ "n_agree": 250000,
+ "agreement": 1.0,
+ "eps_nats": 0.001,
+ "model": "/capstor/scratch/cscs/cmeister747/unilid_analysis/corrected/glotlidc_corrected_calibrated.unilid",
+ "reference": "/capstor/scratch/cscs/cmeister747/unilid_analysis/full_test_eval_corrected/pred_gate_flat4_prox21.npy",
+ "gate": "agreement >= 0.999 and every disagreement a classified boundary case",
+ "n_disagree": 0,
+ "n_unexplained": 0,
+ "disagreements": [],
+ "passed": true
+}

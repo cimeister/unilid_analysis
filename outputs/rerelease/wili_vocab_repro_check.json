@@ -1,0 +1,37 @@
+{
+  "trained_base": "/capstor/scratch/cscs/cmeister747/unilid_analysis/results_wili_100k_defaults_fp64/tokenizers/langspec_base_tokenizer.json",
+  "trained_base_sha256": "ac2862e5d708a1758e7a10d28978ddbbeb978953d9278e641ca4043dc6f496ae",
+  "trained_vocab_size": 100000,
+  "container": "/capstor/scratch/cscs/cmeister747/unilid_analysis/wili_assets/wili_100k_500.unilid",
+  "container_base_sha256": "5fa5342a011dca96b170785c220d21505ae91844b2050a5199959c62aeadfbe8",
+  "container_vocab_size": 100000,
+  "container_n_languages": 235,
+  "ordered_token_list_match": false,
+  "first_divergence_index": 18484,
+  "overlap_tokens": 100000,
+  "overlap_fraction_of_stored": 1.0,
+  "trained_context": [
+    "1,7",
+    "\u0120\u00e0\u00a4\u0139\u00e0\u00a4\u00b0\u00e0\u00a5\u012f\u00e0\u00a4\u00a8\u00e0\u00a5\u0129",
+    "\u00e0\u00b0\u00b5\u00e0\u00b0\u00bf",
+    "\u0120dua",
+    "\u00e0\u00b1\u012f\u00e0\u00b0\u00af",
+    "matag\u0120tuig.\u0120Ang\u0120",
+    "~",
+    ".\u0120Maydoni\u0120\u00e2\u0122\u0135\u0120",
+    "\u00e1\u0140\u0123\u00e1\u0141\u0134\u00e1\u0140\u013d\u00e1\u0140\u00bd\u00e1\u0140\u0135",
+    "\u0120\u00e1\u012c\u0132\u00e1\u012b\u0142\u00e1\u012a\u0143\u00e1\u012f\u00a2"
+  ],
+  "stored_context": [
+    "1,7",
+    "\u0120\u00e0\u00a4\u0139\u00e0\u00a4\u00b0\u00e0\u00a5\u012f\u00e0\u00a4\u00a8\u00e0\u00a5\u0129",
+    "\u00e0\u00b0\u00b5\u00e0\u00b0\u00bf",
+    "\u0120dua",
+    "\u00e0\u00b1\u012f\u00e0\u00b0\u00af",
+    "~",
+    "matag\u0120tuig.\u0120Ang\u0120",
+    ".\u0120Maydoni\u0120\u00e2\u0122\u0135\u0120",
+    "\u00e1\u0140\u0123\u00e1\u0141\u0134\u00e1\u0140\u013d\u00e1\u0140\u00bd\u00e1\u0140\u0135",
+    "\u0120\u00e1\u012c\u0132\u00e1\u012b\u0142\u00e1\u012a\u0143\u00e1\u012f\u00a2"
+  ]
+}

@@ -23,7 +23,9 @@ reads the SCRATCH_DIR prediction memmaps directly for the within-stratum view):
      global-view comparison is kept as a RECORDED, non-gating diagnostic
      table (an expected cross-view mismatch, not a regression). Non-fatal: on
      any MISMATCH the affected .tex is not written and the script exits
-     nonzero at the end, after writing every other output.
+     nonzero at the end, after writing every other output. That withholding
+     applies to the RELEASED model only; see "Which model this reports on"
+     below for what a non-default --model changes.
   3. Label-basis diagnostic: cross-checks the paper team's own fastText
      per-language file against our 1,940-language set, to see whether it
      explains the paper's stated 1,938-language basis and the Hebr-row
@@ -40,7 +42,8 @@ reads the SCRATCH_DIR prediction memmaps directly for the within-stratum view):
      table), the label-basis diagnostic in
      outputs/tables/paper_breakdowns_basis.md (always, including on
      diagnostic failure), and outputs/tables/paper_breakdowns_script.tex /
-     _resource.tex (both views) only for whichever table's gate passed.
+     _resource.tex (both views) only for whichever table's gate passed --
+     under a non-default --model, always.
 
 Part "residual" (no dependency on E1; reads saved prediction memmaps
 directly):
@@ -58,7 +61,82 @@ directly):
   Outputs: outputs/tables/promoted_residual.md and
   outputs/diagnostic/promoted_residual_pairs.csv (gate_flat4_prox21's top 20
   pairs).
+
+Which model this reports on (2026-08-23): --model / --scratch-dir / --out-dir,
+resolved through analysis.model_context, let both parts run against a model
+other than the released one. With no flags nothing changes: the released model,
+its own scratch root, and the outputs/ tree, byte for byte as before. See the
+input inventory below.
+
+The two reproduction gates in part "breakdowns" bind the RELEASED model only.
+They compare against paper/submission.tex's published cells, which the released
+model produced, so under any other model a difference is the expected result of
+the run and not a reproduction failure: the comparison is still computed and
+reported in full, both .tex fragments are written with the regenerated numbers
+(carrying a LaTeX comment header naming the weights), and the exit code does not
+signal failure for that difference. Under the released model the gates are
+unchanged: a MISMATCH withholds the affected .tex and the script exits 1.
 """
+# ---------------------------------------------------------------------------
+# INPUT INVENTORY (checked line by line 2026-08-23; the classification is what a
+# non-default --model changes and what it must not).
+#
+# (a) MODEL-DERIVED -- must come from the run's own model / scratch / output root,
+#     and must abort naming the artifact when it is absent there:
+#     part "breakdowns"
+#       - the .unilid model, read by _load_model_data(ctx.model_path) for the
+#         canonical language list
+#       - <out-root>/diagnostic/paper_eval_per_lang_f1_fullpool.csv, the global-view
+#         per-language F1/FP table analysis/paper_eval.py wrote for THIS model. It
+#         carries an f1_/fp_ column per config, so a released-model copy would put
+#         released F1 into a corrected model's breakdown tables; it is taken from the
+#         same --out-dir this script writes to, never from outputs/.
+#       - <scratch>/y_true.npy
+#       - <scratch>/pred_<config>.npy for baseline, gate_flat4_prox21, fasttext.
+#         pred_fasttext.npy is an EXTERNAL model's predictions, but it is still a
+#         per-line array that has to be positionally aligned with THIS run's y_true,
+#         so it is required in the run's own scratch root, never borrowed.
+#     part "residual"
+#       - the .unilid model (language list), <scratch>/y_true.npy, and
+#         <scratch>/pred_gate_flat4_prox21.npy, <scratch>/pred_floor21_gate.npy
+#
+# (b) CORPUS-DERIVED / MODEL-INVARIANT -- keeps its shared location under a
+#     non-default model, each with the reason it cannot carry model information:
+#       - PRF_CSV (outputs/diagnostic/full_test_per_lang_prf.csv), read with
+#         usecols=PRF_USECOLS: `lang` is the corpus label inventory (and is gated
+#         against this run's own model) and `N` the per-language TRAINING line count
+#         (analysis.transfer_sweep._load_train_counts). The file's prec/rec/f1/fp
+#         columns ARE model-derived and the usecols read keeps them out entirely.
+#       - DRAW_DIR/val_lines_seed{101,201}.npy: line-index draws over the test file,
+#         drawn from the corpus by analysis/balanced_split.py, no model involved.
+#       - SPLIT_PATH (rule_split_seed301.npz): a deterministic function of the kept
+#         pool, the two draws and RULE_SPLIT_SEED/RULE_SPLIT_FRACTION, re-derived
+#         here from THIS run's own y_true and required to match bit-for-bit before
+#         use, so a divergence aborts instead of importing the released line set.
+#       - FASTTEXT_TEAM_JSON / FASTTEXT_TEAM_METRICS: the PAPER TEAM's own fastText
+#         per-language results, an external file that no run of ours produces. The
+#         label-basis diagnostic exists precisely to compare our label set against
+#         that fixed external one, so it stays where it is for every model.
+#
+# (c) CONFIG CONSTANTS: SCRIPT_ROWS/OTHER_LABEL/SCRIPT_ORDER, RESOURCE_BINS,
+#     RESOURCE_LABELS, HEAD_N, TOP_PAIRS, TOTAL_LINES, EXPECTED_KEPT,
+#     EXPECTED_REMAINDER, EXPECTED_DERIVATION, EXPECTED_JUDGE, the two gate
+#     tolerances. PAPER_SCRIPT_TABLE, PAPER_RESOURCE_TABLE,
+#     RECORDED_FLOOR21_GATE_* and SIBLING_MACRO_F1_RECORDED are the exception: they
+#     are published/recorded RELEASED-model numbers, and nothing is ever substituted
+#     from them. Under the released model the two reproduction gates that use
+#     PAPER_SCRIPT_TABLE / PAPER_RESOURCE_TABLE are non-fatal but binding (a MISMATCH
+#     withholds the affected .tex and exits nonzero). Under a non-default model they
+#     stop binding: still computed, still reported in full, but informational, since
+#     they would be comparing this model against the released model's published
+#     cells (_cross_model_message / _publish_tex / _breakdowns_exit_code). The
+#     floor21_gate and self-check comparisons are printed for the record and gate
+#     nothing for any model.
+#
+# NOT READ, here or transitively: outputs/diagnostic/lang_diagnostic.csv (its derived
+# `category` column reaches PRF_CSV but this script never reads that column), any tau
+# CSV, any fingerprint json.
+# ---------------------------------------------------------------------------
 from __future__ import annotations
 
 import argparse
@@ -82,7 +160,12 @@ from analysis.full_test_eval import EMPTY, SCRATCH_DIR
 from analysis.full_test_margin import HEAD_N
 from analysis.margin_diagnostic import PRF_CSV
 from analysis.metric_decomposition import EXPECTED_KEPT, _per_lang_stats
-from analysis.paper_eval import CONFIGS, DISPLAY, OUT_CSV_FULLPOOL as PAPER_EVAL_FULLPOOL_CSV
+from analysis.model_context import (DEFAULT_OUT_ROOT, add_arguments,
+                                    default_scratch_dir, resolve,
+                                    resolve_out_root)
+from analysis.paper_eval import CONFIGS, DISPLAY, PRF_USECOLS
+from analysis.paper_eval import OUT_CSV_FULLPOOL as PAPER_EVAL_FULLPOOL_CSV
+from analysis.paper_eval import out_path as _paper_eval_out_path
 from analysis.transfer_sweep import _load_model_data
 
 # ---------------------------------------------------------------------------
@@ -267,14 +350,135 @@ def _blocked_message(table_name: str, mismatches: list[str]) -> str:
             "3); do not publish.")
 
 
+def _cross_model_message(table_name: str, mismatches: list[str],
+                         model_path: str) -> str:
+    """The non-default-model counterpart of `_blocked_message`.
+
+    PAPER_SCRIPT_TABLE / PAPER_RESOURCE_TABLE are the cells published in
+    paper/submission.tex, which the RELEASED model produced. Comparing a different
+    model's recomputed numbers against them is a cross-model comparison: a
+    difference is the expected outcome, not a reproduction failure. The comparison
+    is still computed and reported in full; it withholds nothing and fails
+    nothing."""
+    what = (f"rows {mismatches} differ from" if mismatches
+            else "every row happens to agree with")
+    return (f"INFORMATIONAL, NOT A GATE: {table_name} {what} "
+            f"paper/submission.tex. Those published cells are measurements of the "
+            f"RELEASED model and this run scored {model_path}, so a difference "
+            "here is an expected cross-model difference, not a regression and not "
+            "a reproduction failure. The .tex fragment WAS written, with this "
+            "run's regenerated numbers.")
+
+
+def _publish_tex(gate_passed: bool, gates_binding: bool) -> bool:
+    """Whether the .tex fragment for one table may be written.
+
+    Released model (`gates_binding` true): only when its reproduction gate passed
+    -- a MISMATCH withholds the fragment, unchanged. Any other model: always,
+    because the regenerated .tex IS that run's deliverable and the published cells
+    it would be compared against belong to a different model."""
+    return gate_passed or not gates_binding
+
+
+def _breakdowns_exit_code(script_gate_passed: bool, resource_gate_passed: bool,
+                          basis_ok: bool, gates_binding: bool) -> int:
+    """0/1 exit status of part "breakdowns". The published-cell reproduction gates
+    only bind the released model; under any other model their outcome is expected
+    difference and must not fail the run. The label-basis diagnostic is an
+    exception raised by our own code and fails the run for every model."""
+    gates_ok = (script_gate_passed and resource_gate_passed) or not gates_binding
+    return 0 if (gates_ok and basis_ok) else 1
+
+
 GATE_HEADERS = ["group", "our # langs", "paper # langs", "our F1", "paper F1",
                 "diff", "status"]
 
-OUT_MD = "outputs/tables/paper_breakdowns.md"
-OUT_MD_GATE = "outputs/tables/paper_breakdowns_gate.md"
-OUT_MD_BASIS = "outputs/tables/paper_breakdowns_basis.md"
-OUT_TEX_SCRIPT = "outputs/tables/paper_breakdowns_script.tex"
-OUT_TEX_RESOURCE = "outputs/tables/paper_breakdowns_resource.tex"
+# Every path this script writes, stated relative to an output root so that
+# --out-dir moves the whole set together. The module-level constants below keep the
+# exact strings they had before --out-dir existed (os.path.join("outputs",
+# "tables/paper_breakdowns.md") is "outputs/tables/paper_breakdowns.md").
+OUT_REL = {
+    "md": "tables/paper_breakdowns.md",
+    "gate": "tables/paper_breakdowns_gate.md",
+    "basis": "tables/paper_breakdowns_basis.md",
+    "tex_script": "tables/paper_breakdowns_script.tex",
+    "tex_resource": "tables/paper_breakdowns_resource.tex",
+    "residual_md": "tables/promoted_residual.md",
+    "residual_pairs_csv": "diagnostic/promoted_residual_pairs.csv",
+}
+
+
+def out_path(name: str, out_dir: str = None) -> str:
+    """Path of one of this script's outputs under `out_dir` (default: outputs/)."""
+    return os.path.join(out_dir or DEFAULT_OUT_ROOT, OUT_REL[name])
+
+
+# analysis.paper_eval owns the E1 per-language CSV this script reads; run_breakdowns
+# asks that module where the copy for its own --out-dir lives. If the two ever
+# disagree about the default, the out-dir form would silently point elsewhere.
+if _paper_eval_out_path("csv_fullpool") != PAPER_EVAL_FULLPOOL_CSV:
+    raise RuntimeError(
+        f"E1 per-language CSV path disagrees: analysis.paper_eval.OUT_CSV_FULLPOOL "
+        f"is {PAPER_EVAL_FULLPOOL_CSV!r} but its out-root-relative form resolves to "
+        f"{_paper_eval_out_path('csv_fullpool')!r}.")
+
+
+OUT_MD = out_path("md")
+OUT_MD_GATE = out_path("gate")
+OUT_MD_BASIS = out_path("basis")
+OUT_TEX_SCRIPT = out_path("tex_script")
+OUT_TEX_RESOURCE = out_path("tex_resource")
+
+
+def _context(model_path, scratch_dir, out_dir, purpose):
+    """Resolve (model, scratch root, output root) before anything is read, and
+    refuse the combinations analysis/model_context.py exists to refuse.
+
+    Both parts call this, so `--part all` resolves twice; the resolution is a stat
+    of the model file and two directory listings, and doing it per part keeps each
+    part runnable on its own (the property the module docstring promises)."""
+    if default_scratch_dir() != SCRATCH_DIR:
+        raise RuntimeError(
+            f"analysis.model_context's default scratch root ({default_scratch_dir()}) "
+            f"and analysis.full_test_eval.SCRATCH_DIR ({SCRATCH_DIR}) have diverged; "
+            "this script's default would no longer be the released model's root.")
+    ctx = resolve(model_path, scratch_dir, purpose=purpose)
+    out_root = resolve_out_root(ctx, out_dir, purpose=purpose)
+    if not ctx.is_default_model:
+        print(f"Camera-ready E4 ({purpose}) against {ctx.describe()}\n"
+              f"  reports {out_root}", flush=True)
+    return ctx, out_root
+
+
+def _non_default_model_note(ctx, kind: str) -> str:
+    """The banner a report carries when it was not produced from the released
+    model. Only a non-default model adds it, so a default run's reports stay
+    byte-for-byte what they were before --model existed. `kind` selects the
+    released-model reference this particular report has to warn about."""
+    head = ("**NON-DEFAULT MODEL RUN.** Every number below was computed from "
+            f"`{ctx.model_path}` and its predictions under `{ctx.scratch_dir}`, "
+            f"not from the released model (`{ctx.default_model_path}`), and must "
+            "not be read as a restatement of the released model's tables.")
+    if kind == "breakdowns":
+        tail = (" The comparisons below against paper/submission.tex are "
+                "INFORMATIONAL for this run, not gates: those published cells were "
+                "produced by the RELEASED model, so a difference against them is "
+                "the expected outcome of a cross-model comparison, not a "
+                "regression. They are computed and reported in full, and they "
+                "withhold nothing: the .tex fragments below carry THIS run's "
+                "regenerated numbers whether or not they match the published "
+                "cells, and the script does not exit nonzero for such a "
+                "difference. Under the released model the same comparisons are "
+                "binding gates and a MISMATCH still withholds the affected .tex "
+                "and exits 1.")
+    elif kind == "residual":
+        tail = (" The \"recorded\" column below (EXPERIMENTS_RESULTS.md, measured "
+                "2026-07-30) is a RELEASED-model measurement, printed for "
+                "comparison only; it gates nothing, and a difference against it "
+                "here is a cross-model difference.")
+    else:
+        raise RuntimeError(f"unknown report kind {kind!r}")
+    return head + tail + "\n"
 
 # ---------------------------------------------------------------------------
 # Part "breakdowns": label-basis diagnostic (item 3)
@@ -306,9 +510,15 @@ def _script_means_from_labelf1(label_f1: dict[str, float]) -> dict[str, tuple[in
             for g, vals in buckets.items()}
 
 
-def _label_basis_diagnostic(langs: list[str], df: pd.DataFrame) -> list[str]:
-    """Item 3. Writes OUT_MD_BASIS. Returns the report lines (for logging only;
-    the file is the record)."""
+def _label_basis_diagnostic(langs: list[str], df: pd.DataFrame,
+                            out_md_basis: str = OUT_MD_BASIS) -> list[str]:
+    """Item 3. Writes `out_md_basis`. Returns the report lines (for logging only;
+    the file is the record).
+
+    FASTTEXT_TEAM_JSON/FASTTEXT_TEAM_METRICS are category (b): the paper team's own
+    external fastText results, produced by no run of ours, and the fixed reference
+    this diagnostic compares our label set against. They keep their shared location
+    for every model."""
     for p in (FASTTEXT_TEAM_JSON, FASTTEXT_TEAM_METRICS):
         if not os.path.exists(p):
             raise FileNotFoundError(f"required artifact missing: {p}")
@@ -458,11 +668,11 @@ def _label_basis_diagnostic(langs: list[str], df: pd.DataFrame) -> list[str]:
                  "sum-of-support cross-check against total_samples was "
                  "skipped.")
 
-    os.makedirs(os.path.dirname(OUT_MD_BASIS), exist_ok=True)
-    with open(OUT_MD_BASIS, "w") as f:
+    os.makedirs(os.path.dirname(out_md_basis), exist_ok=True)
+    with open(out_md_basis, "w") as f:
         f.write("\n".join(L) + "\n")
     print("\n".join(L))
-    print(f"\nWrote {OUT_MD_BASIS}")
+    print(f"\nWrote {out_md_basis}")
     return L
 
 
@@ -479,29 +689,37 @@ def _git_commit() -> str:
         raise RuntimeError(f"git rev-parse HEAD failed: {e}") from e
 
 
-def _write_basis_diagnostic_failure(exc: Exception) -> None:
+def _write_basis_diagnostic_failure(exc: Exception, out_md: str = OUT_MD,
+                                    out_md_gate: str = OUT_MD_GATE,
+                                    out_md_basis: str = OUT_MD_BASIS) -> None:
     """Finding 11: run_breakdowns calls _label_basis_diagnostic AFTER the main and
     gate reports are already written, wrapped in try/except, so a failure inside
     the diagnostic never leaves those two reports unwritten. This records the
-    failure into OUT_MD_BASIS itself (the diagnostic's own report path) rather
+    failure into `out_md_basis` itself (the diagnostic's own report path) rather
     than only printing a stack trace and stopping."""
     L = ["# Camera-ready E4: label-basis diagnostic\n",
         "FAILED. The label-basis diagnostic raised before completing. The main "
-        f"({OUT_MD}) and gate ({OUT_MD_GATE}) reports were written successfully "
+        f"({out_md}) and gate ({out_md_gate}) reports were written successfully "
         "before this diagnostic ran and are unaffected by this failure.\n",
         f"- Exception: {type(exc).__name__}: {exc}",
     ]
-    os.makedirs(os.path.dirname(OUT_MD_BASIS), exist_ok=True)
-    with open(OUT_MD_BASIS, "w") as f:
+    os.makedirs(os.path.dirname(out_md_basis), exist_ok=True)
+    with open(out_md_basis, "w") as f:
         f.write("\n".join(L) + "\n")
     print("\n".join(L))
-    print(f"\nWrote {OUT_MD_BASIS} (FAILURE record).")
+    print(f"\nWrote {out_md_basis} (FAILURE record).")
 
 
-def run_breakdowns() -> int:
-    """Returns the process exit code: 0 if both reproduction gates AND the
-    label-basis diagnostic passed, 1 if any failed. Writes every output
-    regardless (non-fatal MISMATCH protocol).
+def run_breakdowns(model_path: str = None, scratch_dir: str = None,
+                   out_dir: str = None) -> int:
+    """Returns the process exit code. Under the RELEASED model: 0 if both
+    reproduction gates AND the label-basis diagnostic passed, 1 if any failed;
+    every report is written regardless (non-fatal MISMATCH protocol) but a
+    mismatched table's .tex fragment is withheld. Under any OTHER model the two
+    published-cell comparisons stop binding -- they are computed and reported in
+    full, both .tex fragments are written with the regenerated numbers, and only
+    the label-basis diagnostic can make the exit code nonzero. See
+    `_cross_model_message`, `_publish_tex` and `_breakdowns_exit_code`.
 
     Part 2 (EXPERIMENTS_CHRONOLOGICAL.md, "provenance of the paper's appendix
     breakdown tables resolved", 2026-08-07): both paper appendix tables turned out
@@ -511,25 +729,45 @@ def run_breakdowns() -> int:
     memmaps, not the global per-language CSV); the published tables carry both
     views for all three configs; the old global-vs-paper comparison is kept as a
     RECORDED, non-gating diagnostic table (an expected mismatch, not a regression)."""
-    if not os.path.exists(PAPER_EVAL_FULLPOOL_CSV):
+    ctx, out_root = _context(model_path, scratch_dir, out_dir,
+                             "camera-ready E4 breakdowns")
+    # Do the two reproduction gates BIND this run? They compare against the cells
+    # published in paper/submission.tex, which the released model produced. Only
+    # the released model can be held to them; for any other model a MISMATCH is
+    # the point of the run, so the comparison is still computed and reported but
+    # withholds no .tex and fails no exit code (_publish_tex,
+    # _breakdowns_exit_code, _cross_model_message above).
+    gates_binding = ctx.is_default_model
+    out_md = out_path("md", out_dir)
+    out_md_gate = out_path("gate", out_dir)
+    out_md_basis = out_path("basis", out_dir)
+    out_tex_script = out_path("tex_script", out_dir)
+    out_tex_resource = out_path("tex_resource", out_dir)
+
+    # Category (a): the global-view per-language F1/FP table analysis/paper_eval.py
+    # wrote for THIS model, taken from this run's own output root. A released-model
+    # copy would put released per-language F1 into another model's breakdown tables.
+    paper_eval_fullpool_csv = _paper_eval_out_path("csv_fullpool", out_dir)
+    if not os.path.exists(paper_eval_fullpool_csv):
         raise FileNotFoundError(
-            f"required artifact missing: {PAPER_EVAL_FULLPOOL_CSV} "
-            "(produced by analysis/paper_eval.py; run it first)")
-    df = pd.read_csv(PAPER_EVAL_FULLPOOL_CSV)
+            f"required artifact missing: {paper_eval_fullpool_csv} "
+            "(produced by analysis/paper_eval.py; run it first, with the same "
+            "--model/--scratch-dir/--out-dir)")
+    df = pd.read_csv(paper_eval_fullpool_csv)
     required_cols = {"lang", "N", "f1_baseline", "fp_baseline",
                      "f1_gate_flat4_prox21", "fp_gate_flat4_prox21",
                      "f1_fasttext", "fp_fasttext", "support"}
     missing_cols = required_cols - set(df.columns)
     if missing_cols:
-        raise RuntimeError(f"{PAPER_EVAL_FULLPOOL_CSV} is missing expected "
+        raise RuntimeError(f"{paper_eval_fullpool_csv} is missing expected "
                            f"columns: {sorted(missing_cols)}")
 
-    weights, langs, _m = _load_model_data()
+    weights, langs, _m = _load_model_data(ctx.model_path)
     del weights
     n_lang = len(langs)
     if df.lang.tolist() != langs:
         raise RuntimeError(
-            f"language order gate failed: {PAPER_EVAL_FULLPOOL_CSV} lang "
+            f"language order gate failed: {paper_eval_fullpool_csv} lang "
             "column does not match _load_model_data's canonical language list")
     lang_to_pos = {l: i for i, l in enumerate(langs)}
 
@@ -540,7 +778,7 @@ def run_breakdowns() -> int:
     # --- Part 2d: memmaps for the within-stratum view. y_true.npy plus the three
     # prediction files, same sentinel guard as run_residual's _residual_stats
     # (abort on any value below -1, UNSEEN/EXCLUDED, on the kept pool) ---
-    y_path = os.path.join(SCRATCH_DIR, "y_true.npy")
+    y_path = os.path.join(ctx.scratch_dir, "y_true.npy")
     if not os.path.exists(y_path):
         raise FileNotFoundError(f"required artifact missing: {y_path}")
     y_full = np.asarray(np.lib.format.open_memmap(y_path, mode="r"))
@@ -556,7 +794,7 @@ def run_breakdowns() -> int:
 
     preds_kept = {}
     for cfg in CONFIGS:
-        p_path = os.path.join(SCRATCH_DIR, f"pred_{cfg}.npy")
+        p_path = os.path.join(ctx.scratch_dir, f"pred_{cfg}.npy")
         if not os.path.exists(p_path):
             raise FileNotFoundError(f"required artifact missing: {p_path}")
         pred_full = np.asarray(np.lib.format.open_memmap(p_path, mode="r"))
@@ -607,8 +845,8 @@ def run_breakdowns() -> int:
           "Pre-registration: EXPERIMENTS_PLAN.md, \"Camera-ready evaluation "
           "program (2026-08-06)\", E4 bullet. Conventions: "
           "EXPERIMENTAL_SETUP.md, \"Camera-ready reporting conventions\". "
-          f"Input: {PAPER_EVAL_FULLPOOL_CSV} (analysis/paper_eval.py) for the "
-          f"global view; {SCRATCH_DIR} prediction memmaps for the "
+          f"Input: {paper_eval_fullpool_csv} (analysis/paper_eval.py) for the "
+          f"global view; {ctx.scratch_dir} prediction memmaps for the "
           "within-stratum view.\n",
           f"Both views below: {BOTH_VIEWS_CAPTION}.\n"]
 
@@ -617,7 +855,10 @@ def run_breakdowns() -> int:
               "Full comparison tables (every group, OK or MISMATCH), "
               f"tolerance {SCRIPT_GATE_TOL} on F1 and exact match on language "
               "count. Non-fatal: a MISMATCH blocks only the affected .tex "
-              "output, not this report. The gates below compare the "
+              "output, not this report"
+              + ("" if gates_binding else ", and under this run's non-default "
+                 "model it blocks nothing at all (see the banner above)")
+              + ". The gates below compare the "
               "WITHIN-STRATUM view (EXPERIMENTS_CHRONOLOGICAL.md, \"provenance "
               "of the paper's appendix breakdown tables resolved\", "
               "2026-08-07): both paper appendix tables turned out to be "
@@ -630,6 +871,11 @@ def run_breakdowns() -> int:
               f"({FASTTEXT_TEAM_METRICS}) states total_samples "
               f"{TOTAL_LINES:,} (the full raw test-file line count, not "
               "restricted to our kept pool).\n"]
+
+    if not ctx.is_default_model:
+        note = _non_default_model_note(ctx, "breakdowns")
+        md.insert(1, note)
+        gate_md.insert(1, note)
 
     # --- 1/2: script breakdown (both views, all three configs) + within-stratum
     # reproduction gate (Part 2a/2b) ---
@@ -676,12 +922,18 @@ def run_breakdowns() -> int:
     gate_md.append(to_markdown(script_gate_rows, GATE_HEADERS,
                                caption="Script-table reproduction gate "
                                        "(within-stratum)"))
-    if script_gate_passed:
+    if not gates_binding:
+        msg = _cross_model_message("script-table", script_mismatches,
+                                   ctx.model_path)
+        md.append(f"Script-table published-cell comparison (within-stratum): "
+                 f"{msg} See {out_md_gate} for the full comparison.\n")
+        print(msg)
+    elif script_gate_passed:
         md.append("Script-table reproduction gate (within-stratum): PASSED.\n")
     else:
         msg = _blocked_message("script-table", script_mismatches)
         md.append(f"Script-table reproduction gate (within-stratum): {msg} See "
-                 f"{OUT_MD_GATE} for the full comparison.\n")
+                 f"{out_md_gate} for the full comparison.\n")
         print(msg)
 
     # --- RECORDED (Part 2c, not a gate): global-view comparison against the
@@ -734,12 +986,18 @@ def run_breakdowns() -> int:
     gate_md.append(to_markdown(resource_gate_rows, GATE_HEADERS,
                                caption="Resource-tier reproduction gate "
                                        "(within-stratum)"))
-    if resource_gate_passed:
+    if not gates_binding:
+        msg = _cross_model_message("resource-tier", resource_mismatches,
+                                   ctx.model_path)
+        md.append(f"Resource-tier published-cell comparison (within-stratum): "
+                 f"{msg} See {out_md_gate} for the full comparison.\n")
+        print(msg)
+    elif resource_gate_passed:
         md.append("Resource-tier reproduction gate (within-stratum): PASSED.\n")
     else:
         msg = _blocked_message("resource-tier", resource_mismatches)
         md.append(f"Resource-tier reproduction gate (within-stratum): {msg} "
-                 f"See {OUT_MD_GATE} for the full comparison.\n")
+                 f"See {out_md_gate} for the full comparison.\n")
         print(msg)
 
     # --- RECORDED (Part 2c, not a gate): global-view comparison against the
@@ -761,21 +1019,34 @@ def run_breakdowns() -> int:
 
     md.append(f"\nGit commit: {git_commit}.")
 
-    os.makedirs(os.path.dirname(OUT_MD), exist_ok=True)
-    with open(OUT_MD, "w") as f:
+    os.makedirs(os.path.dirname(out_md), exist_ok=True)
+    with open(out_md, "w") as f:
         f.write("\n".join(md) + "\n")
     print("\n".join(md))
 
-    os.makedirs(os.path.dirname(OUT_MD_GATE), exist_ok=True)
-    with open(OUT_MD_GATE, "w") as f:
+    os.makedirs(os.path.dirname(out_md_gate), exist_ok=True)
+    with open(out_md_gate, "w") as f:
         f.write("\n".join(gate_md) + "\n")
     print("\n".join(gate_md))
-    print(f"\nWrote {OUT_MD}, {OUT_MD_GATE}")
+    print(f"\nWrote {out_md}, {out_md_gate}")
 
-    # --- 5: publishable .tex, only for the tables whose gate passed. Both views,
-    # all three configs (Part 2b). The camera-ready script table uses the full
-    # 1,940-language basis (all 84 Other languages), with a note that the paper's
-    # original basis excluded the two languages in PAPER_OTHER_EXCLUDES ---
+    # --- 5: publishable .tex. Under the RELEASED model, only for the tables whose
+    # reproduction gate passed; under any other model, always, because the
+    # regenerated fragment is that run's deliverable and the published cells the
+    # gate compares against belong to a different model (_publish_tex). Both
+    # views, all three configs (Part 2b). The camera-ready script table uses the
+    # full 1,940-language basis (all 84 Other languages), with a note that the
+    # paper's original basis excluded the two languages in PAPER_OTHER_EXCLUDES ---
+    # A non-default model's fragment carries a LaTeX comment header naming the
+    # weights it came from, so a stray copy of the file can never be mistaken for
+    # the released model's published table. Comments do not affect compilation,
+    # and the released model's fragment is byte-for-byte unchanged (empty prefix).
+    tex_provenance = "" if gates_binding else (
+        f"% NON-DEFAULT MODEL: regenerated from {ctx.model_path}\n"
+        f"%   predictions: {ctx.scratch_dir}\n"
+        f"%   NOT the released model ({ctx.default_model_path}); these cells are\n"
+        f"%   NOT the paper/submission.tex published numbers.\n")
+
     def _tex_rows(stats_global, stats_stratum, order):
         return [[g, stats_global[g]["n"]]
                + [stats_global[g][c] for c in CONFIGS]
@@ -787,7 +1058,7 @@ def run_breakdowns() -> int:
                   + [f"{DISPLAY[c]} (within-stratum)" for c in CONFIGS])
     tex_col_formats = ["str", "int"] + ["metric"] * (2 * len(CONFIGS))
 
-    if script_gate_passed:
+    if _publish_tex(script_gate_passed, gates_binding):
         tex_script = to_latex(
             _tex_rows(script_stats_global, script_stats_stratum, SCRIPT_ORDER),
             ["Script"] + tex_headers[1:],
@@ -797,27 +1068,37 @@ def run_breakdowns() -> int:
                     f"basis excluded {' and '.join(paper_other_excludes_tex)} "
                     "from Other."),
             label="tab:paper_breakdowns_script", col_formats=tex_col_formats)
-        with open(OUT_TEX_SCRIPT, "w") as f:
-            f.write(tex_script + "\n")
-        print(f"Wrote {OUT_TEX_SCRIPT}")
+        with open(out_tex_script, "w") as f:
+            f.write(tex_provenance + tex_script + "\n")
+        if gates_binding:
+            print(f"Wrote {out_tex_script}")
+        else:
+            print(f"Wrote {out_tex_script} with this run's regenerated numbers "
+                  "(non-default model: the published-cell comparison above is "
+                  "informational and withholds nothing).")
     else:
-        print(f"Did NOT write {OUT_TEX_SCRIPT} (script-table reproduction "
+        print(f"Did NOT write {out_tex_script} (script-table reproduction "
               "gate failed). If a copy from an earlier passing run exists on "
               "disk, it no longer reflects the current gate status and must "
               "not be published.")
 
-    if resource_gate_passed:
+    if _publish_tex(resource_gate_passed, gates_binding):
         tex_resource = to_latex(
             _tex_rows(resource_stats_global, resource_stats_stratum, RESOURCE_LABELS),
             ["Resource"] + tex_headers[1:],
             caption=f"Camera-ready resource-tier breakdown, both views "
                     f"({BOTH_VIEWS_CAPTION}).",
             label="tab:paper_breakdowns_resource", col_formats=tex_col_formats)
-        with open(OUT_TEX_RESOURCE, "w") as f:
-            f.write(tex_resource + "\n")
-        print(f"Wrote {OUT_TEX_RESOURCE}")
+        with open(out_tex_resource, "w") as f:
+            f.write(tex_provenance + tex_resource + "\n")
+        if gates_binding:
+            print(f"Wrote {out_tex_resource}")
+        else:
+            print(f"Wrote {out_tex_resource} with this run's regenerated numbers "
+                  "(non-default model: the published-cell comparison above is "
+                  "informational and withholds nothing).")
     else:
-        print(f"Did NOT write {OUT_TEX_RESOURCE} (resource-tier reproduction "
+        print(f"Did NOT write {out_tex_resource} (resource-tier reproduction "
               "gate failed). If a copy from an earlier passing run exists on "
               "disk, it no longer reflects the current gate status and must "
               "not be published.")
@@ -828,12 +1109,13 @@ def run_breakdowns() -> int:
     # unwritten-reports crash ---
     basis_ok = True
     try:
-        _label_basis_diagnostic(langs, df)
+        _label_basis_diagnostic(langs, df, out_md_basis)
     except Exception as e:
         basis_ok = False
-        _write_basis_diagnostic_failure(e)
+        _write_basis_diagnostic_failure(e, out_md, out_md_gate, out_md_basis)
 
-    return 0 if (script_gate_passed and resource_gate_passed and basis_ok) else 1
+    return _breakdowns_exit_code(script_gate_passed, resource_gate_passed,
+                                 basis_ok, gates_binding)
 
 
 # ---------------------------------------------------------------------------
@@ -843,10 +1125,20 @@ def run_breakdowns() -> int:
 # "Top 20 confused ordered pairs" (pre-registered in the E4 task spec).
 TOP_PAIRS = 20
 
-RESIDUAL_PRED_FILES = {
-    "gate_flat4_prox21": os.path.join(SCRATCH_DIR, "pred_gate_flat4_prox21.npy"),
-    "floor21_gate": os.path.join(SCRATCH_DIR, "pred_floor21_gate.npy"),
-}
+# The two configurations re-measured here, in report order. The prediction memmaps
+# are category (a) and are built from the run's own scratch root, so a non-default
+# model can never pick up the released model's arrays.
+RESIDUAL_CONFIGS = ("gate_flat4_prox21", "floor21_gate")
+
+
+def _residual_pred_files(scratch_dir: str) -> dict:
+    return {cfg: os.path.join(scratch_dir, f"pred_{cfg}.npy")
+            for cfg in RESIDUAL_CONFIGS}
+
+
+# The default-model paths, kept as the documented default of the two helpers above;
+# run_residual builds its own from the resolved context and never reads these.
+RESIDUAL_PRED_FILES = _residual_pred_files(SCRATCH_DIR)
 Y_TRUE_PATH = os.path.join(SCRATCH_DIR, "y_true.npy")
 
 # EXPERIMENTS_RESULTS.md, "Current state (2026-08-06)", open item 3: floor21_gate's
@@ -856,8 +1148,8 @@ RECORDED_FLOOR21_GATE_N_WRONG = 962_633
 RECORDED_FLOOR21_GATE_HEAD_TRUE_SHARE = 0.987
 RECORDED_FLOOR21_GATE_HEAD_HEAD_SHARE = 0.882
 
-OUT_MD_RESIDUAL = "outputs/tables/promoted_residual.md"
-OUT_CSV_PAIRS = "outputs/diagnostic/promoted_residual_pairs.csv"
+OUT_MD_RESIDUAL = out_path("residual_md")
+OUT_CSV_PAIRS = out_path("residual_pairs_csv")
 
 JUDGE_INSTRUMENT = f"judge part, {EXPECTED_JUDGE:,} lines"
 
@@ -920,22 +1212,33 @@ def _residual_stats(pred_judge: np.ndarray, y_judge: np.ndarray, N: np.ndarray,
            "pairs": pairs}
 
 
-def run_residual() -> None:
-    weights, langs, _m = _load_model_data()
+def run_residual(model_path: str = None, scratch_dir: str = None,
+                 out_dir: str = None) -> None:
+    ctx, out_root = _context(model_path, scratch_dir, out_dir,
+                             "camera-ready E4 promoted-residual re-measurement")
+    out_md_residual = out_path("residual_md", out_dir)
+    out_csv_pairs = out_path("residual_pairs_csv", out_dir)
+    residual_pred_files = _residual_pred_files(ctx.scratch_dir)
+    y_true_path = os.path.join(ctx.scratch_dir, "y_true.npy")
+
+    weights, langs, _m = _load_model_data(ctx.model_path)
     del weights
 
+    # Category (b): only PRF_CSV's corpus columns are read (see PRF_USECOLS in
+    # analysis/paper_eval.py); `lang` is the label inventory, gated against this
+    # run's own model below, and `N` the per-language training line count.
     if not os.path.exists(PRF_CSV):
         raise FileNotFoundError(f"required artifact missing: {PRF_CSV}")
-    prf = pd.read_csv(PRF_CSV)
+    prf = pd.read_csv(PRF_CSV, usecols=PRF_USECOLS)
     if prf.lang.tolist() != langs:
         raise RuntimeError(
             f"language order gate failed: {PRF_CSV} lang column does not "
             "match _load_model_data's canonical language list")
     N = prf.N.values
 
-    if not os.path.exists(Y_TRUE_PATH):
-        raise FileNotFoundError(f"required artifact missing: {Y_TRUE_PATH}")
-    y = np.asarray(np.lib.format.open_memmap(Y_TRUE_PATH, mode="r"))
+    if not os.path.exists(y_true_path):
+        raise FileNotFoundError(f"required artifact missing: {y_true_path}")
+    y = np.asarray(np.lib.format.open_memmap(y_true_path, mode="r"))
     if y.shape != (TOTAL_LINES,):
         raise RuntimeError(f"y_true memmap has shape {y.shape}, expected "
                            f"({TOTAL_LINES},)")
@@ -944,7 +1247,10 @@ def run_residual() -> None:
     # --- finding 15: re-derive the seed-301 split from RULE_SPLIT_SEED/
     # RULE_SPLIT_FRACTION (the same pattern analysis/paper_eval.py and
     # analysis/combined_evidence.py use) and require bit-equality with the split
-    # stored at SPLIT_PATH, instead of trusting the npz alone ---
+    # stored at SPLIT_PATH, instead of trusting the npz alone. The draws and
+    # SPLIT_PATH are category (b), model-invariant, and this bit-equality check is
+    # what keeps them safe to share: a run whose own y_true implies a different
+    # split aborts here rather than adopting the released run's line set. ---
     val101 = _load_draw(SEEDS[0])
     test201 = _load_draw(TEST_SEED)
     if np.intersect1d(val101, test201).size:
@@ -993,7 +1299,7 @@ def run_residual() -> None:
           f"{len(judge_idx):,} judge, matches EXPECTED_JUDGE {EXPECTED_JUDGE:,}).")
 
     results = {}
-    for cfg, path in RESIDUAL_PRED_FILES.items():
+    for cfg, path in residual_pred_files.items():
         if not os.path.exists(path):
             raise FileNotFoundError(f"required artifact missing: {path}")
         pred = np.asarray(np.lib.format.open_memmap(path, mode="r"))
@@ -1020,11 +1326,13 @@ def run_residual() -> None:
         "differs from the gold label; EMPTY (pred = -1, no specific "
         "predicted language) counts as wrong and is reported separately.\n",
         "## n_wrong / head-true / head-head, per configuration\n"]
+    if not ctx.is_default_model:
+        L.insert(1, _non_default_model_note(ctx, "residual"))
     summary_rows = [[cfg, f"{results[cfg]['n_wrong']:,}",
                      f"{results[cfg]['n_empty']:,}",
                      f"{results[cfg]['head_true_share']:.4f}",
                      f"{results[cfg]['head_head_share']:.4f}"]
-                    for cfg in RESIDUAL_PRED_FILES]
+                    for cfg in residual_pred_files]
     L.append(to_markdown(
         summary_rows,
         ["config", "n_wrong", "n_empty (of n_wrong)", "head-true share",
@@ -1071,24 +1379,24 @@ def run_residual() -> None:
     git_commit = _git_commit()
     L.append(f"\nGit commit: {git_commit}.")
 
-    os.makedirs(os.path.dirname(OUT_MD_RESIDUAL), exist_ok=True)
-    with open(OUT_MD_RESIDUAL, "w") as f:
+    os.makedirs(os.path.dirname(out_md_residual), exist_ok=True)
+    with open(out_md_residual, "w") as f:
         f.write("\n".join(L) + "\n")
     print("\n".join(L))
 
     pairs_df = pd.DataFrame(promoted["pairs"])[
         ["true_lang", "pred_lang", "n_lines", "N_true", "N_pred"]]
-    os.makedirs(os.path.dirname(OUT_CSV_PAIRS), exist_ok=True)
-    pairs_df.to_csv(OUT_CSV_PAIRS, index=False)
+    os.makedirs(os.path.dirname(out_csv_pairs), exist_ok=True)
+    pairs_df.to_csv(out_csv_pairs, index=False)
 
-    print(f"\nWrote {OUT_MD_RESIDUAL}, {OUT_CSV_PAIRS}")
+    print(f"\nWrote {out_md_residual}, {out_csv_pairs}")
 
 
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(
         description="Camera-ready E4: script/resource-tier breakdowns "
                     "(with reproduction gates against the paper's published "
@@ -1096,13 +1404,23 @@ def main():
                     "residual re-measurement.")
     parser.add_argument("--part", choices=["breakdowns", "residual", "all"],
                         required=True)
-    args = parser.parse_args()
+    parser.add_argument("--out-dir", default=None,
+                        help="root for the tables/ and diagnostic/ files this "
+                             f"script writes, and the root the E1 per-language CSV "
+                             f"is read from (default: {DEFAULT_OUT_ROOT}); "
+                             "required, and required to be outside the default "
+                             "root, when --model is not the released model")
+    add_arguments(parser)
+    args = parser.parse_args(argv)
 
     exit_code = 0
     if args.part in ("breakdowns", "all"):
-        exit_code = run_breakdowns()
+        exit_code = run_breakdowns(model_path=args.model_path,
+                                   scratch_dir=args.scratch_dir,
+                                   out_dir=args.out_dir)
     if args.part in ("residual", "all"):
-        run_residual()
+        run_residual(model_path=args.model_path, scratch_dir=args.scratch_dir,
+                     out_dir=args.out_dir)
     sys.exit(exit_code)
 
 

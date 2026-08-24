@@ -1,0 +1,40 @@
+{
+  "scope": "model-langs",
+  "n_lines_in_file": 27757,
+  "total_samples": 10027,
+  "n_languages_scored": 142,
+  "n_empty_after_preprocess": 0,
+  "n_rows_outside_model_label_set": 17730,
+  "n_gold_labels_outside_model_label_set": 277,
+  "accuracy": 0.8477111798145008,
+  "macro_f1": 0.8659475147486313,
+  "macro_fpr": 0.0005860379968635932,
+  "elapsed_s": 1.6831834316253662,
+  "bench": "udhr",
+  "model": "/capstor/scratch/cscs/cmeister747/unilid_analysis/wili_100k_500_fp64.unilid",
+  "model_name": "wili_100k_500_fp64",
+  "source": "/capstor/store/cscs/swissai/a0229/cmeister/huggingface/hub/datasets--cis-lmu--udhr-lid/snapshots/6908db2a27c296158da7e69782d15df911652184/udhr-lid.csv",
+  "limit": null,
+  "is_reproduction_gate": false,
+  "gate": [
+    {
+      "metric": "macro F1",
+      "got": 0.8659475147486313,
+      "expected": 0.868,
+      "match": false
+    },
+    {
+      "metric": "macro FPR",
+      "got": 0.0005860379968635932,
+      "expected": 0.000588,
+      "match": true
+    },
+    {
+      "metric": "n languages",
+      "got": 142,
+      "expected": 142,
+      "match": true
+    }
+  ],
+  "gate_passed": false
+}

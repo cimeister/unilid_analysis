@@ -44,6 +44,11 @@ STORE_ROOT = "/capstor/store/cscs/swissai"
 # package (transfer_sweep loads config, which reads the dataset paths).
 _DEFAULT_SCRATCH = "/capstor/scratch/cscs/cmeister747/unilid_analysis/full_test_eval"
 
+# The repo-side output root every reporting script writes its tables, .tex
+# fragments and per-language CSVs under. Relative to the working directory, which
+# for this repo's scripts is always the repo root.
+DEFAULT_OUT_ROOT = "outputs"
+
 
 class UnsafeModelContext(RuntimeError):
     """A model and an output root that must not be combined."""
@@ -163,6 +168,78 @@ def resolve(model_path: Optional[str] = None,
                         is_default_model=is_default_model,
                         default_model_path=os.path.abspath(default_model),
                         default_scratch_dir=os.path.abspath(default_scratch))
+
+
+def resolve_out_root(ctx: ModelContext,
+                     out_dir: Optional[str] = None,
+                     *,
+                     default_out_root: str = DEFAULT_OUT_ROOT,
+                     purpose: str = "") -> str:
+    """The repo-side counterpart of `resolve`: where a run may write its reports.
+
+    `resolve` protects the memmap scratch root. The tables, .tex fragments and
+    per-language CSVs a reporting script writes live under the repo's `outputs/`
+    tree instead, and that tree is the published record: `outputs/tables/*.tex`
+    are the camera-ready fragments and `outputs/diagnostic/*.csv` are what later
+    scripts read back. A second model writing there would overwrite the released
+    model's published tables in place, which is the same failure `resolve`
+    prevents one directory over.
+
+    The rule: the default model keeps the default root and may be pointed
+    elsewhere; any other model must be given an explicit root that is neither the
+    default root, nor inside it, nor backed by the durable store.
+
+    Returns the root string UNCHANGED for the default case (a relative
+    "outputs" stays relative), because these strings are printed into the reports
+    themselves and normalising them would change the recorded artifacts.
+    """
+    root = default_out_root if out_dir is None else out_dir
+    if ctx.is_default_model:
+        return root
+
+    where = f" while {purpose}" if purpose else ""
+    if out_dir is None:
+        raise UnsafeModelContext(
+            f"refusing to write {ctx.model_path} results into the default output "
+            f"root{where}.\n"
+            f"  root: {default_out_root}\n"
+            f"That tree holds the released model's published tables, .tex "
+            f"fragments and per-language CSVs. Pass an explicit --out-dir "
+            f"pointing at a separate root.")
+
+    real = os.path.realpath(out_dir)
+    default_real = os.path.realpath(default_out_root)
+    if real == default_real or real.startswith(default_real + os.sep):
+        raise UnsafeModelContext(
+            f"refusing to write {ctx.model_path} results into the default output "
+            f"root{where}.\n"
+            f"  --out-dir: {out_dir} (resolves to {real})\n"
+            f"  default root: {default_out_root} (resolves to {default_real})\n"
+            f"Nothing under the default root may be written by a non-default "
+            f"model, not even a fresh subdirectory of it: that tree is the "
+            f"released model's published record. Pass a root outside it.")
+
+    if real.startswith(STORE_ROOT):
+        raise UnsafeModelContext(
+            f"refusing to write {ctx.model_path} results into a store-backed "
+            f"output root{where}.\n"
+            f"  --out-dir: {out_dir} (resolves to {real})\n"
+            f"Anything under {STORE_ROOT} is a published artifact, not scratch.")
+
+    for d in (out_dir, os.path.join(out_dir, "tables"),
+              os.path.join(out_dir, "diagnostic")):
+        backed = store_backed_entries(d)
+        if backed:
+            shown = ", ".join(backed[:6]) + ("..." if len(backed) > 6 else "")
+            raise UnsafeModelContext(
+                f"refusing to write {ctx.model_path} results into a store-backed "
+                f"output root{where}.\n"
+                f"  directory: {d}\n"
+                f"  store-backed entries: {shown}\n"
+                f"Writing there would overwrite published artifacts through the "
+                f"symlinks. Pass a fresh directory instead.")
+
+    return root
 
 
 def require_default_model(ctx: ModelContext, what: str) -> None:

@@ -66,6 +66,37 @@ def load_split(wili_dir: str, split: str):
     return texts, labels
 
 
+def predict_all(model, texts, verbose=True):
+    """Predict a label for every text, with wili_eval's exact conventions.
+
+    Returns (preds, n_empty). A text that preprocesses to empty yields the
+    sentinel "<EMPTY>" rather than being dropped, so it is kept in the
+    denominator and scored as wrong. Shared with analysis/wili_length_accuracy.py
+    so the two instruments cannot drift apart.
+    """
+    preds, n_empty = [], 0
+    for start in range(0, len(texts), BATCH):
+        for lang, _tok, _sc in model.predict_batch(texts[start:start + BATCH]):
+            if not lang:
+                n_empty += 1
+                preds.append("<EMPTY>")     # kept, scored as wrong
+            else:
+                preds.append(lang)
+    if verbose:
+        print(f"  {n_empty:,} line(s) empty after preprocess, kept and scored "
+              f"as wrong", flush=True)
+    return preds, n_empty
+
+
+def out_of_set_labels(model, gold, verbose=True):
+    """Gold labels the model cannot emit; kept and scored as wrong."""
+    out_of_set = sorted({g for g in gold if g not in set(model.langs)})
+    if out_of_set and verbose:
+        print(f"  {len(out_of_set)} gold label(s) absent from the model, kept and "
+              f"scored as wrong: {out_of_set[:5]}", flush=True)
+    return out_of_set
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--model", required=True)
@@ -84,22 +115,8 @@ def main(argv=None):
           f"{len(set(gold)):,} labels", flush=True)
 
     model = UnilidModel(a.model, calibrated=False)
-    model_langs = set(model.langs)
-    out_of_set = sorted({g for g in gold if g not in model_langs})
-    if out_of_set:
-        print(f"  {len(out_of_set)} gold label(s) absent from the model, kept and "
-              f"scored as wrong: {out_of_set[:5]}", flush=True)
-
-    preds, n_empty = [], 0
-    for start in range(0, len(texts), BATCH):
-        for lang, _tok, _sc in model.predict_batch(texts[start:start + BATCH]):
-            if not lang:
-                n_empty += 1
-                preds.append("<EMPTY>")     # kept, scored as wrong
-            else:
-                preds.append(lang)
-    print(f"  {n_empty:,} line(s) empty after preprocess, kept and scored as wrong",
-          flush=True)
+    out_of_set = out_of_set_labels(model, gold)
+    preds, n_empty = predict_all(model, texts)
 
     m = compute_metrics(np.array(gold, dtype=object), np.array(preds, dtype=object))
     res = {"model": os.path.abspath(a.model), "split": a.split,

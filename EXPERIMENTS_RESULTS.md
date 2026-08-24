@@ -25,6 +25,299 @@ uniform sample (`seed=42`, without replacement).
 
 ---
 
+## The decided paper items computed: three linked tables gated and corrected; CLD-subset confirmed absent (2026-08-24)
+
+`outputs/rerelease/pd_compute_2026-08-24.md`. `regen_resource_tier_counts.py`
+parametrized and extended: the resource-tier FPR columns had NO instrument
+anywhere in the repo; the within-stratum macro convention (restrict to lines
+whose true label is in the tier, FP_L/(N_tier - support_L)) reproduces ALL 24
+published F1/FPR cells on the released model (gate PASSED, worst gap 4.0%
+against 1-significant-figure cells; new constant FPR_GATE_REL_TOL = 0.05 for
+that comparison only). Corrected movements: resource-tier <500 F1 0.871->0.857
+(global view 0.515->0.596 -- the two views move oppositely, as recorded in Exp
+24), Beng 0.885->0.879, Latn 0.940->0.944; N_test and every fastText column
+byte-identical. Pair breakdown (corrected): 930,576 wrong predictions (pub
+926,299), head-true 99.1%, head-head 88.6% unchanged, ind-zsm 31,105.
+
+**CLD-subset instrument confirmed absent**: only the three subset definition
+files exist; the reconstruction reproduces subset F1 but fails every subset
+FPR cell; the convention ask is standing with the co-author. Under the
+author's 2026-08-24 conditions, the lid_main variant-row swap (PD-3) and the
+Mistral-Nemo row replacement (PD-5) both resolve to LEAVE CARRIED, and no
+orphan variant UDHR/FLORES cells were produced.
+
+Author decisions 2026-08-24, recorded: noise-robustness analysis REMOVED from
+the paper (its data script is lost); fastText halves carried as a stated
+choice; samples-accuracy sampled rows left (seeds unavailable, movement within
+their own standard deviations); LLaMA3.2 repository confirmed by the author;
+lenbias-delta instrument = the golden subset (run still pending, B9).
+
+## CommonLID corrected: all binding gates pass, both qualitative claims survive (2026-08-24)
+
+The corrected CommonLID chain (jobs 3174187/3174266 on the debug partition;
+`outputs_corrected_round/tables/commonlid_calibrated.md`); the carried npz is
+sha256-identical across two runs, confirming determinism. Cells at the paper's
+precision, corrected vs published: UniLID 0.848/0.722 (0.845/0.723);
+constant-only 0.851/0.720 (0.849/0.718); calibrated 0.862/0.717 (0.860/0.715);
+caption out-of-set counts 32,525 -> 25,994 (32,901 -> 25,884). Calibration
+still raises accuracy and lowers tag-level macro F1; out-of-set predictions
+still fall.
+
+Found and fixed on the way: `commonlid_calibrated.py`'s eval stage loaded the
+DEFAULT model's language list while scoring the requested model (the same
+defect class full_test_eval had); its tau thresholds now come from the run's
+own tree via `external_bench_eval.configure()`. `commonlid_carried.py`'s
+`n_mod == n_lang` assertion would have aborted on the corrected model (1,655
+clamped) and was replaced by the shared `verify_one_sided_clamp`. Selfcheck
+46/46. `gt_margin_adaptive` is refused (not skipped) for a non-default model:
+its inputs do not exist for the corrected model and its special detection
+relies on the defect's own 0.2 probability; it feeds no paper cell.
+
+Recorded caveat: `full_test_per_lang_prf.csv` is shared with the released tree
+and only its language ORDER is gated, not its `N` values -- a same-order model
+with different training counts would silently gate at wrong HEAD_N/RES_CAP
+boundaries. Fixing that means adding a lang+N hash to the fingerprint format.
+
+## The corrected GlotLID-C release chain is complete: both release gates PASS (2026-08-24)
+
+The two remaining blockers were fixed and executed (addendum in
+`outputs/rerelease/corrected_chain_2026-08-24.md`):
+
+- `external_bench_eval.py` eval stage: the floor-target check now reads the
+  configured model's own `fingerprint_floor21.json` (default model byte-identical
+  behavior preserved); the published-cell acceptance gate binds only the default
+  model (informational otherwise, mirroring paper_breakdowns); `configure()` now
+  routes through `resolve_out_root` -- required, because the floor fix opened a
+  path that would have overwritten the released `outputs/diagnostic/external_bench/`
+  record. Selfcheck 42/42.
+- **Corrected external-bench cells** (against lid_main at printed precision):
+  `\unilid` UDHR .859/1.43e-4 -> .856/1.52e-4, FLORES .932/2.78e-4 ->
+  .931/2.83e-4; calibrated UDHR .838/2.08e-4 -> .842/2.03e-4, FLORES
+  .933/2.91e-4 -> .932/2.91e-4. On UDHR the correction lowers the baseline row
+  and raises the calibrated row -- opposite in direction to the internal pool.
+- **Calibrated bundle packed** with the released pipeline's own
+  `unilid-calibrate bundle` (calibrate_cli.py) from
+  `calibration_glotlidc_corrected.json`: version 2, c = -17.0, group A 1,080,
+  group B the four, weights bit-identical to the v1 container
+  (`glotlidc_corrected_calibrated.unilid`, sha256 135404c8...).
+- **`release_gates` PASS in both modes at exact equality** (250,000/250,000,
+  zero disagreements), each against a reference recorded from the corrected
+  generation. Runtime log: 1,655/1,940 languages clamped at -17.0, matching the
+  fingerprint.
+
+## fp32 null arm: the build hypothesis is refuted; the stored 100k model differs from its recorded procedure on 107 rows (2026-08-24)
+
+Job 3157851 (fp32 null arm, sha256-verified unpatched `spm_train`) plus a
+three-arm comparison (`outputs/rerelease/wili_fp32null_verdict.json`; drivers
+to be promoted from the session scratchpad):
+
+| arm | comparison | failing / 235 |
+|---|---|---|
+| a | fp32null vs transformed stored | 106 |
+| b | fp64 retrain vs fp32null | 7 |
+| o | fp64 retrain vs transformed stored (the published gate) | 107 |
+
+Jaccard(a, o) = 0.9907 (sole asymmetry: `hat`, one of the seven the build
+moves). For 101 of 235 languages the stored-vs-retrain deviation exceeds the
+build effect by more than 10x. Same-build retrains are recorded bit-identical
+(gate_correction, zul_Latn, max diff 0.0), so nondeterminism is excluded.
+WiLI test cells: stored 0.960113/1.8589e-4/0.956502; fp32null and fp64 both
+0.96009/1.8629e-4/0.956409 -- unchanged to three decimals (note: on WiLI,
+macro FPR is a function of accuracy -- 500 items per label -- not independent
+evidence). The failures sit 80/84 non-Latin vs 26/151 Latin, carried mostly by
+the stored rows' unseen-token floors (median floor-share 0.966), but above-floor
+agreement also breaks on the failing rows.
+
+**Honest wording** (adopted): the retrain reproduces the published model on 128
+of 235 languages and does not on 107; the trainer build accounts for 7 of the
+107; the benchmark cells are unchanged. "Reproduces up to a build effect" is
+contradicted; a flat "the stored model does not reproduce" overreaches, because
+arms (a) and (o) still cross the 0.3.0/pre-0.3.0 trainer-version change and the
+transformation is only known to undo the special-token defect.
+
+**Lead, sharpened to an exact separation (2026-08-24 correction)**: the first
+count was in the wrong unit. sentencepiece's cap applies to the byte-level
+ENCODED training line (trainer_interface.cc:379-390: over-cap lines are
+SKIPPED, not truncated), where every non-ASCII byte costs two characters'
+worth, so non-Latin lines reach the cap at roughly half their raw length.
+Counted in the encoded unit: 2,052 of 117,500 lines exceed 4,192 across
+exactly 106 languages -- and those 106 are EXACTLY the 106 that fail arm (a),
+symmetric difference empty both ways; none of the 129 passing languages has
+one. The earlier "65 of 106" (raw bytes) and "41 fail with no over-cap line"
+sentences were unit artifacts; `wili_fp32null_verdict.json` still carries
+them, pending a re-run of the corrected augment stage
+(`analysis/wili_null_arm_augment.py`, now counting in the encoded unit,
+validated against the trainer: predicted 20 skipped lines for the bod smoke
+corpus, spm_train logged exactly 20). The pipeline's 1,000,000 override lives
+at `language_specific_trainer.py:186` (now a `--max-sentence-length` flag,
+default unchanged, patch recorded in patches/). **Job 3173500** retrains at
+the default cap under the fp32 build -- one variable against the fp32null arm.
+If its failure set collapses, the stored model very likely trained at the
+default cap; membership separation is already exact, causation awaits the job.
+
+## The full submitted wave lands: all seven WiLI trainings clean, the corrected GlotLID-C chain reaches the release gates (2026-08-24)
+
+All 18 queued jobs completed exit 0. Details:
+`outputs/rerelease/wave_2026-08-24_compilation.md` (WiLI) and
+`outputs/rerelease/corrected_chain_2026-08-24.md` (GlotLID-C).
+
+**WiLI trainings (9 models incl. vocab sizes): all pass the post-training
+gate** -- 235 languages, real mass 1.000000, defect absent, exact vocab sizes.
+**Vocabulary reproducibility verdict: NO MATCH by the pre-registered ordered
+comparison, with the content identical** -- the fresh 100k base is a
+100%-identical token SET, reordered from index 18,484 by a SentencePiece
+tie-break. Per the plan's rule, the five defaults-trained models are new models
+built by the published procedure. `tab:unilid_llm_comparison`: LLaMA3.2
+reproduces its published cells within instrument tolerance; Mistral-Nemo,
+Mistral, and LLaMA2 miss by <= 0.0014 F1 (at most one unit in the third
+decimal). `tab:vocab_size_efficiency`: 50k/100k/200k within tolerance, 10k/20k
+off by ~0.001; latency columns not regenerable here.
+
+**Corrected GlotLID-C chain**: the 27-second apply job is legitimate (the
+released model's own applies ran 27s/10s; the counts re-derived independently
+from the arrays match the log: 306,371 prox21 moves, accuracies
+0.95642 -> 0.96040 monotone). `build_release_calibration` PASSED with no
+overrides (group A 1,080/26, group B the verified four, c = -17).
+`paper_eval`/`paper_breakdowns` corrected runs: baseline 0.9327/2.019e-5
+(released 0.9292/2.026e-5), promoted gate 0.9564/1.774e-5 (0.9569/1.767e-5);
+gate-minus-baseline bootstrap narrows +0.0380 -> +0.0336. `release_gates --mode
+base` PASS at exact equality. **Corrected Mistral-Nemo chain**: clamp verified
+1,431/1,940 at c = -17; all cells 0.001-0.005 F1 below released; the headline
+bootstrap improvement is +0.0489 [+0.0424, +0.0555] against the published
++0.0504 -- the claim is unmoved.
+
+**Two blockers found and handed to a fix pass**: `release_gates --mode
+calibrated` needs a version-2 calibrated bundle packed from the new
+calibration JSON; `external_bench_eval`'s eval stage has two spots its
+non-default pass missed (a floor-target check against the module constant at
+:825 and an unconditional published-cell acceptance gate at :867).
+
+## WiLI external benches and length table regenerated; both instruments gate exactly (2026-08-23)
+
+**`tab:length_accuracy`** (`analysis/wili_length_accuracy.py`): length is
+`len(raw_line)` in Unicode code points -- the definition that reproduces all six
+published bucket counts exactly (utf-8 bytes does not; shortest test line is
+140 chars). The stored defective 100k model reproduces all seven published
+cells to the printed two decimals. Retrained: 100k Overall 95.64 (pub 95.65,
+max bucket shift 0.08 pp), DeepSeek 95.21, Qwen 94.52.
+
+**`tab:tatoeba_udhr_comparison`** (`analysis/wili_external_eval.py`): the
+split behind the published numbers is `tatoeba_full.txt` (13,101,022 lines,
+428 labels), intersection-filtered to the model's 235 labels = 201 languages /
+11,848,300 rows, matching the paper's stated ~12M; `tatoeba_test.txt` cannot
+reproduce the language count. UDHR is the `udhr-lid` CSV with
+`keep_default_na=False` (the "nan" = Min Nan fix), 142 shared languages /
+10,027 rows. Instrument gate on the stored 100k model: every published cell
+matches at printed precision (Tatoeba 0.414278/9.606e-4, UDHR
+0.867971/5.875e-4). Retrained `wili_100k_500_fp64`: Tatoeba 0.4200 / 9.230e-4
+(both moves in UniLID's favour), UDHR 0.8659 / 5.860e-4. DeepSeek/Qwen have no
+cell in this table; their stored-vs-retrained UDHR deltas are ~0.002 and their
+Tatoeba passes are queued (jobs 3159860/3159862/3159864/3159865). The fastText
+rows of both tables are not re-runnable here (no WiLI-trained fastText model);
+carrying them is a stated choice, pending author confirmation.
+
+Also fixed on the way: `unilid_resources/eval_udhr.py` silently dropped all 58
+Min Nan Chinese rows (pandas coerces the literal ISO code "nan" to a missing
+value) and would have reported a plausible 141-language macro with no error.
+
+## The three WiLI retrains reproduce the published cells; the transformation gate reads differently per model (2026-08-23)
+
+**Retrains (jobs 3138626/3138627/3138628, 2026-08-22) are clean**: 235 languages
+each, real-token mass 1.000000, `defect_present: false`
+(`outputs/rerelease/wili_*_fp64_inspect.json`).
+
+**Evaluation on the WiLI test split** (`analysis/wili_eval.py`, the instrument
+that reproduces the paper exactly from the stored models), retrained vs
+published `tab:unilid_llm_comparison` cells:
+
+| model | macro F1 | macro FPR | accuracy | published F1 / FPR |
+|---|---|---|---|---|
+| `wili_100k_500_fp64` | 0.9601 | 1.8629e-4 | 0.9564 | .960 / 1.859e-4 |
+| `deepseek_v3.2_wili_fp64` | 0.9552 | 2.0484e-4 | 0.9521 | .955 / 2.042e-4 |
+| `qwen3_8b_wili_fp64` | 0.9481 | 2.3412e-4 | 0.9452 | .949 / 2.310e-4 |
+
+Only the Qwen F1 cell moves at three decimals (.949 to .948). JSONs at
+`outputs/rerelease/wili_eval_*_fp64.json`.
+
+**Transformation gate** (`analysis/wili_transform_gate.py`: retrained matrix vs
+stored matrix transformed by `correct_special_token_mass.py`, gate_correction's
+three thresholds imported, rows aligned by language name; adversarially reviewed
+before running, 11 fixes applied, exit codes abort=2/FAIL=1/PASS=0):
+
+- `deepseek_v3.2_wili`: 11 failing languages, `qwen3_8b_wili`: 14 — localized to
+  the minority-script rows (`bod` +6.13 nats signed mean in DeepSeek), the
+  recorded fp32-EM corruption signature.
+- `wili_100k_500`: 107 failing languages — essentially every non-Latin-script
+  row, signed mean about -0.3, correlation about 0.97. Same sign and order of
+  magnitude as the `bod_Tibt`/`mya_Mymr` "hard language" failures the GlotLID-C
+  gate recorded as threshold calibration, not corruption.
+
+**The thresholds are transferred, not re-derived**: gate_correction calibrated
+them where both sides came from the same trainer build; this comparison crosses
+fp32 (stored) to patched-fp64 (retrained) builds. A FAIL means "differs beyond
+the transferred thresholds", not "corruption" (recorded in each
+`outputs/rerelease/wili_transform_gate_*.json` under `threshold_provenance`).
+
+**fp32 null arm submitted** (job 3157851): retrain `wili_100k_500` with the same
+0.3.0 trainer but the unpatched fp32 `spm_train` (fork commit `2b7ec9b`, the
+parent of the first fp64 patch commit d0208d9), built into the isolated prefix
+`sp_fp32_env/`, sha256-discriminated in the job preflight. If the fp32 retrain
+matches the stored model, the 107-row delta is the build effect and the stored
+100k model was never corrupted; if it matches the fp64 retrain, the stored model
+does not reproduce under either build. Note: the training jobs resolve
+`spm_train` as a subprocess via PATH; the pip `sentencepiece` wheel is only a
+reader and was never patched.
+
+## Retrained GlotLID-C variants reproduce their published Table 1 cells (2026-08-23)
+
+Full-pool evals (jobs 3117575/3117576) of the fp64-retrained DeepSeek3.2 and
+Qwen3-8B variants, on the 45,377,279-line scored pool; macro FPR recomputed from
+the saved `pred_baseline.npy`/`y_true.npy` with `analysis.metrics.compute_metrics`
+(`outputs/rerelease/variant_fp64_fulltest_fpr.json`); provenance fingerprints
+record the retrained model paths and hashes:
+
+| model | macro F1 | macro FPR | accuracy | published (defective weights, 45,627,279 lines) |
+|---|---|---|---|---|
+| DeepSeek3.2 fp64 | 0.9089 | 1.976e-5 | 0.9617 | .909 / 2.08e-5 |
+| Qwen3-8B fp64 | 0.9049 | 2.341e-5 | 0.9547 | .904 / 2.55e-5 |
+
+All six previously corrupted-or-flagged rows (`azj_Latn`, `bod_Tibt`,
+`mya_Mymr`, `got_Goth`, `nqo_Nkoo`, `kyu_Kali`) sit at F1 0.94-1.0. The
+published cells were kept on pre-correction weights by author decision
+(RERELEASE_PLAN) when this repo did not hold the models; it now holds corrected
+retrains whose cells match at the paper's precision, so the caption's mixture
+(scored pool vs full file) could be retired — pending the variant UDHR / FLORES
+/ CLD-subset columns.
+
+## Group B is unchanged on the corrected model, by measurement (2026-08-23)
+
+The rule (`analysis/diagnostic.py:168`): `flat_magnet` iff
+`(zH > 1.5 and magnet_ratio > 2.0) or zH > 5.0`; group B =
+`flat_magnet and N >= 18,000` (`gate_variants.py:491-492`). The reimplementation
+was verified against the committed `outputs/diagnostic/lang_diagnostic.csv`
+first: exact match on all 1,940 rows after display rounding.
+
+- `zH` is invariant under the special-token correction (the defect is an affine
+  map of the log-probs; zH is a median/MAD z-score): zero threshold flips, max
+  shift 0.0033.
+- `magnet_ratio` (the load-bearing, prediction-derived input; 68 languages pass
+  the zH+N part alone) was recomputed by re-scoring the 250,000-line validation
+  half with the corrected model — the full-pool arrays exclude those lines by
+  construction (`full_test_eval.py:233-235`). **Stated substitution**: the
+  re-score uses `full_test_eval`'s scorer, not the original pipeline behind
+  `glotlidc_y_pred.txt`, which no longer bit-reproduces even on the released
+  model (0.9952 val-half agreement). Same verdict under both.
+
+**Group B = {sco_Latn, bjn_Latn, arg_Latn, vls_Latn} under the corrected model,
+unchanged.** Nearest non-members pcm_Latn 1.074, ina_Latn 0.960 (magnet_ratio);
+`vls_Latn` holds the tightest margin (zH 1.567 vs 1.5). The full flat_magnet set
+changes by two (`cri_Latn` out, `syl_Beng` in), both below HEAD_N, so the topk
+candidate universe stays 1,084 and group A's 1,080 rows are intact. Data:
+`outputs/rerelease/groupb_rederivation.json`. Also recorded: the whole
+`lang_diagnostic.csv` layer was computed on defective distributions and survives
+only because its statistics are affine-invariant; its `peak` column is 0.2000
+for every language as published, a fingerprint of the defect, and meaningless.
+
 ## Both LLM-tokenizer variants carry the EM corruption; the plateau scan missed one (2026-08-18)
 
 **Correction of my own conclusion earlier the same day.** I wrote that "the

@@ -1,0 +1,20 @@
+[
+  {
+    "model": "/capstor/scratch/cscs/cmeister747/unilid_analysis/deepseek_v3.2_wili_fp64.unilid",
+    "n_languages": 235,
+    "vocab_size": 128819,
+    "special_columns": [
+      128815,
+      128816,
+      128817,
+      128818
+    ],
+    "special_mass_min": 3.999998465179331e-12,
+    "special_mass_max": 3.999998465179331e-12,
+    "real_mass_min": 0.9999998843702376,
+    "real_mass_max": 1.000000096643042,
+    "plateau_min": -16.08027458190918,
+    "plateau_max": -12.903447151184082,
+    "defect_present": false
+  }
+]

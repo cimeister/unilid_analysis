@@ -13,8 +13,13 @@ from unilid.model_io import UnilidModel
 def evaluate(model_path, csv_path, out_dir=None, lang_only=False, only_model_langs=True, forward=False):
     csv_path = Path(csv_path)
 
-    # Load CSV
-    df = pd.read_csv(csv_path)
+    # Load CSV. keep_default_na/na_filter matter: "nan" is a real ISO 639-3
+    # code (Min Nan Chinese, 58 rows in udhr-lid.csv), and the default reader
+    # coerces the literal string "nan" to a missing value, silently dropping
+    # the language from a macro average (.astype(str) later turns it into the
+    # string "nan" of the FLOAT nan, not the code). 142 shared languages with
+    # WiLI is correct; the default reader yields 141 with no error.
+    df = pd.read_csv(csv_path, keep_default_na=False, na_filter=False)
     df["full_label"] = df["iso639-3"].astype(str).str.strip() + "_" + df["iso15924"].astype(str).str.strip()
     if lang_only:
         df["label"] = df["iso639-3"].astype(str).str.strip()

@@ -1,6 +1,6 @@
 # Session Status
 
-Snapshot, 2026-08-21. Two workstreams run in parallel: correcting and
+Snapshot, 2026-08-23. Two workstreams run in parallel: correcting and
 regenerating the GlotLID-C numbers, and regenerating the WiLI-trained models.
 The open-source package fix is done and sits in PR #3.
 
@@ -12,111 +12,169 @@ The open-source package fix is done and sits in PR #3.
   `\camrev{}` pass. Accept all with `\newcommand{\corrrev}[1]{#1}`.
 - `~/.claude/plans/this-session-focuses-on-shimmering-dusk.md`: the approved WiLI
   training plan, revised after an adversarial review.
-- `EXPERIMENTS_RESULTS.md`: entries dated 2026-08-17 through 2026-08-21 at the top.
+- `EXPERIMENTS_RESULTS.md`: entries dated 2026-08-17 through 2026-08-23 at the top.
 - `RERELEASE_PLAN.md`, `EXPERIMENTS_PLAN.md`, `CODE_CHANGES_2026-08-17.md`,
   `OPEN_SOURCE_STATUS.md`.
 
 ## Running
 
-| job | what |
-|---|---|
-| 3138626 / 3138627 / 3138628 | WiLI retrains: 100k base, DeepSeek3.2, Qwen3 |
-| 3127704 | `gate_variants topk`, full-pool candidate banking (GlotLID-C) |
-| 3117575 / 3117576 | DeepSeek3.2 and Qwen3 full-pool evals, chained on their retrains |
+All 18 SLURM jobs of the 2026-08-23 wave COMPLETED 0:0. No jobs queued.
+Compilations: `outputs/rerelease/wave_2026-08-24_compilation.md` (WiLI) and
+`outputs/rerelease/corrected_chain_2026-08-24.md` (GlotLID-C chain).
 
-## Settled, with the numbers
+Agents in flight (2026-08-24):
 
-- **c = -17** for the corrected GlotLID-C model. Round grid {-15,-17,-19,-21};
-  the pre-registration was exact (clamp counts 317 / 1,655 / 1,940 / 1,940 and the
-  selection). 1,655 of 1,940 rows clamped, 285 already below.
-- **Corrected base, full pool**: macro F1 0.9292 to 0.9327, macro FPR 2.03e-5 to
-  2.02e-5. **Plus clamp**: 0.9419, against the released model's 0.9421 at c = -21.
-- **Tail, both views**: within-stratum 0.8875 against the released clamped 0.8928;
-  global per-language F1 **0.7743 against 0.7655**, false positives into tail
-  labels 8,727 against 22,522. The views disagree by construction (Exp 24).
-  Author decision 2026-08-19: priorities unchanged, c stays selected on validation
-  overall macro F1 under the all-strata guard.
-- **Group-A thresholds regenerated**: 1,080 rows, 26 excluded, all
-  `low_calibration`, matching the released expected counts exactly.
-- **Both GlotLID-C variant retrains clean.** Real-token mass 1.000000. Every
-  corrupted row disappeared (`azj_Latn`, `bod_Tibt`, `mya_Mymr`) and every
-  coverage row persisted (`got_Goth`, `nqo_Nkoo`, `kyu_Kali`).
-- **Tables regenerated**: `viterbi_vs_marginal` (.961/.933 and .961/.935),
-  `lenbias-norm` (0.960 to 0.837 normalized, with the implementation check at
-  agreement 1.000000), Mistral-Nemo GlotLID-C cells (0.9119 / 1.858e-5, unchanged
-  to three decimals).
-- **UDHR and FLORES score stages done** on the corrected model; the eval stage
-  waits on the group B thresholds.
-- **The WiLI instrument reproduces the paper exactly**: macro F1 0.960113,
-  accuracy 0.956502, macro FPR 1.8589e-04 against .960 / 0.9565 / 1.859e-4.
+| agent | what | react how |
+|---|---|---|
+| null-arm analysis | fp32null vs stored-transformed AND vs fp64 retrain | decides the wording for the wili_100k_500 gate FAIL (build effect vs non-reproduction) |
+| blocker fix | DONE: external_bench fixed (selfcheck 42/42), corrected UDHR/FLORES cells produced, calibrated bundle packed, release_gates PASS both modes at exact equality | cells sent to the paper agent |
+| cap-4192 null arm | job 3173500 RUNNING/PENDING: fp32 build + default cap 4192 | membership separation already EXACT (106 encoded-over-cap languages = the 106 failing); on completion run `analysis/wili_null_arm_verdict.py --arm fp32null_cap4192` then `_augment` |
+| paper edits + verification | CLOSED 2026-08-24: nine table files + submission.tex applied under \corrrev{}; all cells verified at full precision; the 3 verification findings fixed (+0.039/+0.024, 0.916, the two seed-free 95.64 sites); ledger carries A2.11, marking conventions, PD-1..PD-9 | `paper/PAPER_EDITS_pending.md` is the authority |
+| CommonLID | DONE: all binding gates pass, corrected cells 0.848/0.722, 0.851/0.720, 0.862/0.717; B4 sent to the paper agent | outputs_corrected_round/tables/commonlid_calibrated.md |
+
+## Settled since 2026-08-21, with the numbers
+
+- **All three WiLI retrains clean and evaluated.** Real mass 1.000000. WiLI test
+  cells vs published: 100k 0.9601/1.8629e-4/0.9564 (pub .960/1.859e-4/0.9565);
+  DeepSeek 0.9552/2.0484e-4 (pub .955/2.042e-4); Qwen 0.9481/2.3412e-4
+  (pub .949/2.310e-4). Only Qwen F1 moves at three decimals.
+- **`tab:tatoeba_udhr_comparison` is rebuilt for the \unilid row.** Instrument
+  `analysis/wili_external_eval.py`, gated on the STORED `wili_100k_500`: Tatoeba
+  0.414278 / 9.60632e-4 over 201 languages (pub 0.414 / 9.61e-4 / 201),
+  UDHR 0.867971 / 5.87469e-4 over 142 languages (pub 0.868 / 5.88e-4 / 142). Both
+  benches MATCH on every cell, so the instrument is gated. Split determined by
+  measurement: `tatoeba_full.txt` (13,101,022 lines, 428 labels) filtered to the
+  model's label set gives exactly 201 languages and 11,848,300 rows, matching
+  submission.tex:1131; `tatoeba_test.txt` gives 197 / 2,371,336 and is ruled out.
+  Scope is the paper's own reading (rows whose gold label is in the model's label
+  set). Retrained fp64 `wili_100k_500`: Tatoeba 0.4200 / 9.2300e-4, UDHR 0.8659 /
+  5.8604e-4. UDHR also run for the DeepSeek and Qwen WiLI models, stored and
+  retrained (no published cell for either in this table).
+- **The Tatoeba pass cannot run on the login node.** The three-model `--fp64` run
+  was killed part-way through the second model (9.6M of 13.1M lines, no traceback,
+  no json); the first model had already finished. `slurm_wili_external_eval.sh`
+  now carries it, one model per job.
+- **`tab:length_accuracy` is rebuilt and no longer needs the co-author** (for the
+  UniLID column). Length is `len(raw_line)` in Unicode chars; that definition
+  reproduces all six published bucket counts exactly, utf-8 bytes does not. The
+  stored defective 100k model reproduces all seven published cells to the printed
+  two decimals (every delta 0.00 pp), so the instrument is gated. Retrained:
+  100k Overall 95.64 (pub 95.65, max bucket shift 0.08 pp), DeepSeek 95.21,
+  Qwen 94.52. `analysis/wili_length_accuracy.py`,
+  `outputs/rerelease/wili_length_accuracy_*.json`. fastText column not
+  re-runnable: no WiLI-trained fastText model exists here.
+- **WiLI transformation gate run** (reviewed first; exit abort=2/FAIL=1/PASS=0):
+  DeepSeek 11 / Qwen 14 failing languages (minority-script, corruption
+  signature, `bod` +6.13 nats); `wili_100k_500` 107 failing (systematic ~-0.3
+  nats on non-Latin rows). Thresholds are TRANSFERRED from gate_correction's
+  same-build calibration; a FAIL is not "corruption" until the null arm reads.
+- **Retrained GlotLID-C variants reproduce Table 1**: DeepSeek 0.9089/1.976e-5
+  (pub .909/2.08e-5), Qwen 0.9049/2.341e-5 (pub .904/2.55e-5), scored pool,
+  fingerprints record the fp64 model paths. All six flagged rows at F1 0.94-1.0.
+- **Group B unchanged on the corrected model, by measurement**:
+  {sco_Latn, bjn_Latn, arg_Latn, vls_Latn}. zH affine-invariant (zero flips);
+  magnet_ratio recomputed by re-scoring the 250k val half (stated substitution:
+  full_test_eval scorer, not the original y_pred pipeline; same verdict). topk
+  universe 1,084 and group A's 1,080 intact. `build_release_calibration`'s
+  group-B assert can stand. `outputs/rerelease/groupb_rederivation.json`.
+- `gate_variants topk` corrected: top-1 agreement 1.0000 on all affected lines.
+- Everything in the 2026-08-21 snapshot (c = -17, corrected base cells, tail
+  views, group-A thresholds, WiLI instrument gate) still stands; see
+  `EXPERIMENTS_RESULTS.md`.
 
 ## Facts a new session must not re-derive
 
-- **The special-token defect is `sp`-only.** The pure-Python `em` path never had
-  it. DSL-ML is `em`-trained (author confirmation 2026-08-19) and needs nothing.
-- **All three WiLI models are `sp`-trained and carry the defect** (0.800000
-  special mass per row), measured, not asked.
-- **Base vocabularies split two ways.** An LLM tokenizer is carried unchanged
-  across corpora: DeepSeek3.2 and Qwen3 are byte-identical between their WiLI and
-  GlotLID-C containers. A model with no supplied tokenizer has its vocabulary
-  trained on the corpus: the WiLI 100k base shares only 24,357 of 100,000 tokens
-  with GlotLID-C's. The base vocabulary is untouched by the defect, so extracting
-  a container's vocabulary is exact.
+- **The special-token defect is `sp`-only.** DSL-ML is `em`-trained and needs
+  nothing.
+- **All three stored WiLI models are `sp`-trained and carry the defect**
+  (0.800000 special mass per row), measured.
+- **Base vocabularies split two ways.** LLM tokenizers are byte-identical across
+  corpora; the WiLI 100k base shares only 24,357/100,000 tokens with GlotLID-C's.
+  The base vocabulary is untouched by the defect.
 - **`train.py` silently trains a fresh vocabulary if `--results-dir` and
-  `--base-tokenizer-path` are not both passed**, and reports success. This is the
-  most dangerous trap in the training path.
-- **`UNILID/eval.py` computes no macro FPR.** Use `analysis/wili_eval.py`, whose
-  FPR matches the convention in `analysis/paper_eval.py`.
-- **`analysis/variant_plateau_outliers.py` cannot be used on WiLI**: it hardcodes
-  the GlotLID-C counts, and every WiLI language has exactly 500 lines, so
-  `log10(N_L)` has zero variance and the regression has no slope to fit.
-- **WiLI language order is the tokenizer-filename sort**, which puts `nds-nl`
-  before `nds` and first diverges from `sorted()` at index 146. Align matrices by
-  `langs.index(lang)`, never by position.
-- **WiLI's longest training line is 40,578 bytes and 101 lines exceed the
-  4,192-byte upstream cap**, so the fp64 EM overflow is not excluded there. An
-  earlier note claiming it was impossible was wrong.
-- **A row whose plateau anomaly survives a retrain is vocabulary coverage; one
-  that disappears was corruption.**
-- **Latency is closed** (author confirmation 2026-08-19): it varies with hardware
-  and label-set size, and is not revisited.
+  `--base-tokenizer-path` are not both passed.**
+- **`UNILID/eval.py` computes no macro FPR.** Use `analysis/wili_eval.py`.
+- **The trainer's patched component is the `spm_train` binary resolved via PATH**
+  (`~/.local/bin/spm_train`, fork d0208d9+c5921a2); the pip `sentencepiece`
+  wheel is only a reader. The unpatched fp32 build sits isolated in
+  `sp_fp32_env/bin/`, discriminable only by sha256 (both builds print 0.2.2).
+- **WiLI language order is the tokenizer-filename sort** (diverges from
+  `sorted()` at index 146). Align by `langs.index(lang)`, never by position.
+- **The full-pool arrays cannot supply val-half predictions**: the 250k val
+  lines are EXCLUDED=-2/UNSEEN=-3 by construction (`full_test_eval.py:233-235`).
+  Sample indices are reproducible: `random.seed(42)` draw, helper at
+  `full_test_eval.py:49-53`.
+- **`gate_variants` reads DIAG_CSV/PRF_CSV as module-level literals from the
+  released `outputs/diagnostic/`** even with `--out-dir`; the corrected apply
+  run is consistent with the topk banking only because both use the released
+  categories (now validated: group B unchanged). Its tau CSVs DO route through
+  `_out()`.
+- **`variant_plateau_outliers.py` cannot be used on WiLI** (zero variance in
+  corpus size).
+- **A plateau anomaly that survives a retrain is coverage; one that disappears
+  was corruption.**
+- **Latency is closed** (author, 2026-08-19).
 
 ## Open decisions
 
-- **Mistral / LLaMA3.2 / LLaMA2 base tokenizers.** No container anywhere, and the
-  cached HuggingFace copies are dangling symlinks with no blobs. Author decision
-  2026-08-21: use `mistral-community/Mistral-7B-v0.2`,
-  `meta-llama/Llama-3.2-1B`, `meta-llama/Llama-2-7b-hf`, with vocabulary-size
-  sanity checks, and state that they are unconfirmed. `\unilid-Mistral` cannot be
-  Mistral-Nemo: the published rows differ, 0.921 against 0.958.
-- **`tab:vocab_size_efficiency`**: no 10k/20k/50k/200k container exists on the
-  releases page. Base vocabularies are trained here, gated by the 100k
-  reproducibility check.
-- **`tab:samples-accuracy`**: needs the seed count behind its standard deviations.
+The paper-side decisions are itemized as PD-1..PD-9 in
+`paper/PAPER_EDITS_pending.md` (fastText carry; the three linked breakdown
+tables; variant-row swap; the "unchanged" Nemo claim; samples-accuracy seeds;
+noise on hold; LLaMA3.2 repo confirmation). The list below is the repo-side
+remainder.
+
+- **Swap the lid_main variant rows to corrected numbers?** GlotLID-C cells
+  match at paper precision; doing it retires the caption's pool mixture but
+  needs the variant UDHR/FLORES/CLD-subset columns re-run (not yet scored).
+- **How to read the `wili_100k_500` gate FAIL** — waits on the fp32 null arm
+  (job 3157851).
+- **Mistral / LLaMA3.2 / LLaMA2 base tokenizers**: author-designated HF repos,
+  unconfirmed against the originals; vocab-size sanity checks required.
+  `\unilid-Mistral` cannot be Mistral-Nemo (0.921 vs 0.958).
+- **`tab:vocab_size_efficiency`**: no 10k/20k/50k/200k container exists; base
+  vocabularies trained here, gated by the 100k reproducibility check (not yet
+  run).
+- **`tab:samples-accuracy`**: needs the seed count behind its standard
+  deviations (author).
+- ~~Mistral identity~~ SETTLED 2026-08-23: \unilid-Mistral is a 32k
+  Mistral (same-table adjacency proof + F1-vs-vocab pattern;
+  outputs/rerelease/mistral_identity_verification.json); Mistral-Nemo-Base-2407
+  verified byte-identical to the Nemo container base. Author chose the
+  v0.1/v0.2 32,000-entry tokenizer (byte-identical pair), stated unconfirmed.
+- ~~CR-token blocker~~ SETTLED 2026-08-23 (author): refused entries DROPPED
+  whole (51 / 24, all \r-only); filter verified both directions against
+  vocab_io's writer; jobs 3162788/3162789 submitted.
 - **`tab:lenbias-delta`**: same golden-subset instrument question as
   `lenbias-norm`, not yet decided.
-- **Group B (high-entropy) membership** is read from `lang_diagnostic.csv`,
-  computed on the released model. `build_release_calibration.py` asserts the
-  current four and aborts until re-derived.
-- **The fastText halves** of the WiLI tables: unaffected by the defect, so
-  carrying them is defensible, but it must be a stated choice.
+- **The fastText halves** of the WiLI tables: unaffected by the defect;
+  carrying them must be a stated choice.
 - Whether the Apertus 200k and 131k variants are published; whether the package
-  offers users a migration for pre-0.3.0 models.
+  offers a migration for pre-0.3.0 models.
+- `commonlid_calibrated.py` asserts old-model reproduction and needs the
+  carried npz regenerated first (`commonlid_carried` corrected run not yet
+  done) -- the one remaining unparametrized corrected-chain piece.
 
 ## Known damage, recorded
 
 The released model's E2 scored artifacts (`external_bench/scored_udhr.npz`,
-`scored_flores.npz`, from 2026-08-07) were overwritten and then deleted. The
-directory is on scratch, not store-backed, so nothing published was lost, but
-those two files need regenerating if the released model's E2 numbers are ever
-recomputed. `analysis/external_bench_eval.py` now writes a non-default model's
-arrays to `external_bench/scored_<model stem>/`.
+`scored_flores.npz`, from 2026-08-07) were overwritten and then deleted
+(2026-08-21). Scratch-only; regenerate if the released model's E2 numbers are
+ever recomputed. `external_bench_eval.py` now writes non-default models to
+`external_bench/scored_<model stem>/`.
 
 ## Carried over: camera-ready
 
 - Edit pass applied 2026-08-09, wrapped in `\camrev{}`; dispositions in
   `paper/review_notes_2026-08-09.md`.
 - Ahmetcan ask list, reduced: the subset-evaluation script or command; the
-  UDHR-subset FPR of 1.06e-5; the WiLI training method (now answered by
-  measurement); the DSL-ML competitor-score source and split.
+  UDHR-subset FPR of 1.06e-5; the DSL-ML competitor-score source and split.
 - The user compiles the PDF (no icml2026.sty here).
+
+## Author decisions 2026-08-24 (all PD items resolved)
+
+Noise table removed; fastText carried; PD-2 three tables corrected (gated
+instrument); PD-3/PD-5 leave carried (CLD-subset instrument absent); PD-4
+lenbias-delta on the golden subset (B9 run pending); PD-6 pair breakdown
+applied; PD-7 sampled rows left; PD-9 LLaMA3.2 confirmed. Commit authorized
+"if appropriate". Open-source readiness assessment of the corrected calibrated
+bundle in progress.

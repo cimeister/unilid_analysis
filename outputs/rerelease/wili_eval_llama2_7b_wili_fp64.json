@@ -1,0 +1,11 @@
+{
+  "model": "/capstor/scratch/cscs/cmeister747/unilid_analysis/llama2_7b_wili_fp64.unilid",
+  "split": "test",
+  "total_samples": 117500,
+  "n_labels": 235,
+  "n_empty_after_preprocess": 0,
+  "n_gold_labels_absent_from_model": 0,
+  "accuracy": 0.9126553191489362,
+  "macro_f1": 0.9096350614747829,
+  "macro_fpr": 0.0003732678668848882
+}

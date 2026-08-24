@@ -1,0 +1,41 @@
+{
+  "scope": "model-langs",
+  "n_lines_in_file": 13101022,
+  "total_samples": 11848300,
+  "n_languages_scored": 201,
+  "n_empty_after_preprocess": 0,
+  "n_rows_outside_model_label_set": 1252722,
+  "n_gold_labels_outside_model_label_set": 227,
+  "accuracy": 0.7727550787876741,
+  "macro_f1": 0.414278323061728,
+  "macro_fpr": 0.0009606322336752498,
+  "elapsed_s": 201.65992093086243,
+  "bench": "tatoeba",
+  "model": "/capstor/scratch/cscs/cmeister747/unilid_analysis/wili_assets/wili_100k_500.unilid",
+  "model_name": "wili_100k_500",
+  "source": "/capstor/scratch/cscs/cmeister747/unilid_analysis/wili_assets/tatoeba/tatoeba_full.txt",
+  "limit": null,
+  "tatoeba_split": "full",
+  "is_reproduction_gate": true,
+  "gate": [
+    {
+      "metric": "macro F1",
+      "got": 0.414278323061728,
+      "expected": 0.414,
+      "match": true
+    },
+    {
+      "metric": "macro FPR",
+      "got": 0.0009606322336752498,
+      "expected": 0.000961,
+      "match": true
+    },
+    {
+      "metric": "n languages",
+      "got": 201,
+      "expected": 201,
+      "match": true
+    }
+  ],
+  "gate_passed": true
+}

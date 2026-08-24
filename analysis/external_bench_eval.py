@@ -94,6 +94,25 @@ discrepancy goes to the user, not folded into a "close enough" table). On succes
 writes the full per-label CSV (baseline, floor21, gated) and the report table, and
 removes any stale gate-failure report left over from a prior failing run (a failure
 report from a superseded run must not linger and be mistaken for the current state).
+The gate BINDS THE RELEASED MODEL ONLY. BENCH_REGISTRY's `paper_baseline_f1` is the
+cell published for the released model, so holding another model to it would compare
+two different models and call the expected difference a failure; worse, it would make
+the corrected round's own UDHR/FLORES cells -- the whole deliverable of such a run --
+unreachable. For a non-default model the same comparison is computed at the same
+tolerance and printed and written in full, labelled INFORMATIONAL, NOT A GATE, and it
+withholds nothing and does not exit nonzero (analysis/paper_breakdowns.py's
+`gates_binding` rule, mirrored here; see `_cross_model_baseline_message`).
+
+FLOOR TARGET. The clamp constant this module's two stages use is the one recorded in
+the model's own <scratch-dir>/fingerprint_floor21.json, not the module constant
+FLOOR_TARGET. That constant (-21.0, analysis.full_test_floor21) is the RELEASED
+chain's guard-selected value; the floor target is a measured per-model selection and
+the corrected base model's own round-grid sweep selected -17.0. Stage "score" already
+read the fingerprint; stage "eval" checks the scored sidecar's recorded floor_target
+against the SAME record (`_expected_floor_target`, `_check_sidecar_floor_target`),
+which is what analysis/mistralnemo_eval.py's `_resolve_floor_target` does for that
+chain. For the default model the expected value IS the module constant and the check
+and its message are exactly what they were.
 
 Metrics (`_per_label_metrics`, self-contained in numpy, no analysis.metrics or
 analysis.metric_decomposition import): per-language TP/FP/FN/support are computed
@@ -140,10 +159,11 @@ from analysis.floor_equalization import (build_equalized_weights,
                                          verify_one_sided_clamp)
 from analysis.format_utils import to_markdown
 from analysis.full_test_eval import EMPTY
-from analysis.model_context import add_arguments, resolve
+from analysis.model_context import add_arguments, resolve, resolve_out_root
 from analysis.full_test_floor21 import FLOOR_TARGET
 from analysis.full_test_margin import HEAD_N
 from analysis.gate_variants import (D3_PROX, TAU_FLAT4_CSV, TAU_FLOOR21_GATE_CSV,
+                                    TAU_FLAT4_CSV_NAME, TAU_FLOOR21_GATE_CSV_NAME,
                                     _load_tau_csv, _walk_replacement)
 from analysis.hierarchical_pool import RES_CAP
 from analysis.margin_diagnostic import PRF_CSV, TOPK_MARGIN
@@ -195,6 +215,14 @@ BENCH_REGISTRY = {
 # rows in TAU_FLAT4_CSV; mirrored here as the same literal, for the same reason.
 N_FLAT4 = 4
 
+# The floor-21 fingerprint written by the base model's own floor-21 stage, by name.
+# Stage "score" reads its `floor_target` to build the clamped matrix and stage "eval"
+# reads the same field of the same file to check the scored sidecar against, so the
+# two stages provably agree on the clamp; spelled once here rather than as a literal
+# in each stage. Same file and same field as analysis/mistralnemo_eval.py's
+# BASE_FLOOR21_FP_NAME.
+FINGERPRINT_FLOOR21_NAME = "fingerprint_floor21.json"
+
 OUT_TABLES_DIR = "outputs/tables"
 OUT_DIAG_DIR = "outputs/diagnostic/external_bench"
 
@@ -203,15 +231,50 @@ OUT_DIAG_DIR = "outputs/diagnostic/external_bench"
 # pattern as analysis/gate_variants.py. Unconfigured, it falls back to the
 # released model and its own output root, which is the historical behaviour.
 _CTX = None
+# Gate-threshold CSV paths for stages eval/selfcheck. Default: the released
+# tree's literals (historical behaviour); configure(out_dir=...) repoints both
+# into that output tree. _load_gate_thresholds refuses to read the released
+# literals for a non-default model.
+_TAU1_CSV = TAU_FLOOR21_GATE_CSV
+_TAU2_CSV = TAU_FLAT4_CSV
 
 
 def configure(model_path: str = None, scratch_dir: str = None,
               out_dir: str = None):
-    global _CTX, OUT_TABLES_DIR, OUT_DIAG_DIR
+    global _CTX, OUT_TABLES_DIR, OUT_DIAG_DIR, _TAU1_CSV, _TAU2_CSV
     _CTX = resolve(model_path, scratch_dir, purpose="external benchmark scoring")
+    # The repo-side counterpart of that guard. OUT_TABLES_DIR/OUT_DIAG_DIR default
+    # to the released model's published record: outputs/tables/external_bench_*.md
+    # are where lid_main.tex's UDHR/FLORES cells come from, and the per-label CSVs
+    # under outputs/diagnostic/external_bench/ are the E2 detail behind them. A
+    # non-default model with no --out-dir would write the baseline per-label CSV
+    # over that record before any later guard fires. resolve_out_root refuses a
+    # non-default model paired with the default root, with anything inside it, or
+    # with a store-backed root, exactly as in analysis/paper_eval.py and
+    # analysis/paper_breakdowns.py; for the default model it returns the root and
+    # never raises, so nothing about a default run changes.
+    resolve_out_root(_CTX, out_dir, purpose="external benchmark scoring")
     if out_dir:
         OUT_TABLES_DIR = os.path.join(out_dir, "tables")
         OUT_DIAG_DIR = os.path.join(out_dir, "diagnostic/external_bench")
+        # The gate thresholds must come from the same output tree as the model
+        # being evaluated: the released-tree literals imported from
+        # gate_variants would silently pair a corrected model with the
+        # released model's thresholds.
+        _TAU1_CSV = os.path.join(out_dir, TAU_FLOOR21_GATE_CSV_NAME)
+        _TAU2_CSV = os.path.join(out_dir, TAU_FLAT4_CSV_NAME)
+    else:
+        # Restore the module defaults unconditionally: configure() may be
+        # called more than once in one process (a driver configuring a
+        # corrected model and then the default one), and without this branch
+        # the corrected tau/output paths from the earlier call would stay
+        # live under the default context. The non-default guard in
+        # _load_gate_thresholds does not fire for a default model, so the
+        # stale pairing would pass silently.
+        OUT_TABLES_DIR = "outputs/tables"
+        OUT_DIAG_DIR = "outputs/diagnostic/external_bench"
+        _TAU1_CSV = TAU_FLOOR21_GATE_CSV
+        _TAU2_CSV = TAU_FLAT4_CSV
     print(f"external benchmarks against {_CTX.describe()}\n"
           f"  tables under {OUT_TABLES_DIR}", flush=True)
     return _CTX
@@ -253,6 +316,87 @@ def _scored_meta_path(bench: str) -> str:
 
 def _gate_failure_md_path(bench: str) -> str:
     return os.path.join(OUT_TABLES_DIR, f"external_bench_{bench}_gate_failure.md")
+
+
+def _expected_floor_target() -> tuple[float, str]:
+    """(clamp target, provenance) the scored sidecar's `floor_target` must equal.
+
+    Default model: the module constant, unchanged. The released chain's own
+    fingerprint records -21.0, every recorded E2 artifact was scored at it, and the
+    check and its message stay exactly what they were.
+
+    Any other model: the `floor_target` recorded in that model's own
+    <scratch-dir>/fingerprint_floor21.json -- the same file, field and directory
+    stage "score" reads to build the clamped matrix (run_score, below). The floor
+    target is a measured per-model selection, not a universal constant: the
+    corrected base model's round-grid sweep selected -17.0. A missing file or a
+    missing field aborts naming the artifact; falling back to the module constant
+    here is what made the eval stage reachable only for the released model.
+    """
+    if _ctx().is_default_model:
+        return FLOOR_TARGET, "analysis.full_test_floor21"
+    fp_path = os.path.join(_ctx().scratch_dir, FINGERPRINT_FLOOR21_NAME)
+    if not os.path.exists(fp_path):
+        raise RuntimeError(
+            f"model {_ctx().model_path} is not the released model, so the clamp "
+            f"target must come from its own {FINGERPRINT_FLOOR21_NAME}, but "
+            f"{fp_path} does not exist. That file is the record of the floor sweep "
+            f"that selected the value, and it is what stage \"score\" built the "
+            f"clamped matrix from. The module constant FLOOR_TARGET "
+            f"({FLOOR_TARGET}, analysis.full_test_floor21) is the RELEASED chain's "
+            f"guard-selected value and must not stand in for it.")
+    with open(fp_path) as f:
+        recorded = json.load(f).get("floor_target")
+    if recorded is None:
+        raise RuntimeError(
+            f"{fp_path} records no floor_target field, so the clamp target stage "
+            f"\"score\" built at cannot be verified for {_ctx().model_path}.")
+    return float(recorded), fp_path
+
+
+def _check_sidecar_floor_target(recorded, meta_path: str) -> tuple[float, str]:
+    """Stage "eval"'s floor-target check, against `_expected_floor_target`.
+
+    Kept a pure function of (recorded value, sidecar path) and the configured
+    context so both branches can be fired without running a stage, the same reason
+    analysis/mistralnemo_eval.py's `_resolve_floor_target` and
+    analysis/paper_breakdowns.py's `_publish_tex` are pure. Returns the expected
+    value and its provenance (the report's constants list states them); aborts
+    naming both numbers on a mismatch."""
+    expected, provenance = _expected_floor_target()
+    if recorded != expected:
+        if _ctx().is_default_model:
+            raise RuntimeError(f"{meta_path} records floor_target {recorded}, "
+                               f"expected FLOOR_TARGET {expected} "
+                               "(analysis.full_test_floor21)")
+        raise RuntimeError(
+            f"{meta_path} records floor_target {recorded}, expected {expected} "
+            f"(the floor_target recorded in {provenance}, this model's own "
+            f"floor-21 fingerprint). The scored arrays were built at a different "
+            f"clamp than this model's own record selected, so the floor-21 and "
+            f"gated numbers from them would not be this model's.")
+    return expected, provenance
+
+
+def _cross_model_baseline_message(bench: str, measured: float, paper_value: float,
+                                  diff: float, model_path: str) -> str:
+    """The non-default-model form of the acceptance-gate line.
+
+    BENCH_REGISTRY's `paper_baseline_f1` is the cell published for the RELEASED
+    model. Comparing another model's recomputed baseline against it is a cross-model
+    comparison: a difference is the expected outcome, not a reproduction failure.
+    The comparison is still computed at the same tolerance and reported in full; it
+    withholds no number and fails no exit code. Wording and rule mirror
+    analysis/paper_breakdowns.py's `_cross_model_message`."""
+    verdict = "differs from" if diff > ACCEPTANCE_TOL else "agrees with"
+    return (f"INFORMATIONAL, NOT A GATE: the recomputed {bench} baseline macro F1 "
+            f"{measured:.6f} {verdict} the paper's published UniLID baseline cell "
+            f"{paper_value} (absolute difference {diff:.6f}, ACCEPTANCE_TOL "
+            f"{ACCEPTANCE_TOL}). That published cell is a measurement of the "
+            f"RELEASED model and this run scored {model_path}, so a difference "
+            f"here is an expected cross-model difference, not a regression and not "
+            f"a reproduction failure. Every configuration below WAS computed and "
+            f"written, with this run's own numbers.")
 
 
 def _sha256_file(path: str) -> str:
@@ -496,7 +640,7 @@ def run_score(bench: str) -> str:
     print("baseline pass (unmodified W)...", flush=True)
     pred_baseline = _score_baseline(model, pre, vidx, n_rows)
 
-    fp_path = os.path.join(_ctx().scratch_dir, "fingerprint_floor21.json")
+    fp_path = os.path.join(_ctx().scratch_dir, FINGERPRINT_FLOOR21_NAME)
     with open(fp_path) as f:
         fp = json.load(f)
     # The constant comes from the fingerprint, so this cannot be built at a
@@ -505,9 +649,14 @@ def run_score(bench: str) -> str:
     target = float(fp.get("floor_target", FLOOR_TARGET))
     print(f"building and verifying the clamped matrix at c = {target}...",
           flush=True)
-    w21, n_mod = build_equalized_weights(
-        W, target, special_idx=_special_columns(_ctx().model_path))
-    verify_one_sided_clamp(W, target, _special_columns(_ctx().model_path), n_mod)
+    special_cols = _special_columns(_ctx().model_path)
+    if len(special_cols) != 4:
+        raise RuntimeError(
+            f"{_ctx().model_path}: found {len(special_cols)} special columns, "
+            f"expected 4 (_special_columns drops a token absent from the "
+            f"vocabulary silently, so a short list means a missing special)")
+    w21, n_mod = build_equalized_weights(W, target, special_idx=special_cols)
+    verify_one_sided_clamp(W, target, special_cols, n_mod)
     sha_w = hashlib.sha256(W.tobytes()).hexdigest()
     if sha_w != fp["sha256_base_W"]:
         raise RuntimeError(
@@ -603,17 +752,24 @@ def _load_gate_thresholds(langs: list[str], N: np.ndarray) -> dict:
     n_lang = len(langs)
     lang_to_pos = {l: i for i, l in enumerate(langs)}
 
+    if not _ctx().is_default_model and _TAU1_CSV == TAU_FLOOR21_GATE_CSV:
+        raise RuntimeError(
+            f"model {_ctx().model_path} is not the released model but the gate "
+            f"thresholds would be read from the released tree "
+            f"({TAU_FLOOR21_GATE_CSV}); pass --out-dir pointing at the output "
+            f"root that holds this model's own tau CSVs")
+
     step1_langs = {langs[i] for i in range(n_lang) if N[i] < HEAD_N}
-    tau1_row_count = len(pd.read_csv(TAU_FLOOR21_GATE_CSV))
+    tau1_row_count = len(pd.read_csv(_TAU1_CSV))
     if len(step1_langs) != tau1_row_count:
         raise RuntimeError(f"{len(step1_langs)} languages with N < HEAD_N "
                            f"({HEAD_N:,}), expected {tau1_row_count} (the "
-                           f"data-row count of {TAU_FLOOR21_GATE_CSV})")
-    tau1, sha_tau1 = _load_tau_csv(TAU_FLOOR21_GATE_CSV, langs, step1_langs)
+                           f"data-row count of {_TAU1_CSV})")
+    tau1, sha_tau1 = _load_tau_csv(_TAU1_CSV, langs, step1_langs)
 
-    flat4_df = pd.read_csv(TAU_FLAT4_CSV)
+    flat4_df = pd.read_csv(_TAU2_CSV)
     if len(flat4_df) != N_FLAT4:
-        raise RuntimeError(f"{TAU_FLAT4_CSV} has {len(flat4_df)} rows, expected "
+        raise RuntimeError(f"{_TAU2_CSV} has {len(flat4_df)} rows, expected "
                            f"exactly {N_FLAT4} (the flat-four languages)")
     step2_langs = set(flat4_df.lang)
     for lang in step2_langs:
@@ -623,7 +779,7 @@ def _load_gate_thresholds(langs: list[str], N: np.ndarray) -> dict:
                 f"flat-four language {lang} has N={n_l:,} < HEAD_N ({HEAD_N:,}); "
                 "expected all four to have N >= HEAD_N so group A and group B "
                 "are disjoint by construction")
-    tau2, sha_tau2 = _load_tau_csv(TAU_FLAT4_CSV, langs, step2_langs)
+    tau2, sha_tau2 = _load_tau_csv(_TAU2_CSV, langs, step2_langs)
 
     if step1_langs & step2_langs:
         raise RuntimeError("group A (N < HEAD_N) and group B (flat-four) "
@@ -802,10 +958,8 @@ def run_eval(bench: str) -> str:
 
     # --- meta sidecar vs. this run's own constants: catches an eval run against a
     # score-stage npz built under a different floor/top-k/row/label configuration ---
-    if meta["floor_target"] != FLOOR_TARGET:
-        raise RuntimeError(f"{meta_path} records floor_target {meta['floor_target']}, "
-                           f"expected FLOOR_TARGET {FLOOR_TARGET} "
-                           "(analysis.full_test_floor21)")
+    floor_target, floor_target_provenance = _check_sidecar_floor_target(
+        meta["floor_target"], meta_path)
     if meta["topk_margin"] != TOPK_MARGIN:
         raise RuntimeError(f"{meta_path} records topk_margin {meta['topk_margin']}, "
                            f"expected TOPK_MARGIN {TOPK_MARGIN} "
@@ -837,6 +991,12 @@ def run_eval(bench: str) -> str:
     os.makedirs(OUT_TABLES_DIR, exist_ok=True)
 
     # --- acceptance gate: baseline only, before any gated-configuration number ---
+    # Does the gate BIND this run? reg["paper_baseline_f1"] is the cell published
+    # for the RELEASED model, so only the released model can be held to it; under
+    # any other model the difference is the point of the run, and the comparison
+    # withholds no number and fails no exit code. Same rule and same test as
+    # analysis/paper_breakdowns.py's `gates_binding`.
+    gates_binding = _ctx().is_default_model
     baseline_stats = _per_label_metrics(pred_baseline, y, label_idx, n_lang, n_rows)
     baseline_macro_f1 = baseline_stats["macro_f1"]
     diff = abs(baseline_macro_f1 - reg["paper_baseline_f1"])
@@ -845,7 +1005,7 @@ def run_eval(bench: str) -> str:
     _write_per_label_csv(baseline_csv_path, label_idx, langs, N,
                          {"baseline": baseline_stats})
 
-    if diff > ACCEPTANCE_TOL:
+    if diff > ACCEPTANCE_TOL and gates_binding:
         gate_md_path = _gate_failure_md_path(bench)
         L = [
             f"# External benchmark E2 ({bench}): baseline acceptance gate FAILED\n",
@@ -874,13 +1034,31 @@ def run_eval(bench: str) -> str:
         print(f"\nWrote {gate_md_path}, {baseline_csv_path}")
         sys.exit(1)
 
-    # --- gate passed: remove any stale failure report from a prior run, so it is
-    # never mistaken for the current state ---
+    # --- the run proceeds: the gate passed, or it does not bind this model ---
+    if gates_binding:
+        acceptance_line = (
+            f"Acceptance gate: baseline macro F1 {baseline_macro_f1:.6f} vs paper "
+            f"{reg['paper_baseline_f1']} (diff {diff:.6f}, tolerance "
+            f"{ACCEPTANCE_TOL}) -- PASSED.\n")
+    else:
+        acceptance_line = _cross_model_baseline_message(
+            bench, baseline_macro_f1, reg["paper_baseline_f1"], diff,
+            _ctx().model_path) + "\n"
+        print(acceptance_line.rstrip("\n"), flush=True)
+
+    # --- remove any stale failure report from a prior run, so it is never mistaken
+    # for the current state ---
     stale_gate_md_path = _gate_failure_md_path(bench)
     if os.path.exists(stale_gate_md_path):
         os.remove(stale_gate_md_path)
-        print(f"Removed stale {stale_gate_md_path} (the acceptance gate now "
-              "passes).")
+        if gates_binding:
+            print(f"Removed stale {stale_gate_md_path} (the acceptance gate now "
+                  "passes).")
+        else:
+            print(f"Removed stale {stale_gate_md_path} (it is a gate failure from "
+                  "a run where the gate was binding; under this model the same "
+                  "comparison is informational and every configuration below was "
+                  "computed).")
 
     # --- floor-21 prediction is top5_ids[:, 0] (the top-k pass's own rank-1
     # candidate under the floor-21 matrix; see the module docstring) ---
@@ -954,9 +1132,7 @@ def run_eval(bench: str) -> str:
         f"(paper: {reg['expected_labels']}). {n_empty:,} rows empty after "
         "preprocess (scored as wrong under every configuration, the repo's EMPTY "
         "convention).\n",
-        f"Acceptance gate: baseline macro F1 {baseline_macro_f1:.6f} vs paper "
-        f"{reg['paper_baseline_f1']} (diff {diff:.6f}, tolerance "
-        f"{ACCEPTANCE_TOL}) -- PASSED.\n",
+        acceptance_line,
         "The floor-21 prediction reported here is the top-k pass's own rank-1 "
         "candidate under the floor-21 matrix (the same matrix the margins are "
         "scored from); analysis/gate_variants.py's own agree_mask carve-out is "
@@ -969,11 +1145,11 @@ def run_eval(bench: str) -> str:
         f"- HEAD_N = {HEAD_N:,} (analysis.full_test_margin)",
         f"- RES_CAP = {RES_CAP:,} (analysis.hierarchical_pool)",
         f"- D3_PROX = {D3_PROX} (analysis.gate_variants)",
-        f"- FLOOR_TARGET = {FLOOR_TARGET} (analysis.full_test_floor21)",
+        f"- FLOOR_TARGET = {floor_target} ({floor_target_provenance})",
         f"- TOPK_MARGIN = {TOPK_MARGIN} (analysis.margin_diagnostic)",
-        f"- {TAU_FLOOR21_GATE_CSV} (group A thresholds, {len(step1_langs):,} "
+        f"- {_TAU1_CSV} (group A thresholds, {len(step1_langs):,} "
         f"languages, sha256 {sha_tau1[:16]}...)",
-        f"- {TAU_FLAT4_CSV} (group B thresholds, {N_FLAT4} languages, sha256 "
+        f"- {_TAU2_CSV} (group B thresholds, {N_FLAT4} languages, sha256 "
         f"{sha_tau2[:16]}...)",
         f"\nPer-label detail: {per_label_csv_path}.",
         f"\nGit commit: {git_commit}.",
@@ -1018,7 +1194,7 @@ def run_selfcheck() -> None:
     pred_floor21_path = os.path.join(_ctx().scratch_dir, "pred_floor21.npy")
     pred_gated_path = os.path.join(_ctx().scratch_dir, "pred_gate_flat4_prox21.npy")
     for p in (lines_path, ids_path, scores_path, fp_path, pred_floor21_path,
-             pred_gated_path, PRF_CSV, TAU_FLOOR21_GATE_CSV, TAU_FLAT4_CSV):
+             pred_gated_path, PRF_CSV, _TAU1_CSV, _TAU2_CSV):
         if not os.path.exists(p):
             raise FileNotFoundError(f"required artifact missing: {p}")
 

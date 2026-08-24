@@ -1,0 +1,11 @@
+{
+  "model": "/capstor/scratch/cscs/cmeister747/unilid_analysis/wili_100k_500_fp32null.unilid",
+  "split": "test",
+  "total_samples": 117500,
+  "n_labels": 235,
+  "n_empty_after_preprocess": 0,
+  "n_gold_labels_absent_from_model": 0,
+  "accuracy": 0.9564085106382979,
+  "macro_f1": 0.9600865507665617,
+  "macro_fpr": 0.00018628841607565012
+}

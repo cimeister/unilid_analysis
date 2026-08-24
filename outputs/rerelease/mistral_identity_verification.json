@@ -1,0 +1,110 @@
+{
+  "record": "mistral_identity_verification",
+  "date": "2026-08-23",
+  "question": "Does the published \\unilid-Mistral WiLI row use the mistralai/Mistral-Nemo-Base-2407 tokenizer (author's belief, 2026-08-23), or a 32k Mistral-7B tokenizer (the plan's designation)?",
+  "paper_evidence": {
+    "both_numbers_same_table": true,
+    "table": "tab:unilid_llm_comparison",
+    "table_file": "paper/tables/unilid_llm_comparison.tex",
+    "corpus": "WiLI (trained on WiLI, evaluated on WiLI)",
+    "caption_verbatim": "Macro-averaged F1 and FPR of different LID systems on WiLI; \\camrev{the rows below the dashed line} are variants of \\unilid trained using the base tokenizers from open-source LLMs.",
+    "rows": [
+      {"line": 11, "name": "\\unilid (base)", "macro_f1": 0.960, "macro_fpr": "1.859e-4"},
+      {"line": 12, "name": "\\fasttext", "macro_f1": 0.946, "macro_fpr": "2.331e-4"},
+      {"line": 14, "name": "\\unilid-Mistral-Nemo", "macro_f1": 0.958, "macro_fpr": "1.925e-4"},
+      {"line": 15, "name": "\\unilid-Mistral", "macro_f1": 0.921, "macro_fpr": "3.365e-4"},
+      {"line": 16, "name": "\\unilid-LLaMA3.2", "macro_f1": 0.954, "macro_fpr": "2.084e-4"},
+      {"line": 17, "name": "\\unilid-LLaMA2", "macro_f1": 0.911, "macro_fpr": "3.698e-4"},
+      {"line": 18, "name": "\\unilid-DeepSeek3.2", "macro_f1": 0.955, "macro_fpr": "2.042e-4"},
+      {"line": 19, "name": "\\unilid-Qwen3", "macro_f1": 0.949, "macro_fpr": "2.310e-4"}
+    ],
+    "duplicate_in_initial_version": "paper/initial_version.tex:1302-1303, identical cells; its caption reads 'the latter 4 systems are variants of \\unilid trained using the base tokenizers from open-source LLMs' (stale: six rows sit below the dashed line)",
+    "other_mistral_mentions": {
+      "paper/tables/lid_main.tex:82": "\\unilid-Mistral-Nemo row, GlotLID-C / UDHR / FLORES-200 corpora (GlotLID-C-trained). No \\unilid-Mistral row exists there.",
+      "paper/tables/calibrated_nemo.tex:10": "\\unilid-Mistral-Nemo (retrained), GlotLID-C pool",
+      "paper/submission.tex:784": "names mistralai/Mistral-Nemo-Base-2407 as the tokenizer behind \\unilid-Mistral-Nemo",
+      "note": "\\unilid-Mistral appears ONLY at paper/tables/unilid_llm_comparison.tex:15 and paper/initial_version.tex:1303. The paper never names a repository for it."
+    },
+    "per_model_vocab_size_in_paper": "NONE. tab:vocab_size_efficiency lists vocabulary sizes only for the dedicated-tokenizer sweep (10k/20k/50k/100k/200k), not per LLM variant. training_time and latency tables carry no vocabulary column."
+  },
+  "recorded_reasoning_under_challenge": {
+    "source_1": "~/.claude/plans/this-session-focuses-on-shimmering-dusk.md:146",
+    "verbatim_1": "| `\\unilid-Mistral` | `mistral-community/Mistral-7B-v0.2` | **cannot be Mistral-Nemo**: the published rows differ (0.921 against 0.958), so the tokenizers differ. Vocabulary size discriminates sharply, 32,768 against 131,072 |",
+    "source_2": "EXPERIMENTS_PLAN.md:1003-1004",
+    "verbatim_2": "Note `\\unilid-Mistral` cannot be Mistral-Nemo: the published rows differ (0.921 against 0.958).",
+    "source_3": "SESSION_STATUS.md:124",
+    "verbatim_3": "`\\unilid-Mistral` cannot be Mistral-Nemo (0.921 vs 0.958).",
+    "validity": "VALID. The two cells are adjacent rows of one table, one corpus (WiLI), one training recipe; the caption states the rows differ only in base tokenizer. Equal tokenizer would imply equal cells. The elliptical phrasing hid this premise, but the premise holds.",
+    "error_inside_it": "the parenthetical '32,768 against 131,072' is wrong: mistral-community/Mistral-7B-v0.2 has 32,000 entries (measured). 32,768 is Mistral-7B-v0.3. Already recorded as an open author question at SESSION_STATUS.md:130-132."
+  },
+  "tokenizer_measurements": {
+    "downloads": [
+      {
+        "repo": "mistralai/Mistral-Nemo-Base-2407",
+        "revision": "a4477a2f977929a969745b69bbd62e03043551a5",
+        "gated": false,
+        "dest": "/capstor/scratch/cscs/cmeister747/unilid_analysis/hf_tokenizers/Mistral-Nemo-Base-2407/",
+        "files": [
+          {"name": "tokenizer.json", "bytes": 9264445, "sha256": "e11c71726323d33da7b8d6f6f269f1988931c0a52b7122bcdd8c05042974e0db"},
+          {"name": "tokenizer_config.json", "bytes": 177080, "sha256": "9d00d5a5310d73664463a50abefe9646a7f42d3a55f590edc4e967ff33e3e1e5"},
+          {"name": "special_tokens_map.json", "bytes": 414, "sha256": "6fa06efa2785e450051989a6f8fb4416b10149ded485ddd3f127a40734f5cfd0"},
+          {"name": "tekken.json", "bytes": 14801223, "sha256": "eccd1665d2e477697c33cb7f0daa6f6dfefc57a0a6bceb66d4be52952f827516"},
+          {"name": "vocab.json", "bytes": 2472536, "sha256": "8572e8853a6b2f2d830de4afa15d43c49257d367abf3c5fd2f6f7687bcd8f63d"}
+        ]
+      }
+    ],
+    "comparison_a_nemo_vs_container": {
+      "container_file": "/capstor/scratch/cscs/cmeister747/unilid_analysis/results_mistralnemo_wili_fp64/tokenizers/langspec_base_tokenizer.json",
+      "container_origin": "extracted from glotlid_mistralnemo_fp64.unilid",
+      "hf_entries": 131072,
+      "container_entries": 131072,
+      "ordered_token_list_identical": true,
+      "set_overlap": 131072,
+      "byte_level": {"hf": true, "container": true},
+      "model_type": {"hf": "BPE", "container": "Unigram (conversion artefact of _convert_to_unigram_base)"},
+      "pre_tokenizer_identical_regex_and_bytelevel": true,
+      "container_score_zero_indices": [0, 1, 2, 10],
+      "container_score_zero_tokens": ["<unk>", "<s>", "</s>", "<pad>"],
+      "verdict": "MEASURED: the GlotLID-C Mistral-Nemo container's base vocabulary IS mistralai/Mistral-Nemo-Base-2407, exact ordered identity."
+    },
+    "comparison_b_mistral7b_v02": {
+      "file": "/capstor/scratch/cscs/cmeister747/unilid_analysis/hf_tokenizers/Mistral-7B-v0.2/tokenizer.json",
+      "entries": 32000,
+      "byte_level": false,
+      "normalizer": "Prepend U+2581 + Replace space -> U+2581 (SentencePiece style, byte-fallback <0xNN> tokens)",
+      "set_overlap_with_nemo": 10172,
+      "verdict": "MEASURED: entirely different vocabulary from Nemo (32,000 vs 131,072; 10,172 shared surface forms; different pre-tokenization regime)."
+    },
+    "mistral_repo_family": {
+      "mistralai/Mistral-7B-v0.1": {"revision": "27d67f1b5f57", "entries": 32000, "ordered_list_identical_to_mistral_community_v0.2": true},
+      "mistral-community/Mistral-7B-v0.2": {"entries": 32000},
+      "mistralai/Mistral-7B-v0.3": {"revision": "caa1feb0e54d", "entries": 32768, "ordered_list_identical_to_v0.2": false, "prefix_match": false},
+      "implication": "MEASURED: v0.1 and community v0.2 are the SAME vocabulary, so the v0.1-vs-v0.2 half of the open author question is moot. v0.3 is genuinely different and would be a different model."
+    },
+    "vocab_size_vs_published_f1": {
+      "note": "vocabulary sizes MEASURED from the extracted/downloaded base tokenizers; F1 from tab:unilid_llm_comparison",
+      "rows": [
+        {"variant": "Mistral-Nemo", "entries": 131072, "byte_level": true, "source": "GlotLID-C container extract", "wili_f1": 0.958},
+        {"variant": "Qwen3", "entries": 151670, "byte_level": true, "source": "container extract", "wili_f1": 0.949},
+        {"variant": "DeepSeek3.2", "entries": 128819, "byte_level": true, "source": "container extract", "wili_f1": 0.955},
+        {"variant": "LLaMA3.2", "entries": 128260, "byte_level": true, "source": "HF download (candidate)", "wili_f1": 0.954},
+        {"variant": "LLaMA2", "entries": 32001, "byte_level": false, "source": "HF download (candidate)", "wili_f1": 0.911},
+        {"variant": "Mistral", "entries": 32001, "byte_level": false, "source": "HF download (candidate, Mistral-7B-v0.2 + pad)", "wili_f1": 0.921}
+      ],
+      "pattern": "INFERRED: every >=128k byte-level vocabulary lands at 0.949-0.958; the only two sub-0.93 rows (0.911, 0.921) are exactly the two 32k non-byte-level SentencePiece vocabularies. A Nemo-tokenizer model landing at 0.921 would contradict the 0.958 Nemo row in the same table."
+    }
+  },
+  "verdict": {
+    "surviving_hypothesis": "(ii) \\unilid-Mistral is a 32k Mistral-7B tokenizer, NOT Mistral-Nemo-Base-2407. The author's belief does not survive.",
+    "discriminating_evidence": [
+      "0.921 and 0.958 are rows 15 and 14 of ONE table on ONE corpus with one recipe varying only the base tokenizer (paper/tables/unilid_llm_comparison.tex:11-22).",
+      "The paper names Mistral-Nemo-Base-2407 explicitly for the \\unilid-Mistral-Nemo row (submission.tex:784) and gives \\unilid-Mistral its own separate row.",
+      "MEASURED F1-vs-vocabulary pattern: 0.921 sits with the 32k SentencePiece cluster, not the 131k byte-level cluster."
+    ],
+    "residual_open_question": "WHICH 32k Mistral repository. v0.1 and community-v0.2 are byte-identical (32,000) and interchangeable; v0.3 (32,768) is not. The repo evidence cannot choose between the 32,000 and 32,768 families - author information only.",
+    "only_way_author_is_right": "a labelling error in the published table (a row printed as \\unilid-Mistral that was actually run with the Nemo vocabulary under some other differing setting), which would make the table self-contradictory - two Nemo rows differing by 0.037 F1. No repo artefact supports this.",
+    "job_3161886_targets": "the \\unilid-Mistral-Nemo WiLI row (0.958 / 1.925e-4) in tab:unilid_llm_comparison, which is a distinct published row. Mistral-Nemo also carries GlotLID-C rows (lid_main.tex:82, calibrated_nemo.tex:10). The job does not target the \\unilid-Mistral row."
+  },
+  "files_written": ["outputs/rerelease/mistral_identity_verification.json"],
+  "files_modified": []
+}

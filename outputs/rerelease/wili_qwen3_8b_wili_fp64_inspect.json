@@ -1,0 +1,20 @@
+[
+  {
+    "model": "/capstor/scratch/cscs/cmeister747/unilid_analysis/qwen3_8b_wili_fp64.unilid",
+    "n_languages": 235,
+    "vocab_size": 151670,
+    "special_columns": [
+      128245,
+      128247,
+      151669,
+      128244
+    ],
+    "special_mass_min": 3.999998465179331e-12,
+    "special_mass_max": 3.999998465179331e-12,
+    "real_mass_min": 0.9999999093883399,
+    "real_mass_max": 1.0000000855024551,
+    "plateau_min": -16.256221771240234,
+    "plateau_max": -13.051178932189941,
+    "defect_present": false
+  }
+]

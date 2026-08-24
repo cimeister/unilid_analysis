@@ -1,0 +1,15 @@
+{
+  "source_model": "/capstor/scratch/cscs/cmeister747/unilid_analysis/glotlid_mistralnemo_fp64.unilid",
+  "results_dir": "/capstor/scratch/cscs/cmeister747/unilid_analysis/results_mistralnemo_wili_fp64",
+  "base_tokenizer": "/capstor/scratch/cscs/cmeister747/unilid_analysis/results_mistralnemo_wili_fp64/tokenizers/langspec_base_tokenizer.json",
+  "vocab_size": 131072,
+  "n_languages": 1940,
+  "model_type": "Unigram",
+  "special_token_indices": [
+    1,
+    2,
+    10,
+    0
+  ],
+  "base_tokenizer_sha256": "913ade8d70984a689ed4cf05efce731e9b03f0b674fcafda0626582ac2eaaa7b"
+}

@@ -39,7 +39,10 @@ for the infrastructure record.
   117,500 test, 235 languages, 500 per language), Tatoeba, UDHR, FLORES, DSL-ML,
   and three of eleven models. **No 10k / 20k / 50k / 200k model exists**, so
   `tab:vocab_size_efficiency` cannot be rebuilt from a container. Downloaded to
-  `/capstor/scratch/.../wili_assets/`.
+  `/capstor/scratch/.../wili_assets/`. CORRECTION 2026-08-23: this entry
+  overstated the download. Only `wili-2018.zip` and the models actually landed
+  in `wili_assets/`; `tatoeba.zip` (980 MB) was listed on the releases page but
+  never downloaded — the filesystem, not this record, is right.
 - **Phase 0, the instrument, PASSED:** `analysis/wili_eval.py` reproduces the
   published cells from the stored defective model at macro F1 0.960113, accuracy
   0.956502 and macro FPR 1.8589e-04. Written because no WiLI tooling existed here
@@ -1809,3 +1812,206 @@ load-bearing lives on durable storage; scratch retains only regenerable data
 (glotlid_unilid/) and logs.
 
 
+
+## 2026-08-23: tab:length_accuracy rebuilt from the WiLI retrains
+
+- **Plan item:** `EXPERIMENTS_PLAN.md:986` (the WiLI table set). `RERELEASE_PLAN.md:268`
+  filed `length_accuracy` under "needs the co-author's artifacts"; that is now wrong for
+  the UniLID column, which is re-runnable here. The fastText column still is not.
+- **Instrument:** `analysis/wili_length_accuracy.py`, new. `analysis/wili_eval.py` was
+  refactored to expose `predict_all` and `out_of_set_labels`, which the new script imports,
+  so the empty-after-preprocess and out-of-label-set conventions cannot drift between the
+  two. Pure extraction; no behavior change. wili_eval stores no per-line predictions, so
+  predictions are recomputed.
+- **Length definition, established before any accuracy was computed:** `len(raw_line)` in
+  Unicode code points, no preprocessing, no stripping. It reproduces all six published
+  bucket counts exactly (7,845 / 26,652 / 31,449 / 29,494 / 18,142 / 3,918). utf-8 bytes
+  does not (2,947 / 16,851 / 25,389 / 32,660 / 27,363 / 12,290). Stripping changes nothing:
+  no WiLI line has leading or trailing whitespace. Shortest line in both splits is 140
+  chars, so nothing falls below the first bucket, as the caption claims. The count check
+  aborts on mismatch and was confirmed to fire by feeding it the byte definition.
+- **Instrument gate, PASSED:** the stored defective `wili_assets/wili_100k_500.unilid`
+  reproduces all seven published UniLID cells to the two decimals printed
+  (93.10 / 94.17 / 95.86 / 96.78 / 96.53 / 96.53, Overall 95.65; every delta 0.00 pp).
+  `outputs/rerelease/wili_length_accuracy_wili_100k_500.json`.
+- **Retrains measured** (login node, a few minutes each, 117,500 lines, 0 empty and 0
+  out-of-set for all three):
+  - `wili_100k_500_fp64`  93.04 / 94.11 / 95.83 / 96.79 / 96.60 / 96.61, Overall 95.64
+  - `deepseek_v3.2_wili_fp64` 92.59 / 93.87 / 95.40 / 96.32 / 96.08 / 95.53, Overall 95.21
+  - `qwen3_8b_wili_fp64`   91.56 / 92.95 / 94.78 / 95.64 / 95.69 / 95.30, Overall 94.52
+  Each Overall matches the independently computed accuracy in the corresponding
+  `outputs/rerelease/wili_eval_*.json` to all printed digits.
+- **Reading:** the retrained base model shifts the published column by at most 0.08 pp in
+  any bucket; the correction is not visible at table resolution. The two LLM-tokenizer
+  variants lose most in the shortest bucket, which is the regime the paragraph at
+  `submission.tex:984` argues about.
+- **Artifacts:** `outputs/rerelease/wili_length_accuracy_{wili_100k_500,
+  wili_100k_500_fp64,deepseek_v3.2_wili_fp64,qwen3_8b_wili_fp64}.json`.
+- **Not done:** the fastText column. No fastText model trained on WiLI exists on this
+  machine, so those six cells stay the co-author's.
+
+## 2026-08-22/23: the queued wave completes; WiLI gate and evals; group B settled
+
+All six queued jobs finished clean on 2026-08-22: 3138626/3138627/3138628 (WiLI
+retrains, 20-25 min each), 3127704 (gate_variants topk on the corrected model,
+6m40s, top-1 agreement 1.0000 with pred_floor21 on all 2,228,183 affected
+lines), 3117575/3117576 (DeepSeek/Qwen full-pool evals, ~1h52m each).
+
+2026-08-23, run on the login node: macro FPR recomputed for both variant evals
+from their saved prediction arrays (variant_fp64_fulltest_fpr.json);
+analysis/wili_transform_gate.py written by one agent, adversarially reviewed by
+a second (verdict FIX FIRST: a live wrong-PASS on empty --models, exit-code
+ambiguity, threshold-transfer disclosure; 11 fixes applied), then run — FAILs
+read per model: DeepSeek 11 / Qwen 14 failing languages (corruption signature),
+wili_100k_500 107 (systematic, needs the null arm); analysis/wili_eval.py run
+on all three retrains (cells match published at three decimals except Qwen
+.949->.948); group-B re-derivation measured (unchanged four).
+
+Submitted: 3157817 (gate_variants apply flat4_tau5 then flat4_prox21 on the
+corrected model; before submitting, gate_variants.py:1275's hardcoded
+outputs/tables/gate_flat4_prox21_build.md was routed through _out() so the
+corrected run cannot overwrite the released build record) and 3157851 (fp32
+null-arm retrain of wili_100k_500: unpatched spm_train from fork commit
+2b7ec9b built into the isolated sp_fp32_env/ prefix, sha256-discriminated
+preflight; decides whether the 107-row gate FAIL is a build effect or a
+non-reproducing stored model).
+
+2026-08-23, recorded borrow: pred_fasttext.npy was COPIED (plain copy, sha256
+4ff74fb55ce5668b...  verified equal) from full_test_eval/ into
+full_test_eval_corrected/. The array is the external fastText model's
+predictions over the same test file and is model-invariant given the identical
+1,940-label order (verified); it cannot be regenerated into the corrected tree
+because analysis/import_external_pred.py is not parametrized. A symlink was
+deliberately NOT used: 40 of the released tree's 46 entries realpath into
+/capstor/store, and a store-backed symlink in the corrected root would poison
+analysis.model_context's guard for every later non-default resolve.
+
+2026-08-23: tatoeba.zip (1,028,156,179 bytes, sha256 fe0c0292a2e50289...)
+downloaded from the lid-eval-datasets DRAFT release into wili_assets/. The
+public GitHub API returns drafts as an empty list, which is how the 2026-08-21
+pass missed it; gh with authentication sees them. Contents: tatoeba_test.txt
+(148 MB), tatoeba_train.txt, tatoeba_full.txt, sentences.csv,
+reduced_tatoeba.csv.
+
+2026-08-23, degeneracy-scan definition change (32 -> 34): the estimated-token
+count in analysis/degeneracy_scan_mistralnemo.py now runs over REAL columns
+only. The whole-row definition counted entries above the row minimum, which is
+the plateau only while the four specials sit at log-prob 0.0 (the defect); in a
+0.3.0-packed corrected container the specials hold the row MINIMUM and the
+whole-row scan flags nothing (measured: 0 flagged on the corrected Nemo
+container). Under the real-column definition both containers flag the identical
+34 rows: the released record's 32 plus csw_Cans (98) and ike_Cans (99), whose
+whole-row counts the 4 specials had inflated past MIN_ESTIMATED=100 (verified:
+est_whole_row - est_real == 4 for all 1,940 rows). The released record at
+outputs/tables/degenerate_rows_mistralnemo.md (32 rows) predates this change
+and is kept as-is; re-running the scan on the released container at HEAD now
+yields 34.
+
+## 2026-08-23: Phase 2/3 WiLI trainings prepared and submitted; Phase 2b half-blocked
+
+Prepared (each smoke-tested on a 2-language mini-corpus with the exact argv,
+every preflight failure mode executed): Mistral-Nemo-WiLI (base tokenizer
+extracted from the GlotLID-C container, 131,072 entries, specials at
+[1,2,10,0]); Llama-3.2-1B-WiLI (tokenizer downloaded, revision 4e20de36,
+byte-level, converts cleanly via train.py's own _convert_to_unigram_base);
+the Phase 3 100k-from-defaults run plus analysis/wili_vocab_repro_check.py
+(ordered token-list comparison, validated with three controls) and the
+parameterized vocab-size script gated on that verdict.
+
+Negative result (full record outputs/rerelease/wili_phase2_conversion_smoke.json):
+Mistral-7B-v0.2 and Llama-2-7b-hf have non-byte-level vocabularies whose
+entries include raw carriage returns (51 and 24 offending tokens); the
+per-language SentencePiece seed-vocab writer refuses them
+(unilid/vocab_io.py:120), so those two rows cannot train under
+--per-lang-counts-method sp without an author decision (byte-level re-encoding,
+dropping entries, or a different counts method -- each a different model).
+Also: mistral-community/Mistral-7B-v0.2 has 32,000 vocab entries, not the
+32,768 the plan stated; 32,768 is v0.3. Which repository the published
+\unilid-Mistral row used is an open author question. Downloads succeeded for
+all three repos (HF_TOKEN authorized on the gated meta-llama repos); manifest
+with revisions and sha256s at outputs/rerelease/wili_phase2b_tokenizer_downloads.json.
+
+Submitted: 3161886 (mistralnemo_wili), 3161887 (llama32_1b_wili), 3161889
+(wili_100k_defaults + repro check), 3161890/91/92/93 (10k/20k/50k/200k,
+afterok:3161889; the repro verdict decides only whether they are reported as
+the published models or as new models built by the published procedure).
+
+## 2026-08-23: Mistral identity verified; dropped-entry decision implemented; all seven WiLI variant trainings submitted
+
+The author challenged the recorded "\unilid-Mistral cannot be Mistral-Nemo"
+conclusion, believing the row used mistralai/Mistral-Nemo-Base-2407. Verified
+adversarially (outputs/rerelease/mistral_identity_verification.json): the
+conclusion HOLDS -- 0.921 and 0.958 are adjacent rows of ONE table
+(tab:unilid_llm_comparison, WiLI corpus, caption stating rows differ only in
+base tokenizer), so equal tokenizers would force equal cells. The author's
+belief is confirmed for the OTHER row: Mistral-Nemo-Base-2407's ordered token
+list is byte-identical to the base inside glotlid_mistralnemo_fp64.unilid
+(131,072 entries), and submission.tex:784 names that repo for
+\unilid-Mistral-Nemo. Two corrections to the record: v0.2 has 32,000 entries,
+not the plan's 32,768 (that is v0.3, genuinely different); and
+mistralai/Mistral-7B-v0.1 is byte-identical to the mistral-community v0.2 copy,
+so v0.1-vs-v0.2 is moot. Corroboration: the only two sub-0.93 rows are exactly
+the two 32k non-byte-level candidates. Author decision 2026-08-23:
+\unilid-Mistral retrains on the v0.1/v0.2 32,000-entry tokenizer, stated
+unconfirmed.
+
+Author decision 2026-08-23, implemented: vocabulary entries the per-language
+seed-vocab writer refuses (vocab_io.py:119-120, tab/newline/CR) are DROPPED
+whole from the converted base. The filter mirrors the writer's predicate and is
+verified in both directions against the real writer (every dropped token
+individually refused; the survivors accepted). Mistral-7B-v0.2: 51 dropped ->
+31,950 entries; Llama-2: 24 dropped -> 31,977; all 75 dropped tokens carry \r
+only (code-punctuation pieces); full lists in
+outputs/rerelease/wili_{mistral7b_v02,llama2_7b}_base_convert.json. Pre-drop
+bases parked in superseded_bases_20260823/. Smoke tests pass end-to-end, real
+mass 1.0, no refusal hit. Note: the refusal check dates to the UNILID package's
+initial commit here, so how the ORIGINAL models trained past it depends on the
+co-author's environment -- consistent with these rows being "new models built
+by the published procedure", not byte-reproductions. Also note (recorded in the
+smoke JSON): --byte-level is overridden to False from these bases by
+language_specific_trainer.py:263, before and after the drop.
+
+Submitted: 3162788 (mistral7b_v02_wili), 3162789 (llama2_7b_wili). All seven
+WiLI variant/vocab-size trainings are now queued.
+
+## 2026-08-24: the 18-job wave completes; compilation and chain continuation
+
+All 18 jobs COMPLETED 0:0 (sacct): 3157817 apply stages (27s, verified
+legitimate), 3157851 fp32 null arm (18m55s), 3158825 Nemo stages (1h58m), six
+Tatoeba evals (3-6 min each), seven WiLI trainings (3161886/87/89/90/91/92/93,
+3162788/89; 4 min - 1h34m). Three agents dispatched: null-arm verdict analysis;
+WiLI compilation (report outputs/rerelease/wave_2026-08-24_compilation.md, nine
+wili_eval runs added); corrected-chain continuation (report
+outputs/rerelease/corrected_chain_2026-08-24.md; build_release_calibration
+passed, paper_eval/paper_breakdowns corrected tables written, release_gates
+base PASS; two blockers to a fix pass). Paper-edits agent launched to update
+paper/PAPER_EDITS_pending.md and apply ready edits under \corrrev{}.
+
+2026-08-24, chain completion: external_bench_eval eval-stage non-default fixes
+(floor target from the model's own fingerprint; acceptance gate binding only
+for the default model; resolve_out_root in configure -- selfcheck 42/42);
+corrected UDHR/FLORES eval stages run; calibrated bundle packed via
+unilid-calibrate bundle (version 2, c=-17); release_gates PASS in both modes at
+exact equality. fp32 null-arm verdict recorded (build hypothesis refuted, 106
+of 107 failures shared across builds); cap-4192 second null arm in preparation
+(tests whether the stored model was trained at sentencepiece's default
+max_sentence_length).
+
+2026-08-24, cap null arm: job 3173500 submitted (fp32 build +
+max_sentence_length 4192, the sentencepiece default; one variable vs the
+fp32null arm). Unit correction: the cap applies to ENCODED bytes; 2,052 lines /
+106 languages exceed it, and those 106 are exactly arm (a)'s failing set
+(symmetric difference empty). The "101 lines over the cap" figure recorded
+2026-08-21 was characters, and "65 of 106" was raw bytes -- both wrong units.
+UNILID gains --max-sentence-length (default 1,000,000 unchanged, 111 tests
+pass, patch in patches/unilid_max_sentence_length.patch); null-arm drivers
+promoted to analysis/wili_null_arm_verdict.py / _augment.py with an ARMS
+registry.
+
+2026-08-24, CommonLID corrected (jobs 3174187 scoring 7m40s, 3174266 carried
+re-run 3m49s, debug partition -- normal was 713 jobs deep): both scripts
+parametrized (out-root routing, fingerprint-driven clamp, verify_one_sided_clamp,
+non-binding recorded constants for non-default models; a cross-model bug fixed
+in the eval stage's language-list load); selfcheck 46/46; released-tree replay
+byte-identical except the git-commit provenance line. Corrected cells recorded
+in EXPERIMENTS_RESULTS; B4 handed to the paper agent.

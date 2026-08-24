@@ -1,0 +1,18 @@
+{
+  "scope": "model-langs",
+  "n_lines_in_file": 27757,
+  "total_samples": 10027,
+  "n_languages_scored": 142,
+  "n_empty_after_preprocess": 0,
+  "n_rows_outside_model_label_set": 17730,
+  "n_gold_labels_outside_model_label_set": 277,
+  "accuracy": 0.8484092949037598,
+  "macro_f1": 0.8643221009551314,
+  "macro_fpr": 0.0005690709923976972,
+  "elapsed_s": 1.130086898803711,
+  "bench": "udhr",
+  "model": "/capstor/scratch/cscs/cmeister747/unilid_analysis/wili_assets/deepseek_v3.2_wili.unilid",
+  "model_name": "deepseek_v3.2_wili",
+  "source": "/capstor/store/cscs/swissai/a0229/cmeister/huggingface/hub/datasets--cis-lmu--udhr-lid/snapshots/6908db2a27c296158da7e69782d15df911652184/udhr-lid.csv",
+  "limit": null
+}

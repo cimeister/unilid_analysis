@@ -265,7 +265,9 @@ def _build_verified_floor21_matrix(langs: list) -> tuple[np.ndarray, str, str]:
     # predictions this stage's candidates are compared against, so taking it from
     # there makes it impossible to rebuild the matrix at a different c than the
     # one those predictions were scored under. The sha256 check below then
-    # verifies the rebuild. The corrected model's own selected c is -17.3906,
+    # verifies the rebuild. The corrected model's selected c is -17 (the
+    # round-grid sweep's value, recorded in the corrected tree's
+    # fingerprint_floor21.json; the shifted-grid -17.3906 is superseded),
     # not the released model's -21.
     target = float(fp21["floor_target"])
     if target != FLOOR_TARGET:
@@ -1272,7 +1274,7 @@ def _run_apply_flat4_prox21() -> str:
         f"{entry['base_pred']} ({n_diff:,} lines differ, verified equal to "
         f"n_moved={n_moved:,}). Output: {out_pred}; metadata: {out_meta}.",
     ]
-    out_md = "outputs/tables/gate_flat4_prox21_build.md"
+    out_md = _out("tables/gate_flat4_prox21_build.md")
     os.makedirs(os.path.dirname(out_md), exist_ok=True)
     with open(out_md, "w") as f:
         f.write("\n".join(lines_out) + "\n")

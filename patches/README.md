@@ -44,3 +44,21 @@ fork is a pending user decision; if adopted, the recommended companion change is
 a hard CHECK on non-finite expected counts, and the 33 Apertus-branch corpora
 with lines above 10,000 characters need retraining. The minimal 390-line trigger
 corpus is preserved at outputs/diagnostic/em_trigger_azj_81251_81640.txt.
+
+## unilid_max_sentence_length.patch (2026-08-24; APPLIED to the working tree)
+Adds `train.py --max-sentence-length BYTES`, threaded through
+`LanguageSpecificUnigramLMTokenizer.__init__` to the per-language `spm_train`
+call in `unilid/trainers/language_specific_trainer.py`, and records the value in
+`training_summary.json` under `method.max_sentence_length`. The value it
+replaces was the hardcoded `--max_sentence_length=1000000` in that call; the new
+flag defaults to `constants.SP_MAX_SENTENCE_LENGTH = 1_000_000`, so every run
+that does not pass it produces a byte-identical `spm_train` argv. Written
+against UNILID commit `2d5f62d` (fork `cimeister/UNILID`), not committed there.
+
+Needed by `slurm_wili_train_fp32null_cap4192.sh`, which runs the per-language
+step at sentencepiece's upstream default of 4192 to test whether the published
+`wili_100k_500` was trained under that cap. sentencepiece SKIPS an over-cap line
+rather than truncating it (`src/trainer_interface.cc`: `++too_long_lines;
+continue;`, then `LOG(INFO) << "Skipped " << too_long_lines << " too long
+sentences."`), and the cap is measured against the byte-level ENCODED corpus
+line, not the raw one.

@@ -103,8 +103,8 @@ def verify_one_sided_clamp(W, target: float, special_cols, n_mod: int,
     assertion encoded an incidental fact rather than a property of the method:
     at c = -21 every released row's plateau happened to sit above it, so all
     1,940 moved. It is false at other constants and on corrected weights. The
-    corrected model selected c = -17.3906, where 1,821 of 1,940 rows move and
-    119 legitimately do not.
+    corrected model selected c = -17 (round grid; the shifted-grid -17.3906 is
+    superseded), where 1,655 of 1,940 rows move and 285 legitimately do not.
 
     What must hold in every case is the one-sided rule: a row the clamp left
     alone must already have had its plateau at or below the target. Anything
