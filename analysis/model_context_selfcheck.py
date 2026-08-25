@@ -373,6 +373,15 @@ ENTRY_POINTS = [
     ("analysis.release_gates", ["--mode", "base", "--model", CORRECTED]),
     ("analysis.paper_eval", ["--model", CORRECTED]),
     ("analysis.paper_breakdowns", ["--part", "residual", "--model", CORRECTED]),
+    # length_bias has both halves of the pair. Its repo-side default root holds
+    # outputs/tables/length_bias.{md,tex}, the artifacts behind the published
+    # tab:lenbias-delta; the first argv must be refused by resolve() on the
+    # scratch root, the second (past that rule) by resolve_out_root(). Both
+    # refusals happen before the test file is opened.
+    ("analysis.length_bias", ["--subset", "golden", "--model", CORRECTED]),
+    ("analysis.length_bias",
+     ["--subset", "golden", "--model", CORRECTED,
+      "--scratch-dir", BASE_SCRATCH_CORRECTED]),
 ]
 
 

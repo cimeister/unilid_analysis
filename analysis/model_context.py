@@ -226,8 +226,12 @@ def resolve_out_root(ctx: ModelContext,
             f"  --out-dir: {out_dir} (resolves to {real})\n"
             f"Anything under {STORE_ROOT} is a published artifact, not scratch.")
 
+    # "figures" joined the list on 2026-08-25, when analysis/length_bias.py
+    # became the first model_context-wired script that writes a .png: without it
+    # a root whose figures/ is a symlink into the store would be written through.
     for d in (out_dir, os.path.join(out_dir, "tables"),
-              os.path.join(out_dir, "diagnostic")):
+              os.path.join(out_dir, "diagnostic"),
+              os.path.join(out_dir, "figures")):
         backed = store_backed_entries(d)
         if backed:
             shown = ", ".join(backed[:6]) + ("..." if len(backed) > 6 else "")
