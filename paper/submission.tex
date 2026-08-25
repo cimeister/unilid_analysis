@@ -1243,7 +1243,7 @@ Larger vocabularies help modestly (\cref{app:additional_results}) but do not clo
 
 \subsection{Length Bias}
 \camrev{We lastly look at potential length biases.} The unigram likelihood lacks an explicit length prior, so a language whose $\unigramdistlang$ puts more mass on longer tokens accumulates fewer multiplicative factors than one favoring shorter tokens. 
-We checked whether this manifests as a systematic bias in errors and find that on misclassifications, the Viterbi segmentation under the predicted language is on average 0.17 tokens shorter than under the true language, with the gap growing for longer inputs. Length-normalizing the per-language log-likelihood by segmentation length led to worse \camrev{performance} in preliminary experiments; we report results in \cref{tab:lenbias-delta,tab:lenbias-norm}.
+We checked whether this manifests as a systematic bias in errors and find that on misclassifications, the Viterbi segmentation under the predicted language is on average \corrrev{0.05} tokens shorter than under the true language, \corrrev{with that difference growing only for inputs above 150 characters}. Length-normalizing the per-language log-likelihood by segmentation length led to worse \camrev{performance} in preliminary experiments; we report results in \cref{tab:lenbias-delta,tab:lenbias-norm}.
 
 
 \input{tables/lenbias-delta}

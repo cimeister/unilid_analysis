@@ -21,9 +21,34 @@ clamp counts and selection both hit exactly). 1,655 of 1,940 rows are clamped an
 285 already lie below it.
 
 Status vocabulary used below: APPLIED (in the working tree, wrapped in
-`\corrrev{}`), IN-PROGRESS (a named run or agent is producing the number now),
-BLOCKED (a named run has to happen first), PENDING-DECISION (the number or the
-framing needs the author).
+`\corrrev{}`), DONE / CLOSED (nothing further to do), PENDING-DECISION (the number
+or the framing needs the author). Nothing is BLOCKED or IN-PROGRESS any more.
+
+## Census, 2026-08-25
+
+| group | count | state |
+|---|---|---|
+| A, the 2026-08-19 round | 11 items | all applied |
+| A2.1 -- A2.15, the corrected round | 15 entries | all applied |
+| B1 -- B9, the blocked list | 9 items | 8 DONE, 1 CLOSED by ruling (B8) |
+| PD-1 -- PD-9, the author's decisions | 9 items | all decided: 4 applied to the paper, 5 closed with no paper edit |
+
+**Four things are open, and none of them is a measurement this repository can
+make.**
+
+1. **PD-5r — RESOLVED 2026-08-24** (see the "PD-5r resolution" section near the end of this file: the cell is reverted to `\camrev{1.84e-5}`, verified in `paper/tables/lid_main.tex:83`; the row is fully carried and the caption exactly true). Historical text of the item: one cell of the \unilid-Mistral-Nemo row
+   is a corrected measurement inside an otherwise carried row. One line from the
+   author settles it.
+2. **The three co-author asks** (C3): the \cld-subset evaluation script or
+   command, which is also what forecloses PD-3 and PD-5; the UDHR-subset FPR of
+   1.06e-5 in `tab:lid_main`'s editorial note; and the DSL-ML competitor-score
+   source and split.
+3. **The noise analysis**, removed by ruling (A2.13). Reinstating it is a manual
+   author action and would need the deleted script rebuilt.
+4. **`tab:lid_main`'s caption split**, which stays as written because PD-3 closed
+   with the variant rows carried.
+
+Everything else in this file is a record of work that is finished.
 
 ---
 
@@ -516,6 +541,92 @@ Nothing qualitative in the sentence moved.
 the released-model run of the same script reproduces the published 926,299 /
 99.2\% / 88.6\% / 31,113 exactly, which is what gates the instrument.
 
+### A2.15 B6, B9/PD-4 and the proximity bound, 2026-08-25
+
+Source, cross-checked before editing: `outputs/rerelease/b6_b9_proximity_2026-08-25.md`,
+with the cells read back from `outputs_corrected_round/tables/length_bias_golden.md`
+and the sweep records under `outputs{,_corrected_round}/diagnostic/prox_bound_sweep.json`.
+Each of the three was measured on the released model first and checked against a
+published or pre-registered value before the corrected number was computed.
+
+#### B6: closed, and the printed cell does not move
+
+The sentence now at `:1283` reads "held-out macro F1 rises from `\corrrev{0.916}`
+to 0.930". The corrected floor-21-only judge-part macro F1 is **0.9302**
+(0.930168), which prints as the same 0.930. **No `\corrrev{}` wrap was added**,
+following convention 1: this is a single-cell substitution inside an otherwise
+carried sentence, and the printed value does not change. Recorded here so a later
+reader does not re-derive it.
+
+Instrument gate on the released model: baseline 0.9117 (0.911731) against
+`paper_eval.GATE_B_ANCHORS["baseline"]`, and floor-21 0.9300 (0.929981) against
+the published 0.930. Both reproduce. The corrected baseline came back at 0.9159,
+which is the same 0.916 this ledger records for the V2 cell, and the corrected
+baseline and gated rows reproduce `outputs_corrected_round/tables/paper_eval.md`'s
+judge-part table to four decimals.
+
+**The sentence is no longer mixed-generation**, which is what B6 was tracking. One
+naming point worth keeping: the corrected chain calls its configuration "floor21"
+throughout while its constant is c = -17, so the corrected 0.9302 and the released
+0.9300 are the same configuration (unseen-token constant applied, no
+re-examination) at different constants.
+
+#### B9 / PD-4: `tab:lenbias-delta` rebuilt on the golden subset
+
+Basis, per PD-4: the 250,000-line test half of the seed-42 500,000-line draw, the
+same subset as `tab:lenbias-norm`, selected by the same imported helper so the two
+tables cannot drift onto different lines.
+
+| bucket | N old -> new | mean $\Delta$ | median $\Delta$ | \% fewer | \% same | \% more |
+|---|---|---|---|---|---|---|
+| All misclassified | 1,789,423 -> **9,906** | -0.17 -> **-0.05** | 0.00 | 24.94 -> **25.29** | 61.08 -> **52.12** | 13.99 -> **22.59** |
+| `<30` | 515,094 -> **2,814** | -0.11 -> **-0.05** | 0.00 | 17.69 -> **19.76** | 74.62 -> **65.28** | 7.69 -> **14.96** |
+| `30--75` | 771,812 -> **4,316** | -0.15 -> **-0.01** | 0.00 | 24.28 -> **23.96** | 62.76 -> **53.59** | 12.96 -> **22.45** |
+| `75--150` | 392,549 -> **2,206** | -0.21 -> **-0.04** | 0.00 | 32.10 -> **31.14** | 47.71 -> **39.30** | 20.19 -> **29.56** |
+| `150--300` | 102,497 -> **532** | -0.24 -> **-0.23** | 0.00 | 36.80 -> **39.66** | 34.85 -> **26.50** | 28.34 -> **33.83** |
+| `300+` | 7,471 -> **38** | -2.71 -> **-2.13** | -1.00 -> **0.00** | 53.09 -> **44.74** | 15.11 -> **13.16** | 31.80 -> **42.11** |
+
+The N columns of the old and new tables count over different line sets and must
+not be compared term by term, which is why the caption now states the basis.
+
+**The claim that changed, not just the number.** The published prose said the gap
+grows "for longer inputs", full stop. On the corrected model the mean $\Delta$ is
+flat across the three bins below 150 characters (-0.05, -0.01, -0.04) and grows
+only above them (-0.23, then -2.13). Two sites were reworded to the measurement:
+
+- prose, now `:1246`: "on average \corrrev{0.05} tokens shorter than under the
+  true language, \corrrev{with that difference growing only for inputs above 150
+  characters}". The published clause said "the gap"; "that difference" names the
+  quantity the same sentence has just defined, which the style rules prefer to a
+  bare label.
+- caption: "The mean $\Delta$ is negative in every row and \corrrev{grows in
+  magnitude only for inputs above $150$ characters}, while the median is zero and
+  \corrrev{$52\%$} of errors leave the token count unchanged".
+
+**"Systematic" survives and was checked rather than assumed.** The bias is still
+distinguishable from zero on the corrected model: one-sample t-test against a mean
+of zero gives p = 3.49e-04 (released, p = 9.54e-63), and the Wilcoxon signed-rank
+test excluding zeros gives p = 1.35e-03. The effect is smaller: Cohen's d, the
+mean $\Delta$ divided by its standard deviation, moves from -0.1689 to -0.0359.
+The caption's "small but systematic" therefore still holds. No prose quotes a
+p-value, so nothing else needed changing.
+
+The instrument gate here is directional rather than numeric, because the published
+table and this one cover different line sets: on the released model over the same
+250,000 lines, every mean $\Delta$ keeps its sign, the ordering of "\% fewer"
+against "\% more" holds in every row, and the four bins below 300 characters agree
+with the published table to within 0.02 tokens and 1.6 points. The subset is not
+an unrepresentative slice of the error set: 3.974\% of its lines are misclassified
+against 3.922\% over the full test file.
+
+One caveat carried from the source report rather than hidden: the `300+` row rests
+on 38 misclassifications, and `150--300` on 532. Those two rows are the reason the
+released and corrected columns differ most where the counts are smallest.
+
+#### The proximity bound: verified, nothing changed
+
+Recorded in the framing section below. The paper's sentence stands as written.
+
 ---
 
 ## A. APPLIED 2026-08-19, commit `6374b67`
@@ -635,10 +746,10 @@ threshold in the codebase.
 | B3 | `tab:calibrated_heldout`, `tab:calibrated_views` | **DONE.** `tab:calibrated_heldout` applied 2026-08-24 (A2.7), `tab:calibrated_views` applied the same day with the other two linked tables (A2.14) |
 | B4 | `tab:commonlid`; `:867-869`, `:1359-1366` | **DONE, applied 2026-08-24** (A2.12). The corrected chain completed with its binding gates passing (baseline exact equality, floor-21 agreement 1.000000); source `outputs_corrected_round/tables/commonlid_calibrated.md`. Six table cells, two caption counts and both prose sites carry the corrected values |
 | B5 | `tab:resource-tier`, `tab:script-breakdown`, `tab:per_language_f1`; the prose now at `:1232` and `:1238` | **DONE.** `tab:resource-tier` and `tab:script-breakdown` applied 2026-08-24 (A2.14), together with the `:1232` prose; `:1238` quotes no number and still holds. `tab:per_language_f1` needs nothing: it is the DSL-ML dialect table and DSL-ML is `em`-trained, so the defect never touched it (C0) |
-| B6 | the held-out sentence, now `:1283`: "held-out macro F1 rises from `\corrrev{0.916}` to 0.930" | **HALF APPLIED, and the sentence is knowingly mixed-generation until the rest lands.** The first number is now the corrected judge-part baseline, 0.9159 -> 0.916 (applied as V2, because `tab:calibrated_heldout` prints the same quantity and the paper cannot print two values for it). The second number, 0.930, is still the released model's floor-21-only judge-part macro F1 and has no corrected counterpart: `paper_eval` scores only `baseline` and `gate_flat4_prox21`. **What it needs:** macro F1 for the floor-21-only configuration (unseen-token constant applied, no re-examination) on the 27,002,441-line judge part of the corrected base model. Until that runs, this one sentence pairs a corrected number with a released one |
+| B6 | the held-out sentence, now `:1283` | **DONE, closed 2026-08-25** (A2.15). The corrected floor-21-only judge-part macro F1 is 0.9302, which prints as the 0.930 the sentence already carries, so no cell moved and no wrap was added. Both numbers in the sentence are now corrected-model measurements |
 | B7 | `:1383-1384` Mistral-Nemo unseen-token parenthetical; its high-entropy group; `tab:calibrated_nemo` | **DONE.** Applied as A2.5 and A2.9. The high-entropy group needed no edit: the corrected variant's flat set is still `{bjn_Latn, sco_Latn, srp_Latn}`, that is Banjar, Scots, and Serbian in Latin script (`outputs_corrected_round/tables/mistralnemo_flat_set.md`) |
 | B8 | `tab:lid_main` \unilid-DeepSeek3.2 and \unilid-Qwen3 rows | **CLOSED, rows left carried**, by the author's PD-3 ruling and the failed \cld-subset feasibility gate. The retrains and their GlotLID-C evals are done and match the published cells at paper precision; they are not applied because six of each row's twelve columns cannot be produced |
-| B9 | `tab:lenbias-delta`; the "0.17 tokens" sentence, now `:1246` | **BLOCKED on the run only.** PD-4 is decided (author, 2026-08-24: *"Do the obvious match"*), so the basis is settled: the same golden subset as `tab:lenbias-norm`, the 250,000-line test half of the seed-42 500,000-line draw. What remains is running `length_bias.py` on the corrected predictions over that subset. No `lenbias_delta` artifact exists in `outputs_corrected_round/` yet, so all six rows, the caption's 1,789,423 misclassifications and 45.6M samples, and the 0.17 tokens in the prose are still released-model values |
+| B9 | `tab:lenbias-delta`; the token-count sentence, now `:1246` | **DONE, applied 2026-08-25** (A2.15). All six rows rebuilt on the PD-4 golden subset, caption basis and counts restated, the mean rewritten from 0.17 to 0.05 tokens, and the growth claim narrowed to inputs above 150 characters |
 
 ---
 
@@ -653,13 +764,13 @@ wording matters.
 | PD-1 | *"accept that fasttext numbers"* | **DECIDED, no paper edit needed.** The \fasttext column of `tab:length_accuracy` and the \fasttext row of `tab:tatoeba_udhr_comparison` stay as published, alongside \unilid numbers from this round's retrains. Verified before closing that no caption claims either was re-measured: `tab:length_accuracy`'s caption states only what the columns are, `tab:tatoeba_udhr_comparison`'s states only the training set and the two benchmarks, and the provenance sentence added in A2.4 is in `tab:vocab_size_efficiency`, a \unilid-only table. Carrying them is now a stated choice on the record rather than a silent one |
 | PD-2 | *"apply all 3"* | **DECIDED, APPLIED as A2.14.** All three tables carry the corrected cells and the two tables printing the same quantity now agree. Both movements this ledger predicted are confirmed: Beng within-stratum 0.885 -> 0.879, and the `<500` tier 0.871 -> 0.857 within-stratum while its global value rises 0.515 -> 0.596 |
 | PD-3 | *"Do the swap if the other columns can be computed. Otherwise leave it"* | **DECIDED, CLOSED: leave the rows carried.** The condition fails. Of the twelve columns in each variant row, the three \cld-subset FPR pairs cannot be produced: the subset definition files are here (`unilid_resources/{glotlidc_cld3subset_83,udhr_cld3subset_80,flores_cld3subset_77}.txt`) but the subset-evaluation instrument is not, which is the standing C3 ask. `outputs/tables/paper_eval_cld3_subset.md` records the reconstruction attempt: it reproduces the published \unilid GlotLID-C subset F1 (.971) but no tested convention reproduces the printed subset FPR (measured 9.71e-5 and 7.77e-5 against 1.63e-4), and it fails the published \fasttext subset F1 as well. Swapping would put six new cells beside six carried ones inside one row. Evidence: `outputs/rerelease/pd_compute_2026-08-24.md` section 3. The variant UDHR and FLORES stages were deliberately not run, since six cells cannot complete a row |
-| PD-4 | *"Do the obvious match"* | **DECIDED, awaiting the run.** PD-4 asked what `tab:lenbias-delta` should be computed over: the published table used all 45,627,279 lines, and the corrected predictions exclude the 250,000 validation lines, so the table needed a basis. The obvious match, now ruled: the same golden subset `tab:lenbias-norm` was rebuilt on, the 250,000-line test half of the seed-42 500,000-line draw. That settles the instrument; no `lenbias_delta` artifact exists yet, so no cell changed. See B9 |
+| PD-4 | *"Do the obvious match"* | **DECIDED, APPLIED as A2.15.** The basis is the 250,000-line test half of the seed-42 draw, the same subset as `tab:lenbias-norm`, and `tab:lenbias-delta` now carries it |
 | PD-5 | *"If this repo's corrected variant is available and all columns can be computed, then use it"* | **DECIDED, CLOSED: leave the row carried**, on the same failed condition as PD-3. The corrected Mistral-Nemo variant exists, but its \cld-subset columns are not computable either. One residual follows from this closure and needs a line from the author, see PD-5r |
 | PD-6 | *"run the pair breakdown on promoted_residual_pairs.csv to keep the paper consistent"* | **DECIDED, APPLIED as A2.14.** 930,576 wrong predictions, 99.1\%, 88.6\% unchanged at the printed precision, Indonesian and Standard Malay 31,105 lines. This ledger's earlier claim that the corrected round does not report the pair count was wrong and is corrected in A2.14 |
 | PD-7 | *"We do not have these [seeds]. Can it be left? We also do not have the fasttext models."* | **DECIDED, closed, no paper edit.** The eight sampled rows of `tab:samples-accuracy`, 5 through 400 samples per language, stay as published. The seeds and repeat count behind their standard deviations are not available, and neither are the \fasttext models. The correction's effect where it can be measured is at most about 0.001 on these quantities, which sits inside those rows' own printed standard deviations (0.02 to 0.90), so carrying them does not put a visibly wrong number in the table. The 500-samples row is the deterministic whole-split case and was corrected to 95.64 in A2.11 |
 | PD-8 | *"The script for creating the data for the noise tables got deleted. It may be best just to remove this analysis."* | **DECIDED, APPLIED as A2.13.** `tab:noise_robustness` is removed from the paper: the table input, the whole appendix subsection, the introduction clause and the results sentences. Every removed span is recorded verbatim in A2.13 and `paper/tables/noise_robustness.tex` is left on disk unreferenced, so the analysis is recoverable. This also retires the known-stale p=0\% accuracy cell that PD-8 was tracking |
 | PD-9 | *"yes, it is"* | **DECIDED, closed, no paper edit.** The \unilid-LLaMA3.2 base tokenizer is the repository the original variant used. Verified after the ruling that `tab:unilid_llm_comparison`'s caption names exactly \unilid-Mistral and \unilid-LLaMA2 as the unconfirmed pair and does not mention LLaMA3.2, which is now correct rather than merely defensible. `SESSION_STATUS.md`'s open-decision line listing three unconfirmed repositories is superseded by this ruling |
-| PD-5r | **New, and the only open paper item.** `tab:lid_main`'s caption says the rows other than \unilid and calibrated "carry over from the original submission, computed on all 45,627,279 lines". Verified after the PD-3 and PD-5 closure: that is exactly true of the \unilid-DeepSeek3.2 and \unilid-Qwen3 rows, which carry no corrected cell. It is **not** true of one cell of the \unilid-Mistral-Nemo row, whose GlotLID-C FPR reads `\corrrev{1.86e-5}` from the 2026-08-19 round. That value is this repo's corrected retrain measured on the 45,377,279-line pool (1.8583e-5), so a single cell of an otherwise carried row is from another generation, which is the mixing PD-5's condition was written to prevent | One line from the author: revert that cell to the original submission's `1.84e-5`, which makes the row fully carried and the caption exactly true, or keep it and add a clause to the caption naming the exception. I did not revert unilaterally, because the change was applied and committed in an earlier round (`6374b67`, item 6) and reverting a landed edit is not mine to decide |
+| PD-5r | **New, and the only open paper item.** `tab:lid_main`'s caption says the rows other than \unilid and calibrated "carry over from the original submission, computed on all 45,627,279 lines". Verified after the PD-3 and PD-5 closure: that is exactly true of the \unilid-DeepSeek3.2 and \unilid-Qwen3 rows, which carry no corrected cell. It is **not** true of one cell of the \unilid-Mistral-Nemo row, whose GlotLID-C FPR reads `\corrrev{1.86e-5}` from the 2026-08-19 round. That value is this repo's corrected retrain measured on the 45,377,279-line pool (1.8583e-5), so a single cell of an otherwise carried row is from another generation, which is the mixing PD-5's condition was written to prevent | RESOLVED 2026-08-24: reverted to `\camrev{1.84e-5}` by the coordinator, applying the author's own PD-5 principle (corrected values only with all columns computable). See the "PD-5r resolution" section at the end of this file for the verification against `git show 6374b67~1`. |
 
 ---
 
@@ -689,12 +800,12 @@ eight were retrained here in the 2026-08-23 wave and all nine models in that wav
 pass the post-training instrument gate (235 languages, real-token mass 1.000000
 to six decimals, no defect).
 
-Remaining from the original ask list:
-
-1. The `tab:samples-accuracy` seeds and repeat count (PD-7).
-2. Whether the LLaMA3.2 tokenizer repository matches the original (PD-9); the
-   Mistral and LLaMA2 repositories are recorded as unconfirmed in the caption.
-3. `datasets_reduced.zip` (5 MB) in the datasets release, contents unidentified.
+The original ask list is closed. The `tab:samples-accuracy` seeds are not
+available and the rows stay as published (PD-7); the LLaMA3.2 tokenizer
+repository is confirmed as the original (PD-9), with Mistral and LLaMA2 recorded
+as unconfirmed in the caption. One loose end of no consequence to any table
+remains: `datasets_reduced.zip` (5 MB) in the datasets release has unidentified
+contents.
 
 ### C2. Weights to publish
 
@@ -742,12 +853,24 @@ training, which remains true of the code.
   decision 2026-08-18), with the mechanism stated. Full-pool, uncalibrated:
   overall +0.0035, tail -0.0087, magnets -0.0071. The two views disagree by
   construction and both belong in the appendix (Exp 24).
-- **The proximity bound 21** is a score difference in natural-log units and the
-  correction moves score differences, so it is the one selected constant that was
-  never re-derived. The paper states that macro F1 on the development part varies
-  by less than 0.0003 across bounds from roughly 15 to 35, which is why this may
-  not matter and also why it should be checked rather than assumed. Cost: one
-  pass over 18.0M lines.
+- **The proximity bound 21: re-derived 2026-08-25, and the paper's sentence
+  stands.** This was the one selected constant never re-derived, and it mattered
+  because the bound is a score difference in natural-log units and the correction
+  moves score differences. Measured on the corrected model over the 18,001,573-line
+  derivation part, the set the original selection used: derivation-part macro F1
+  varies by **0.000150** across bounds 15 to 35, against the paper's stated 0.0003.
+  The full 101-point grid from 0.5 to 99.5 puts the plateau within 0.0003 of the
+  grid optimum at **13.5 to 40.5**, wider than the released model's 14.5 to 35.5,
+  so "roughly 15 to 35" is true on both models and 21 sits further from either edge
+  than before. The argmax is 20.5 on both models, and 21 is 0.000046 below it on
+  the corrected model (0.000002 on the released one). The sweep is gated by
+  bit-identity: at bound 21.0 the walk reproduces the saved
+  `pred_gate_flat4_prox21.npy` exactly on both models, and with the proximity
+  condition disabled it reproduces `pred_gate_flat4_tau5.npy` exactly. Nothing was
+  changed: `D3_PROX` is still 21.0 and no prediction array was rewritten. Artifacts:
+  `outputs/rerelease/b6_b9_proximity_2026-08-25.md` section 3,
+  `outputs/diagnostic/prox_bound_sweep.json`,
+  `outputs_corrected_round/diagnostic/prox_bound_sweep.json`.
 
 
 ## PD-5r resolution (2026-08-24, coordinator, applying the author's PD-5 principle)
@@ -762,3 +885,11 @@ carried, and one corrected-generation cell inside it was exactly the mixing
 the condition forbids. The corrected value (1.858e-5, rounds to 1.86e-5)
 remains on record in EXPERIMENTS_RESULTS.md and outputs_corrected_round/ if
 the row is ever swapped whole.
+
+## Noise table reinstatement (author, 2026-08-25)
+
+The co-author has rerun the robustness experiments with the fixed code, and
+the author will re-add `tab:noise_robustness` manually. The A2.13 removal
+stands as applied; `paper/tables/noise_robustness.tex` remains on disk
+untouched for that purpose, and no session work should regenerate or delete
+it. The reinstatement is the author's manual task, not an open item here.

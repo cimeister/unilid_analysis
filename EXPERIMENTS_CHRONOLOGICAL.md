@@ -2108,3 +2108,19 @@ Docs: UNILID/README.md download table gains a unilid-1940 row plus a wget line
 (URL verified 302 -> 200), and UNILID/REPRODUCING.md's base-mode bullet names
 unilid-1940.unilid. Both went to PR #4's branch (commit cf9f44c) rather than
 PR #5, since PR #4 is the docs-and-weights branch.
+
+2026-08-25: job 3173500 (cap-4192 null arm) completed; the three-arm analysis
+closes the 107-row question with outcome (i): the stored wili_100k_500
+reproduces exactly under fp32 + the default 4,192-byte cap (arm a: 0/235
+failing); 100 of the 107 are the cap (2,054 skipped long lines), 7 the fp64
+build. Four driver code fixes recorded in the verdict summary; the fp32null
+artifact's stale wrong-unit sentence corrected by re-running its augment
+stage. B6/B9/proximity closures in flight.
+
+2026-08-25/26: B6 (corrected judge floor-21 F1 0.9302, cell unchanged), B9
+(lenbias-delta on the golden subset: bias -0.05 vs published -0.17, the
+"growing gap" claim reworded), and the proximity bound (verified, plateau
+13.5-40.5, 21 within 0.00005 of optimum) all closed with gated instruments;
+final paper application with the ledger census in progress. /capstor/store was
+intermittently unavailable during the runs (guards refused rather than
+substituted).

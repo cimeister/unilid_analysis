@@ -161,7 +161,12 @@ ARMS = {
             "the upstream sentence-length cap, read against the fp32null arm. "
             "sentencepiece SKIPS a line longer than max_sentence_length rather "
             "than truncating it (src/trainer_interface.cc), so this arm trains "
-            "on strictly fewer lines for the 65 languages that have one, and "
+            # 106 languages / 2,052 lines is the count in the unit the cap is
+            # applied in: the byte-level ENCODED training file. The 65 that
+            # stood here until 2026-08-25 was the raw-corpus-byte count, which
+            # understates both figures (see wili_null_arm_augment.
+            # encoded_byte_length and the artifact's raw_byte_counts block).
+            "on strictly fewer lines for the 106 languages that have one, and "
             "(by experiment B0) should land on a HIGHER unseen-token floor -- "
             "the direction the stored model sits."),
         "if_arm_a_fails": (

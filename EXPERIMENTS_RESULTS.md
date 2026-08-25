@@ -25,6 +25,67 @@ uniform sample (`seed=42`, without replacement).
 
 ---
 
+## B6, B9, and the proximity bound closed; the length-bias claim weakens under correction (2026-08-25)
+
+`outputs/rerelease/b6_b9_proximity_2026-08-25.md`, all three instrument-gated:
+
+- **B6**: corrected floor-21-only judge-part macro F1 = 0.9302 (released
+  reproduces the published 0.930 exactly; the corrected baseline cross-check
+  reproduces 0.9159). The printed cell is unchanged and the held-out sentence
+  is no longer mixed-generation.
+- **B9** (golden-subset basis per PD-4): the length bias shrinks about
+  fourfold under the correction -- overall -0.05 tokens against the published
+  -0.17 (released-on-subset -0.18, so the shrink is the correction, not the
+  basis), 9,906 of 250,000 misclassified. The published "gap growing for
+  longer inputs" no longer holds as stated: corrected deltas are flat below
+  150 characters and grow only above. Bias remains nonzero (p = 3.5e-04,
+  Cohen's d -0.036 vs -0.169).
+- **Proximity bound 21**: verified on corrected banked scores. Dev-part macro
+  F1 range 0.000150 across bounds 15-35 (< 0.0003 as the paper states);
+  full-grid plateau 13.5-40.5 (released 14.5-35.5, reproducing "roughly 15 to
+  35"); 21 sits 0.000046 below the optimum. Nothing changes.
+
+Incidental finding, recorded not acted on: the seed-42 sample pickle's
+`pred_UniLID` disagrees with `glotlidc_y_pred.txt` on 0.49% of the golden
+subset; B9 is unaffected (0/250,000 differences between the text file and
+`pred_baseline.npy` on the subset), but a released-model rerun of
+`lenbias_norm_table.py` would likely fail its exact-agreement gate.
+`length_bias.py` gained four abort-guards after review (silent-substitution
+paths, each tested in its failure mode).
+
+## The cap arm reproduces the stored model exactly: the 107-row question is closed (2026-08-25)
+
+Job 3173500 (fp32 build + sentencepiece default max_sentence_length 4,192) and
+the three-arm analysis (`outputs/rerelease/wili_fp32null_cap4192_verdict_summary.md`):
+
+| arm | comparison | failing / 235 |
+|---|---|---|
+| a | cap-4192 retrain vs transformed stored | **0** (max signed mean 4.9e-4, min corr 0.999983) |
+| b | fp64 retrain vs cap-4192 | 107 |
+| o | fp64 retrain vs transformed stored (the original gate) | 107 |
+
+Arm (a) collapses from 106 failures to zero, three orders of magnitude inside
+every threshold. **The stored `wili_100k_500` reproduces under fp32 + the
+default cap on all 235 languages** (measured). The decomposition of the
+original 107: 100 languages are the cap (2,054 training lines in 106 languages
+that a default-cap run skips outright -- a data difference, not a defect), 7
+are the fp64 build. The record wording: the fp64/fp32null containers are
+RETRAINS ON THE FULL SPLIT, not reproductions; `wili_100k_500_fp32null_cap4192`
+is the reproducing container; the 107 rows are neither unexplained, nor a
+stored-model defect, nor a build effect. Still inferred, stated as such: that
+the published run used the default (no record of its cap exists), and both
+arms cross the pre-0.3.0/0.3.0 trainer change.
+
+WiLI test cells: cap4192 0.959705/1.8778e-4/0.956060 (stored
+0.960113/1.8589e-4/0.956502; row agreement to 5e-4 nats does not reproduce
+cells to the last digit -- 52 more errors of 117,500). **The paper is
+unaffected**: no text mentions sentence caps or line skipping; this is a
+record and release-notes matter. Known small discrepancy, cause measured and
+left in place: the encoded-length counter omits the byte-level space prefix
+(U+0120, 2 bytes), predicting 2,052 skipped lines where the trainer skipped
+2,054; the two boundary lines (fas, krc, encoded length 4,191) change no
+conclusion.
+
 ## The decided paper items computed: three linked tables gated and corrected; CLD-subset confirmed absent (2026-08-24)
 
 `outputs/rerelease/pd_compute_2026-08-24.md`. `regen_resource_tier_counts.py`

@@ -5,23 +5,25 @@
 \toprule
 \textbf{Length (chars)} & \textbf{N} & \textbf{Mean $\Delta$} & \textbf{Median $\Delta$} & \textbf{\% fewer} & \textbf{\% same} & \textbf{\% more} \\
 \midrule
-All misclassified & 1,789,423 & $-0.17$ & $0.00$ & 24.94 & 61.08 & 13.99 \\
+All misclassified & \corrrev{9,906} & \corrrev{$-0.05$} & $0.00$ & \corrrev{25.29} & \corrrev{52.12} & \corrrev{22.59} \\
 \midrule
-$<$30    &   515,094 & $-0.11$ & $0.00$ & 17.69 & 74.62 &  7.69 \\
-30--75   &   771,812 & $-0.15$ & $0.00$ & 24.28 & 62.76 & 12.96 \\
-75--150  &   392,549 & $-0.21$ & $0.00$ & 32.10 & 47.71 & 20.19 \\
-150--300 &   102,497 & $-0.24$ & $0.00$ & 36.80 & 34.85 & 28.34 \\
-300+     &     7,471 & $-2.71$ & $-1.00$ & 53.09 & 15.11 & 31.80 \\
+$<$30    &   \corrrev{2,814} & \corrrev{$-0.05$} & $0.00$ & \corrrev{19.76} & \corrrev{65.28} &  \corrrev{14.96} \\
+30--75   &   \corrrev{4,316} & \corrrev{$-0.01$} & $0.00$ & \corrrev{23.96} & \corrrev{53.59} & \corrrev{22.45} \\
+75--150  &   \corrrev{2,206} & \corrrev{$-0.04$} & $0.00$ & \corrrev{31.14} & \corrrev{39.30} & \corrrev{29.56} \\
+150--300 &   \corrrev{532} & \corrrev{$-0.23$} & $0.00$ & \corrrev{39.66} & \corrrev{26.50} & \corrrev{33.83} \\
+300+     &     \corrrev{38} & \corrrev{$-2.13$} & \corrrev{$0.00$} & \corrrev{44.74} & \corrrev{13.16} & \corrrev{42.11} \\
 \bottomrule
 \end{tabular}
 \caption{%
   Token-count length bias on \unilid misclassifications, by input length.
   For each misclassified sample, $\Delta = n_{\mathrm{pred}} - n_{\mathrm{true}}$ is the
   difference in Viterbi segmentation length (in tokens) between the predicted and the true
-  language; negative values mean the predicted language uses fewer tokens. Computed over all
-  $1{,}789{,}423$ misclassifications in the full GlotLID test set ($45.6$M samples). The mean
-  $\Delta$ is negative and grows in magnitude with input length, while the median is zero and
-  $61\%$ of errors leave the token count unchanged: a small but systematic bias toward
+  language; negative values mean the predicted language uses fewer tokens. \corrrev{Computed over the
+  $9{,}906$ misclassifications in the $250{,}000$-line golden subset, the test half of the
+  seed-42 $500{,}000$-line draw and the same subset as \cref{tab:lenbias-norm}; the N column is
+  therefore not comparable with a count over the full test set.} The mean
+  $\Delta$ is negative in every row and \corrrev{grows in magnitude only for inputs above $150$
+  characters}, while the median is zero and \corrrev{$52\%$} of errors leave the token count unchanged: a small but systematic bias toward
   fewer-token languages, driven by a minority of samples. \emph{\% fewer/same/more} give the
   share of misclassifications where the predicted language uses fewer, equal, or more tokens
   than the true language. 

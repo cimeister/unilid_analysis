@@ -205,6 +205,23 @@ def summarize(rows, failed_set) -> dict:
                 if abs(r["signed_mean_a_total"]) > MATERIAL_SIGNED_MEAN]
     share = np.array([r["signed_mean_a_on_storedT_floor_tokens"]
                       / r["signed_mean_a_total"] for r in material])
+    # An arm can leave this set EMPTY: if no language deviates by more than
+    # MATERIAL_SIGNED_MEAN there is no deviation to attribute to floor tokens,
+    # and the quantiles below would be taken over a zero-length array. Recorded
+    # as an explicit empty result rather than computed, because a median of
+    # nothing would read as a measured share. (Hit 2026-08-25 by arm
+    # fp32null_cap4192, whose arm (a) passes all 235 languages.)
+    if material:
+        share_summary = {"median": float(np.median(share)),
+                         "min": float(share.min()), "max": float(share.max())}
+    else:
+        share_summary = {
+            "n_languages": 0,
+            "median": None, "min": None, "max": None,
+            "note": (f"no language in this arm has |arm-(a) signed mean| above "
+                     f"{MATERIAL_SIGNED_MEAN} nats, so there is no deviation to "
+                     f"attribute to the stored model's floor tokens. The "
+                     f"quantiles are omitted, not zero.")}
     return {
         "floor_definition": (f"a real token is on the floor when its log-prob is "
                              f"within {FLOOR_EPS:g} nats of the row's minimum"),
@@ -215,9 +232,8 @@ def summarize(rows, failed_set) -> dict:
             "tokens, R-squared 0.999"),
         "n_languages_with_material_arm_a_signed_mean": len(material),
         "material_threshold_nats": MATERIAL_SIGNED_MEAN,
-        "share_of_arm_a_signed_mean_carried_by_stored_floor_tokens": {
-            "median": float(np.median(share)), "min": float(share.min()),
-            "max": float(share.max())},
+        "share_of_arm_a_signed_mean_carried_by_stored_floor_tokens":
+            share_summary,
         "by_original_gate_verdict": {
             "failed": grp(lambda r: r["lang"] in failed_set),
             "passed": grp(lambda r: r["lang"] not in failed_set)},
@@ -287,11 +303,12 @@ def over_cap_split(arm_a_rows) -> dict:
         "pipeline_setting": ("the retrains pass max_sentence_length=1000000; "
                              "sentencepiece's upstream default is 4192"),
         "status": ("CANDIDATE CAUSE. No record states what max_sentence_length "
-                   "the published run used. A retrain at the default was "
-                   "submitted 2026-08-24 as job 3173500 "
-                   "(slurm_wili_train_fp32null_cap4192.sh, arm "
-                   "fp32null_cap4192); until its own verdict artifact exists "
-                   "this split remains descriptive."),
+                   "the published run used. The retrain at the default ran as "
+                   "job 3173500 (slurm_wili_train_fp32null_cap4192.sh, arm "
+                   "fp32null_cap4192); THIS split is descriptive either way -- "
+                   "it counts corpus lines, it does not measure a model. The "
+                   "measurement is that arm's own three-arm comparison in "
+                   "outputs/rerelease/wili_fp32null_cap4192_verdict.json."),
         "counted_over": ("the BYTE-LEVEL ENCODED line, the unit sentencepiece "
                          "applies the cap to: every byte becomes one character "
                          "and the ones above 0x7F cost two UTF-8 bytes. Counting "
@@ -323,18 +340,37 @@ def over_cap_split(arm_a_rows) -> dict:
     pass_with = out["pass_with_over_cap_line"]["n_languages"]
     fail_with = out["fail_with_over_cap_line"]["n_languages"]
     fail_without = out["fail_without"]["n_languages"]
-    exact = (pass_with == 0 and fail_without == 0)
-    out["separation"] = (
-        f"{pass_with} of the languages that PASS arm (a) have a line over the "
-        f"cap once encoded; {fail_with} of the failing ones do, and "
-        f"{fail_without} fail with no over-cap line at all. "
-        + ("The two groups separate exactly -- every failing language has an "
-           "over-cap line and no passing one does. That is what the cap "
-           "hypothesis predicts; arm fp32null_cap4192 is what tests it."
-           if exact else
-           "The split is not exact, so the cap cannot be the whole "
-           "explanation."))
+    # `exact` is a claim about a DISCRIMINATOR, and a discriminator needs two
+    # groups to discriminate. When the arm has no failing languages at all
+    # (fp32null_cap4192, 2026-08-25) there is nothing for the over-cap flag to
+    # separate: the old wording would have reported "the split is not exact, so
+    # the cap cannot be the whole explanation" off pass_with > 0 alone, which
+    # states the opposite of what an all-pass arm shows. Report the split as
+    # undefined instead, and leave the reading to the arm's own comparison.
+    n_failing = fail_with + fail_without
+    exact = (n_failing > 0 and pass_with == 0 and fail_without == 0)
+    if n_failing == 0:
+        separation = (
+            f"this arm has NO failing languages, so the over-cap flag has "
+            f"nothing to separate; {pass_with} of the 235 passing languages "
+            f"have a line over the cap once encoded and {out['pass_without']['n_languages']} "
+            f"do not. The split is undefined here, not negative: what the arm "
+            f"shows is read off its own three-arm comparison, not off this "
+            f"section.")
+    else:
+        separation = (
+            f"{pass_with} of the languages that PASS arm (a) have a line over "
+            f"the cap once encoded; {fail_with} of the failing ones do, and "
+            f"{fail_without} fail with no over-cap line at all. "
+            + ("The two groups separate exactly -- every failing language has "
+               "an over-cap line and no passing one does. That is what the cap "
+               "hypothesis predicts; arm fp32null_cap4192 is what tests it."
+               if exact else
+               "The split is not exact, so the cap cannot be the whole "
+               "explanation."))
+    out["separation"] = separation
     out["separates_exactly"] = exact
+    out["n_failing_languages_in_this_arm"] = n_failing
     return out
 
 
@@ -487,14 +523,23 @@ def main(argv=None):
     print(f"\nwrote {verdict_path}")
 
     s = summary
-    print(f"\nshare of the arm-(a) signed mean carried by tokens the stored "
-          f"model put on its floor, over the "
-          f"{s['n_languages_with_material_arm_a_signed_mean']} languages with "
-          f"|signed mean| > {MATERIAL_SIGNED_MEAN}: median "
-          f"{s['share_of_arm_a_signed_mean_carried_by_stored_floor_tokens']['median']:.3f}")
-    for tag in ("failed", "passed"):
-        g = s["by_original_gate_verdict"][tag]
-        print(f"\n{tag} the original gate (n={g['n_languages']}), stored vs fp32null:")
+    n_material = s["n_languages_with_material_arm_a_signed_mean"]
+    share_med = s["share_of_arm_a_signed_mean_carried_by_stored_floor_tokens"][
+        "median"]
+    if n_material:
+        print(f"\nshare of the arm-(a) signed mean carried by tokens the stored "
+              f"model put on its floor, over the {n_material} languages with "
+              f"|signed mean| > {MATERIAL_SIGNED_MEAN}: median {share_med:.3f}")
+    else:
+        print(f"\nno language in this arm has |arm-(a) signed mean| > "
+              f"{MATERIAL_SIGNED_MEAN}; the floor/above-floor attribution has "
+              f"no deviation to split")
+    # `verdict_group`, not `tag`: the arm tag is needed again below for the test
+    # cells, and reusing the name silently looked the cells up under "passed".
+    for verdict_group in ("failed", "passed"):
+        g = s["by_original_gate_verdict"][verdict_group]
+        print(f"\n{verdict_group} the original gate (n={g['n_languages']}), "
+              f"stored vs {tag}:")
         for k in ("above_floor_set_jaccard_storedT_null_arm",
                   "signed_mean_a_restricted_above_both_floors",
                   "correlation_a_restricted_above_both_floors"):
