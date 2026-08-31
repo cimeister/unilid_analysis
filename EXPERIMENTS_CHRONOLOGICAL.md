@@ -2166,3 +2166,20 @@ regenerated); variant hypothesis matrix banked
 on the subset columns (regenerate under a newly specified convention / carry
 with caption disclosure / drop) put to the author with the five unspecified
 inputs. Jobs 3244447-3244450 still pending.
+
+2026-09-01: CLD3 subset-vocabulary regeneration submitted (author ruling:
+approximate reproduction with stated defaults). Three models, one per
+benchmark subset (83/80/77 ISO codes -> 99/94/93 lang_Script corpora,
+8.24/7.94/7.83M lines), 100k vocabulary from scratch, current corpus draw,
+corrected trainer. An independent review before submission caught an 18x
+walltime under-estimate (a two-point power-law extrapolation contradicted by
+the one comparable large measurement; 12 h restored), unset RAYON_NUM_THREADS
+(288 visible vs 64 allocated cores), and three fail-late paths now gated
+before compute is spent (row-count vs manifest before packing; defect gate
+after packing; guards on the restricted-argmax comparison load). First job
+set 3246702/04/06 cancelled BEFORE running and replaced -- no output
+produced. Live: trainings 3246937/3246939/3246941 (12 h each), chained evals
+3246938/3246940/3246942 (afterok). Deliverable skeleton at
+outputs/rerelease/cld3_regenerated_2026-09-01.md awaits the three measured
+F1/FPR pairs. Constraint carried into the paper proposal: the \unilid and
+calibrated rows move together or not at all.

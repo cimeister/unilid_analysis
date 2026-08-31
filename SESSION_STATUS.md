@@ -23,6 +23,13 @@ All 18 SLURM jobs of the 2026-08-23 wave COMPLETED 0:0. No jobs queued.
 Compilations: `outputs/rerelease/wave_2026-08-24_compilation.md` (WiLI) and
 `outputs/rerelease/corrected_chain_2026-08-24.md` (GlotLID-C chain).
 
+CLD3 regeneration in flight (2026-09-01): trainings 3246937/39/41 (12 h,
+subset-vocabulary models per author ruling of approximate reproduction) with
+chained evals 3246938/40/42; restricted-argmax GlotLID-C jobs 3244447-3244450
+also queued. On completion: cld3_regenerated_2026-09-01.md fills in; the
+right half of tab:lid_main is then applied as ONE convention (\unilid +
+calibrated rows together, variants via restricted argmax).
+
 Agents in flight (2026-08-24):
 
 | agent | what | react how |
