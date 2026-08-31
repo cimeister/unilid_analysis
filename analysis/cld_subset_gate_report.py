@@ -79,6 +79,57 @@ restricted to those same three rows gives 0 label mismatches and 0 bitwise
 score mismatches. The author's equivalence holds as stated."""
 
 
+# The two storage roots that hold every .unilid container for this project
+# (analysis/config.py's SCRATCH_DIR, and the durable store it symlinks into).
+# Scanned at report time so section 5's claim about which models exist is a
+# measurement, not a transcription.
+MODEL_ROOTS = [
+    "/capstor/scratch/cscs/cmeister747/unilid_analysis",
+    "/capstor/store/cscs/swissai/a0229/cmeister/unilid_analysis",
+]
+# .unilid header: magic, version, num_langs, vocab_size, base_tok_len, langs_len.
+_UNILID_HDR = "<8sIIIII4x"
+
+
+def scan_model_containers():
+    """Row count and vocabulary size of every .unilid under MODEL_ROOTS.
+
+    Keyed by realpath so a symlink and its target are counted once. A container
+    whose header cannot be read is recorded with its error rather than skipped.
+    """
+    import struct
+    size = struct.calcsize(_UNILID_HDR)
+    found = {}
+    for root in MODEL_ROOTS:
+        if not os.path.isdir(root):
+            raise SystemExit(f"FATAL: model root missing at {root}")
+        for dirpath, _dirnames, filenames in os.walk(root):
+            for name in filenames:
+                if not name.endswith(".unilid"):
+                    continue
+                path = os.path.join(dirpath, name)
+                real = os.path.realpath(path)
+                if real in found:
+                    continue
+                try:
+                    with open(path, "rb") as fh:
+                        _m, _v, n_langs, vocab, _b, _l = struct.unpack(
+                            _UNILID_HDR, fh.read(size))
+                    found[real] = {"path": path, "num_languages": n_langs,
+                                   "vocab_size": vocab}
+                except Exception as exc:
+                    found[real] = {"path": path, "error": str(exc)}
+    counts = sorted({e["num_languages"] for e in found.values()
+                     if "num_languages" in e})
+    return {
+        "roots": MODEL_ROOTS,
+        "n_containers": len(found),
+        "distinct_language_counts": counts,
+        "subset_sized_present": bool(set(counts) & {83, 80, 77}),
+        "containers": {k: v for k, v in sorted(found.items())},
+    }
+
+
 _WRAP = re.compile(r"\\(?:corrrev|camrev|textbf)\{([^{}]*)\}")
 
 
@@ -222,6 +273,7 @@ def main():
             with open(fp) as f:
                 out["runs"][tag]["scoring_path_gate"] = json.load(f)
     out["equivalence_micro_check"] = EQUIV
+    out["model_container_census"] = scan_model_containers()
     print(json.dumps(out["gate"], indent=1))
     with open(sys.argv[1], "w") as f:
         json.dump(out, f, indent=2)
@@ -404,8 +456,8 @@ Two readings remain, and only the author or the co-author can separate them.
    languages from scratch, each with its own base vocabulary fitted to the
    subset corpora. The equivalence in section 2 does not cover that case: it
    holds for the per-language rows over a shared base vocabulary, and a
-   from-scratch subset model does not share one. Such models are not on disk
-   here and would have to be retrained per row and per benchmark.
+   from-scratch subset model does not share one.
+__CENSUS__
 
 ## 6. Consequences for PD-3 and PD-5
 
@@ -484,6 +536,30 @@ the scorer on the same benchmark at 1/450 of that cost.
 - Per-run summaries, per-label metrics and banked per-line predictions:
   `outputs/rerelease/cld_subset/`.
 """
+    import textwrap
+    cen = out["model_container_census"]
+    cl = [f"{c:,}" for c in cen["distinct_language_counts"]]
+    counts = cl[0] if len(cl) == 1 else " or ".join(
+        [", ".join(cl[:-1]), cl[-1]])
+    n_variant_rows, n_benchmarks = 3, 3
+    census_text = (
+        "No such model is on this filesystem. Every one of the "
+        f"{cen['n_containers']} distinct `.unilid` containers under the two "
+        f"storage roots carries either {counts} rows, and none carries 83, 80 "
+        "or 77; the roots, the per-container row counts and the vocabulary "
+        "sizes are in this record's JSON under `model_container_census`. So if "
+        "the published subset columns did come from subset-trained models, "
+        "those models were never on this filesystem, and reproducing the "
+        "columns here would take one training per row per benchmark, each with "
+        "its own base tokenizer fitted to that subset's corpora: "
+        f"{n_variant_rows * n_benchmarks} trainings for the three variant rows "
+        "alone, and 15 if the \\unilid and calibrated rows are regenerated "
+        "for consistency as section 7 describes.")
+    # Wrapped to the document's own width, continuing the numbered-list indent
+    # of reading (b) so the paragraph reads as one item.
+    wrapped = textwrap.fill(census_text, width=76,
+                            initial_indent="   ", subsequent_indent="   ")
+    body = body.replace("__CENSUS__", wrapped)
     with open(path, "w") as f:
         f.write(body)
     print("wrote", path)
