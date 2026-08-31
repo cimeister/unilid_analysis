@@ -25,6 +25,37 @@ uniform sample (`seed=42`, without replacement).
 
 ---
 
+## The restricted-argmax gate FAILS in both directions; the variant-row swap stays closed on measured evidence (2026-08-31)
+
+`outputs/rerelease/cld_subset_gate_2026-08-31.{md,json}`. The author's
+equivalence (a subset-trained model IS the corresponding rows of the full
+model, given the SHARED base tokenizer) verified exactly: bitwise-identical
+rows, 0 of 117,500 prediction mismatches. The scorer is confirmed against the
+co-author's recorded per-line predictions (exact) and reproduces the published
+UDHR full-set cells (.859/1.43e-4).
+
+Under restricted argmax, all 8 measurable published subset cells miss -- and
+in BOTH directions: the released model measures MORE errors than its cells
+imply (5.0x on UDHR-80), the three carried variants FEWER (0.32-0.86x).
+Restriction compresses every system into F1 .994-.996 while the published
+cells span .984-.997. One convention cannot do that. The suspected UDHR typo
+is unresolved (measured 5.28e-5 matches neither reading). Two live
+explanations: per-system convention mixing (already suspected for fastText's
+unreproducible .990), or subset models trained FROM SCRATCH with their own
+base vocabularies -- outside the equivalence and not on disk here.
+
+Consequences: PD-3/PD-5 stay closed, now on measured rather than
+absent-instrument grounds; adopting the ruled convention would MOVE the
+published \unilid subset cells (.992/.997 -> .996/.996), a larger change than
+the swap it was meant to enable, so nothing is adopted. lid_main's right half
+already carries two conventions (the carried \unilid cells and the
+locally-computed calibrated-row subset F1s); a third is not added. The C3 ask
+narrows a second time: WHICH models produced the CLD3-subset columns, and
+were they the same models as the full-set columns? Jobs 3244447-3244450
+(pending) add the GlotLID-C-subset cells under restricted argmax as further
+evidence either way. The login node SIGKILLed a full FLORES pass (second
+occurrence); full-model passes are SLURM-only now.
+
 ## The CLD-subset convention identified by exclusion; the instrument was never absent (2026-08-26)
 
 `outputs/rerelease/cld_subset_convention_sweep.{json,md}`. The subset .txt

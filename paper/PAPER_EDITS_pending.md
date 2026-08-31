@@ -907,3 +907,16 @@ languages only? PD-3/PD-5 remain closed until answered. Separately, the
 standing UDHR-subset FPR item (1.06e-5) now carries measured evidence of a
 decimal-exponent typo for 1.06e-4 -- the author should confirm against the
 original computation before any cell changes.
+
+
+## C3 narrowed a second time; the swap stays closed on measurement (2026-08-31)
+
+The author's row-equivalence resolution was verified exactly, but the
+restricted-argmax gate misses all 8 measurable published subset cells in both
+directions (outputs/rerelease/cld_subset_gate_2026-08-31.md). PD-3/PD-5
+remain closed, now on measured grounds. Adopting the ruled convention would
+move the published \unilid subset cells themselves (.992/.997 -> .996/.996),
+so it is not adopted. The C3 ask to the co-author is now: which models
+produced the CLD3-subset columns, and were they the same models (same base
+vocabularies) as the corresponding full-set columns? The suspected UDHR-FPR
+typo remains unresolved by this gate.

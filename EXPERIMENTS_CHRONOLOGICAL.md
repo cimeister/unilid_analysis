@@ -2132,3 +2132,20 @@ the surviving reading is predictions confined to the subset label set,
 supported by the (n-1)*macroFPR = error-rate identity. C3 ask narrowed to the
 confinement mode (restricted argmax vs subset-trained models). Side finding:
 the published UDHR-subset FPR 1.06e-5 is likely a typo for 1.06e-4.
+
+2026-08-26, author resolution of the C3 confinement question: under the
+standard UniLID algorithm a subset-trained model IS the corresponding rows of
+the full model (per-language estimation over the shared base vocabulary), so
+restricted argmax and subset training are the same computation. The CLD-subset
+convention is therefore fully determined; the variant-row swap's PD-3
+condition ("if the other columns can be computed") activates. Pipeline
+dispatched: equivalence micro-check, restricted-argmax instrument, gate on the
+released \unilid subset cells (with the suspected 1.06e-5 -> 1.06e-4 typo as a
+flagged anchor), then the three corrected variants' full 12-column rows.
+
+2026-08-31: restricted-argmax subset gate run (analysis/cld_subset_eval.py +
+gate scripts; equivalence micro-check PASS, scorer gated exactly against
+recorded predictions). All 8 published subset anchor cells miss in both
+directions -> the swap stays closed on measured evidence; C3 narrowed to
+which models produced the subset columns. Jobs 3244447-3244450 (GlotLID-C
+subset cells, four models) PENDING behind a 1,481-job queue.
