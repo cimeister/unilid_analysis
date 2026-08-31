@@ -25,6 +25,28 @@ uniform sample (`seed=42`, without replacement).
 
 ---
 
+## CLD3 reassessment under the author's answer: explained for one row, one live mechanism for another, and a five-input reproduction bill (2026-08-31)
+
+`outputs/rerelease/cld_subset_gate_2026-08-31.md` section 10 (regenerated,
+idempotent). Reframed: on macro F1, 7 of 8 published subset cells sit the
+SAME way (more errors implied than restricted argmax produces) -- the
+"both directions" reading came from the FPR column, driven by the suspect
+UDHR cell. The author's answer (subset-trained base tokenizer for the plain
+rows) explains that the \unilid cells come from different models, but not the
+UDHR sign at the stated 100k vocabulary (a subset-fitted 100k predicts a
+BETTER model, and the two \unilid cells together require two different subset
+models, which per-subset vocabularies allow). Magnitudes unverifiable without
+training. Variant rows: 360 scored combinations kill the pool and mapping
+hypotheses; a row-mixture mechanism (one row per CLD3 language, scripts
+pooled) reproduces both DeepSeek subset F1 cells at printed precision but
+misses \unilid and Qwen3 -- not a reproduction, the swap's inputs stay
+uncomputable. Model identity: the Nemo container here is the independent
+retrain (UDHR full-set .839/1.73e-4 vs published .836/1.79e-4), so its subset
+cells carry no evidence; the base is six cells. Reproduction bill: 1.5-2 h
+per subset model, but FIVE inputs need the author first (subset vocabulary
+size; bare-ISO-to-corpus mapping; one model or three; acceptability of a
+fresh corpus draw, train.txt being gone; UNILID version).
+
 ## The restricted-argmax gate FAILS in both directions; the variant-row swap stays closed on measured evidence (2026-08-31)
 
 `outputs/rerelease/cld_subset_gate_2026-08-31.{md,json}`. The author's

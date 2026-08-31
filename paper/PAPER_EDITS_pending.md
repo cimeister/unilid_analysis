@@ -920,3 +920,17 @@ so it is not adopted. The C3 ask to the co-author is now: which models
 produced the CLD3-subset columns, and were they the same models (same base
 vocabularies) as the corresponding full-set columns? The suspected UDHR-FPR
 typo remains unresolved by this gate.
+
+
+## C3 ANSWERED by the author (2026-08-31)
+
+The plain-UniLID CLD3 columns were produced with a base tokenizer TRAINED ON
+THE SUBSET of languages -- a different vocabulary from the model behind the
+full-dataset columns. This is the gate record's reading (b), confirmed for
+the \unilid row, and it explains that row's side of the both-directions miss.
+No subset-vocabulary model exists on this filesystem (measured census), so
+reproducing those columns for the corrected generation means fresh
+subset-vocabulary trainings. What it implies for the VARIANT rows' subset
+cells (fixed LLM tokenizers cannot be subset-fitted, yet their measured
+restricted-argmax cells also miss) is under reassessment; PD-3/PD-5 stay
+closed pending it.

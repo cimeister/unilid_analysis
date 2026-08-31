@@ -2149,3 +2149,20 @@ recorded predictions). All 8 published subset anchor cells miss in both
 directions -> the swap stays closed on measured evidence; C3 narrowed to
 which models produced the subset columns. Jobs 3244447-3244450 (GlotLID-C
 subset cells, four models) PENDING behind a 1,481-job queue.
+
+2026-08-31, author information: PR #4 (load-time generation report) and PR #5
+(--max-sentence-length) are MERGED upstream (008f76aa, 5504cc22; verified via
+gh). And the C3 confinement question is ANSWERED: the base tokenizer used for
+the plain-UniLID CLD3 columns was trained on the subset of languages -- a
+different vocabulary from the full-dataset columns' model. This confirms the
+gate record's reading (b) for the \unilid row and explains its side of the
+both-directions miss (restricted argmax over the full model cannot reproduce
+cells measured with a subset-fitted vocabulary). Reassessment of what this
+implies for the variant rows' published subset cells dispatched.
+
+2026-08-31, evening: CLD3 reassessment complete (gate record section 10,
+regenerated); variant hypothesis matrix banked
+(outputs/rerelease/cld_subset/variant_hypothesis_matrix.json); the decision
+on the subset columns (regenerate under a newly specified convention / carry
+with caption disclosure / drop) put to the author with the five unspecified
+inputs. Jobs 3244447-3244450 still pending.
