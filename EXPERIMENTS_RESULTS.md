@@ -25,6 +25,42 @@ uniform sample (`seed=42`, without replacement).
 
 ---
 
+## The CLD-subset convention identified by exclusion; the instrument was never absent (2026-08-26)
+
+`outputs/rerelease/cld_subset_convention_sweep.{json,md}`. The subset .txt
+files alone do not settle the question, but the sweep changed its shape:
+
+- **The instrument is in the repo and was misclassified as absent**: the
+  mechanism is `unilid_resources/eval_*.py`'s `--lang-only` (collapses
+  lang_Script to bare ISO) plus its `only_model_langs` line filter -- nothing
+  is named "subset", which is what the earlier grep keyed on. The transcribed
+  metric core validates exactly against the paper team's own JSON (fastText
+  full-file 0.9443269/2.706307e-5 to 7 significant digits) and four published
+  cells.
+- **Exclusion proof**: solving each published subset FPR for its implied TN
+  denominator (a pool property, so it must agree across systems) gives
+  impossible values under every free-prediction convention -- fastText's
+  implies 70.4M lines against a 45.6M-line file. Conventions (a), (b), (d),
+  (e), (f) are ruled out in full.
+- **Surviving family: predictions CONFINED to the subset label set.** The
+  identity (n-1) x macro FPR = error rate holds within 0.0007 for every row
+  whose system can be confined and fails in the predicted direction exactly
+  for the two that cannot (GlotLID +0.0043, CLD3 +0.0491) -- the failure
+  pattern is the confirmation. On the corrected model's UDHR/FLORES top-5,
+  restricted argmax satisfies the identity exactly. Stated plainly: this is
+  an exclusion proof plus a validated identity, not a reproduced cell.
+- **The C3 ask to the co-author narrows to one question**: were predictions
+  confined by restricted argmax over the full model, or by models trained on
+  the subset languages only? Different numbers; only the authors know.
+  PD-3/PD-5's closure stands either way until that answer arrives (a
+  restricted argmax needs fresh 45.6M-line passes per variant; global rank-1
+  predictions cannot recover a restricted argmax).
+- **The standing UDHR-subset FPR ask (1.06e-5) is likely a decimal-exponent
+  typo for 1.06e-4**: it is the only UDHR row failing the identity (+0.0072),
+  and read as 1.06e-4 it sits dead in the peer cluster (-0.0004), beside
+  Nemo's 1.03e-4. Evidence for the author to confirm against the original
+  computation, not acted on.
+
 ## B6, B9, and the proximity bound closed; the length-bias claim weakens under correction (2026-08-25)
 
 `outputs/rerelease/b6_b9_proximity_2026-08-25.md`, all three instrument-gated:

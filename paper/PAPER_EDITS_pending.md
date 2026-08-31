@@ -893,3 +893,17 @@ the author will re-add `tab:noise_robustness` manually. The A2.13 removal
 stands as applied; `paper/tables/noise_robustness.tex` remains on disk
 untouched for that purpose, and no session work should regenerate or delete
 it. The reinstatement is the author's manual task, not an open item here.
+
+
+## C3 ask narrowed; UDHR-subset FPR likely a typo (2026-08-26)
+
+The CLD-subset convention sweep (`outputs/rerelease/cld_subset_convention_sweep.md`)
+excludes every free-prediction FPR convention by impossible implied
+denominators and identifies confinement of predictions to the subset label
+set as the only surviving family (identity-validated, not cell-reproduced).
+The C3 ask to the co-author narrows from "the subset-evaluation script" to:
+restricted argmax over the full model, or models trained on the subset
+languages only? PD-3/PD-5 remain closed until answered. Separately, the
+standing UDHR-subset FPR item (1.06e-5) now carries measured evidence of a
+decimal-exponent typo for 1.06e-4 -- the author should confirm against the
+original computation before any cell changes.

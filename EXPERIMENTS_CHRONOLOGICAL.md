@@ -2124,3 +2124,11 @@ stage. B6/B9/proximity closures in flight.
 final paper application with the ledger census in progress. /capstor/store was
 intermittently unavailable during the runs (guards refused rather than
 substituted).
+
+2026-08-26: CLD-subset convention sweep. The instrument was in the repo all
+along (eval_*.py --lang-only + only_model_langs, not named "subset"); all
+free-prediction FPR conventions excluded by impossible implied denominators;
+the surviving reading is predictions confined to the subset label set,
+supported by the (n-1)*macroFPR = error-rate identity. C3 ask narrowed to the
+confinement mode (restricted argmax vs subset-trained models). Side finding:
+the published UDHR-subset FPR 1.06e-5 is likely a typo for 1.06e-4.
