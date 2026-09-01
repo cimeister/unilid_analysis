@@ -46,7 +46,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, REPO)
 
 from analysis.cld_subset_gate_report import (  # noqa: E402
-    ORIG_COMMIT, TEX, cell, parse_tex,
+    COLUMNS, ORIG_COMMIT, TEX, cell, fmt_f1, fmt_fpr, parse_tex,
 )
 from analysis.build_cld3_subset_corpus import SUBSETS  # noqa: E402
 from analysis.preflight_cld3_subset import check_base_provenance  # noqa: E402
@@ -518,83 +518,257 @@ def build(collected):
     return doc
 
 
-CONSISTENCY = r"""## 6. A single convention for the right half of `tab:lid_main`
+# The four systems whose CLD3-subset cells can be computed by RESTRICT (a
+# restricted argmax over the full model), and the published row each belongs to.
+# Runs are the 2026-08-31 gate's, in outputs/rerelease/cld_subset/.
+RESTRICT_RUNS = [
+    ("released",         "unilid",   r"\unilid (released model)"),
+    ("carried_nemo",     "nemo",     r"\unilid-Mistral-Nemo"),
+    ("carried_deepseek", "deepseek", r"\unilid-DeepSeek3.2"),
+    ("carried_qwen3",    "qwen3",    r"\unilid-Qwen3"),
+]
+# Right-half cell numbers in tab:lid_main's 12-cell row body (6 columns x 2
+# metrics, left half first). Derived from COLUMNS so they cannot drift.
+def _cellno(bench, metric):
+    return COLUMNS.index((bench, "subset")) * 2 + (0 if metric == "f1" else 1) + 1
 
-The right half now has three candidate conventions and four kinds of row, so
-this section states one arrangement that is internally consistent and says what
-each row costs under it.
 
-**The convention.** For every row, the CLD3-subset cell is *the model's own
-label set restricted to the subset, scored with the paper team's macro F1 /
-macro FPR core over bare ISO 639-3 labels, on the benchmark lines whose gold
-bare ISO is in the subset, Viterbi decode.* The rows differ only in how the
-model's label set gets restricted to the subset, and there are exactly two
-mechanisms, chosen by whether the vocabulary can be refitted:
+def _load_restrict():
+    """{tag: {bench: summary}} for every RESTRICT run present. Missing -> absent
+    from the dict; the caller renders '--' rather than guessing."""
+    out = {}
+    for tag, _key, _label in RESTRICT_RUNS:
+        for bench in ("glotlidc", "udhr", "flores"):
+            p = os.path.join(GATE_RUNS, f"{tag}_{bench}_subset.json")
+            if not os.path.exists(p):
+                continue
+            d = json.load(open(p))
+            if d["mode"] != "subset" or not d["lang_only"]:
+                raise SystemExit(f"FATAL: {p} is not the subset convention")
+            out.setdefault(tag, {})[bench] = d
+    return out
 
-- **Refit** (the \unilid row, and the calibrated row on top of it). The base
-  vocabulary is fitted to the subset corpora and the rows are estimated over it.
-  This is what the author's answer describes and what section 4 above measures.
-- **Restrict** (the three variant rows). Their base vocabulary is a fixed LLM
-  tokenizer and cannot be refitted, so the only available restriction is a
-  restricted argmax over the full model's rows. This is what jobs 3244447-3244450
-  compute.
 
-These are not the same computation -- the 2026-08-26 equivalence holds only
-while the base vocabulary is fixed, which is precisely what Refit changes -- so
-a table that mixes them has to say so. The caption is the place: one sentence
-that the \unilid and calibrated rows' subset cells come from models whose
-vocabulary was fitted to each subset, and the variant rows' from the full
-variant model restricted to the subset labels, because an LLM vocabulary cannot
-be refitted.
-
-**Row by row.**
-
-| row | subset cells under the proposal | status |
-|---|---|---|
-| \cld, \fasttext, \glotlid | external systems; their own label sets already are, or are restricted to, the subset | unchanged, no action |
-| \unilid | Refit: the three models measured in section 4 | **regenerated here** |
-| \unilid (calibrated) | Refit: the same three models, with the calibration refitted on each | **not run**; see below |
-| \unilid-Mistral-Nemo, -DeepSeek3.2, -Qwen3 | Restrict: restricted argmax over each variant's container | jobs 3244447-3244450 cover the released and carried containers; corrected-generation variants would need the same three passes each |
-
-**What the calibrated row costs.** Its three subset F1 cells now in the file
-(.975 / .986 / .992) were computed in this repository under a third convention
-that is neither Refit nor Restrict: the test lines are filtered to the subset,
-the predictions are NOT restricted, and each bare ISO code is mapped to its
-largest-training-corpus `lang_Script` variant
-(`outputs/tables/paper_eval_cld3_subset.md` and
-`..._external.md`). Its three FPR cells are printed as `--`, with the caption
-saying why. Under this proposal that row becomes Refit: the calibration is
-refitted on each subset container and the same
-`analysis/cld_subset_eval.py --mode subset` pass is run against the calibrated
-model. That is three cheap fits plus three evaluation passes, and it needs two
-code changes this session did not make: the calibrated row's own fitting
-procedure has to be re-pointed at these containers, and
-`analysis/cld_subset_eval.py` hardcodes `calibrated=False` at
-`load_model()` (deliberately -- the published \unilid row is the uncalibrated
-model), so it needs a flag rather than an edit. Until both are done, adopting
-the proposal
-for the \unilid row alone would put a Refit \unilid row directly above a
-third-convention calibrated row -- worse than today, not better. **The two rows
-move together or not at all.**
-
-**Why not one mechanism for all seven rows.** Restrict for every row is
-available today and needs no training, but it contradicts the author's answer
-about how the \unilid row's published cells were produced, and the gate already
-measured that it moves the published \unilid UDHR and FLORES cells (0.996 and
-0.996 against the printed .992 and .997). Refit for every row is impossible:
-the variant rows' vocabularies are fixed LLM tokenizers. So the split above is
-forced, and the only real choice is whether to say so in the caption or to leave
-the reader to assume one convention.
-
-**The one thing this proposal does not settle.** Whether the published cells are
-*replaced* by these numbers or *carried* is the author's call, not a
-measurement. Section 4 gives the sizes involved. Replacing them makes the right
-half the same generation as the left half and the same convention across the
-\unilid rows; carrying them leaves six cells from an unavailable generation
-beside corrected ones. Option 2 of the gate record's section 10.6 (carry, and
-say so in the caption) remains available and costs nothing; what this session
-adds is that option 1 is now costed and half-executed rather than hypothetical.
-"""
+def consistency_md(doc):
+    """Section 6, generated from the measurements rather than transcribed."""
+    rows_pub = parse_tex(TEX)
+    restrict = _load_restrict()
+    o = []
+    a = o.append
+    a("## 6. A single convention for the right half of `tab:lid_main`, "
+      "with the measured numbers")
+    a("")
+    a("Everything below is measured. Two mechanisms confine a model to the "
+      "subset, and which one a row can use is forced by whether its vocabulary "
+      "can be refitted:")
+    a("")
+    a("- **Refit** -- the base vocabulary is fitted to the subset corpora and "
+      "the rows are estimated over it. This is what the author's 2026-08-31 "
+      "answer describes. Available to `\\unilid` and, through it, to the "
+      "calibrated row. Sections 3 and 4 above are these models.")
+    a("- **Restrict** -- a restricted argmax over the full model's rows. The "
+      "only mechanism available to the three variant rows, whose base "
+      "vocabulary is a fixed LLM tokenizer that cannot be refitted.")
+    a("")
+    a("Both share one scoring convention: bare ISO 639-3 labels, the paper "
+      "team's `only_model_langs` line filter, their macro F1 / macro FPR core, "
+      "Viterbi decode, uncalibrated.")
+    a("")
+    a("### 6.1 `\\unilid` -- the cells this session regenerated (Refit)")
+    a("")
+    a("| cell | column | published | **regenerated (Refit)** | Restrict, for comparison |")
+    a("|---|---|---|---|---|")
+    for s in ("83", "80", "77"):
+        e = doc["subsets"].get(s)
+        if not e or not e.get("measured"):
+            continue
+        b = e["bench"]
+        m = e["measured"]
+        r = json.load(open(os.path.join(GATE_RUNS, f"released_{b}_subset.json"))) \
+            if os.path.exists(os.path.join(GATE_RUNS, f"released_{b}_subset.json")) else None
+        a(f"| {_cellno(b, 'f1')} | {b}-{e['printed_languages']} F1 | "
+          f"{e['published_f1']} | **{fmt_f1(m['macro_f1'])}** | "
+          f"{fmt_f1(r['macro_f1']) if r else '--'} |")
+        a(f"| {_cellno(b, 'fpr')} | {b}-{e['printed_languages']} FPR | "
+          f"{e['published_fpr']} | **{fmt_fpr(m['macro_fpr'])}** | "
+          f"{fmt_fpr(r['macro_fpr']) if r else '--'} |")
+    a("")
+    a("Refit reproduces the published FLORES-77 F1 exactly and lands within "
+      "0.003 on the other two. It is also the mechanism the author's answer "
+      "names, so it is the right choice on procedural grounds independently of "
+      "how close it lands. The one large residual is the UDHR FPR, published "
+      "at `1.06e-5`; section 5 of "
+      "`outputs/rerelease/cld_subset_convention_sweep.md` argues that is an "
+      "exponent typo for `1.06e-4`, and read that way the regenerated "
+      "`5.73e-5` sits within a factor of two rather than a factor of five.")
+    a("")
+    a("### 6.2 The variant rows (Restrict) -- measured, and my recommendation "
+      "against swapping them")
+    a("")
+    a("| row | glotlidc-83 published | measured | udhr-80 published | measured "
+      "| flores-77 published | measured |")
+    a("|---|---|---|---|---|---|---|")
+    for tag, key, label in RESTRICT_RUNS[1:]:
+        cells = []
+        for b in ("glotlidc", "udhr", "flores"):
+            i = COLUMNS.index((b, "subset")) * 2
+            cells.append(rows_pub[key][i])
+            d = restrict.get(tag, {}).get(b)
+            cells.append(f"**{fmt_f1(d['macro_f1'])}**" if d else "--")
+        a(f"| {label} | " + " | ".join(cells) + " |")
+    a("")
+    a("All six published variant cells miss beyond rounding, and they miss in "
+      "one direction: Restrict compresses the three systems into a band about "
+      "0.006 wide on GlotLID-C and 0.001 wide on UDHR and FLORES, while the "
+      "published cells span 0.008 and 0.008. That is the same finding the "
+      "2026-08-31 gate recorded on eight cells, now confirmed on twelve. **My "
+      "recommendation is unchanged: leave the three variant rows carried.** "
+      "Swapping them would put six cells from a convention that demonstrably "
+      "did not produce them beside `\\unilid` cells from one that approximately "
+      "did.")
+    a("")
+    a("### 6.3 The calibrated row -- why Refit cannot produce it")
+    a("")
+    cal = [rows_pub["unilid_calibrated"][COLUMNS.index((b, "subset")) * 2]
+           for b in ("glotlidc", "udhr", "flores")]
+    a(f"Its three F1 cells are currently `{cal[0]}` / `{cal[1]}` / `{cal[2]}` "
+      f"(cells {_cellno('glotlidc', 'f1')}, {_cellno('udhr', 'f1')}, "
+      f"{_cellno('flores', 'f1')}); its three FPR cells are `--`. Those F1 "
+      "values came from a THIRD convention -- lines filtered to the subset, "
+      "predictions NOT restricted, each bare ISO mapped to its "
+      "largest-training-corpus `lang_Script` variant "
+      "(`outputs/tables/paper_eval_cld3_subset.md`).")
+    a("")
+    a("**An earlier draft of this section proposed refitting the calibration on "
+      "the three subset containers and called it cheap. That was wrong, and the "
+      "reason it is wrong decides the whole right half.**")
+    a("")
+    a("The calibrated row is the promoted configuration `gate_flat4_prox21`. "
+      "Its calibration is not a light per-model fit; it is a table of "
+      "per-language thresholds over two groups "
+      "(`analysis/build_release_calibration.py`):")
+    a("")
+    a("- **Group A**, the gated languages: those with `N_L < head_n` (18,000 "
+      "training lines).")
+    a("- **Group B**, the \"flat four\": `sco_Latn`, `bjn_Latn`, `arg_Latn`, "
+      "`vls_Latn`, identified from predictions on the full model.")
+    a("")
+    a("Both groups are defined relative to the full 1,940-language training "
+      "distribution, and neither survives the subset:")
+    a("")
+    a("| model | rows | group A (gate-eligible) | group B (flat4) | replacement targets (N_L >= 100,000) |")
+    a("|---|---|---|---|---|")
+    a("| full GlotLID-C | 1,940 | 1,080 (56%) | 4 | 282 |")
+    a("| subset-83 | 99 | 14 (14%) | **0** | 78 |")
+    a("| subset-80 | 94 | 12 (13%) | **0** | 75 |")
+    a("| subset-77 | 93 | 12 (13%) | **0** | 74 |")
+    a("")
+    a("**None of `sco`, `bjn`, `arg`, `vls` is a CLD3 language**, so group B is "
+      "empty on all three subset models and the `flat4` half of "
+      "`gate_flat4_prox21` has nothing to act on. Group A falls from 56% of "
+      "rows to 13-14%. A calibration refitted on a subset container would "
+      "therefore be a *different method* -- the promoted configuration minus "
+      "its flat4 component, over an eighth of the gated population -- and "
+      "printing its output in a row whose caption cites "
+      "`\\cref{sec:calibration}` would attribute numbers to a method that did "
+      "not produce them.")
+    a("")
+    a("`analysis/cld_subset_eval.py` now takes `--calibrated` (default off; the "
+      "default path is verified unchanged, section 6.6), so the *instrument* is "
+      "ready. What is missing is not a flag or a run: it is a decision about "
+      "what the calibrated row's subset cells should mean when the calibration "
+      "cannot be carried onto the model being scored.")
+    a("")
+    a("**Consequence for `\\unilid`.** My own constraint was that the two rows "
+      "move together, because a Refit `\\unilid` row above a third-convention "
+      "calibrated row is worse than today. That constraint now bites in the "
+      "other direction: since the calibrated row cannot move to Refit, **the "
+      "honest options are 6.5(a) and 6.5(b), and the choice is the author\'s.**")
+    a("")
+    a("### 6.4 What the caption has to say")
+    a("")
+    a("One sentence per option. Without it the table silently mixes two "
+      "generations and two mechanisms.")
+    a("")
+    a("**Option (a), carry everything:** *the CLD3-subset columns are carried "
+      "unchanged from the original submission; the models behind them are not "
+      "those of the corrected generation reported in the left half.*")
+    a("")
+    a("**Option (b), move `\\unilid` only:** *the CLD3-subset columns for "
+      "`\\unilid` are computed from models whose base vocabulary was fitted to "
+      "each benchmark's subset of languages, following the same procedure as "
+      "the full-set models; the remaining rows' subset columns are carried from "
+      "the original submission. The calibrated row's subset columns are omitted "
+      "because its calibration is a table of per-language thresholds derived on "
+      "the full label set and does not transfer to a subset model.*")
+    a("")
+    a("### 6.5 The two honest options")
+    a("")
+    a("**(a) Move nothing. Carry the whole right half and say so in the "
+      "caption.** Costs no compute, changes no published number, and is "
+      "internally consistent: all six subset columns are then carried from the "
+      "original submission under one (unknown) convention. This is option 2 of "
+      "the gate record's section 10.6, and on the evidence in 6.3 it is what I "
+      "recommend.")
+    a("")
+    a("**(b) Move `\\unilid` alone to Refit, and blank the calibrated row's "
+      "three subset F1 cells.** The calibrated row already prints `--` for its "
+      "three subset FPRs, so this extends an existing convention rather than "
+      "inventing one: the cell is not computable under the convention the row "
+      "above it uses, and saying so is more honest than printing a "
+      "third-convention number beside it. It costs three published values.")
+    a("")
+    a("What I would NOT do is print a subset-refitted calibration in that row. "
+      "It answers a different question than `\\cref{sec:calibration}` describes "
+      "(6.3), and a number that looks valid while answering a different "
+      "question is worse than an absent one.")
+    a("")
+    a("### 6.6 The instrument change made for this section")
+    a("")
+    a("`analysis/cld_subset_eval.py` gains `--calibrated` (default off). The "
+      "module previously hardcoded `calibrated=False` at `load_model()`, so the "
+      "calibrated row could not be evaluated at all. The default is the "
+      "property under protection, so it is unchanged and was verified rather "
+      "than assumed: re-running two already-recorded cells "
+      "(`cld3sub80`/UDHR-80 and `cld3sub77`/FLORES-77) with the edited module "
+      "reproduced 26 of 26 compared summary fields and every per-language "
+      "metric exactly, on both. The one field that now varies is `calibrated` "
+      "itself, which was a hardcoded `False` and is now the flag's value.")
+    a("")
+    a("Passing `--calibrated` to a container with no bundled calibration aborts "
+      "with `UnilidCalibrationError` and writes nothing, which is what the "
+      "three subset containers do today.")
+    a("")
+    a("### 6.7 Cell-precise application package")
+    a("")
+    a("Right-half cell numbers are positions in the 12-cell row body "
+      "(6 columns x 2 metrics, left half first).")
+    a("")
+    a("**Under option (a): no cell changes.** Add the caption sentence from "
+      "6.4 and stop.")
+    a("")
+    a("**Under option (b):**")
+    a("")
+    a("| row | cell | column | old | new |")
+    a("|---|---|---|---|---|")
+    for _s in ("83", "80", "77"):
+        e = doc["subsets"].get(_s)
+        if not e or not e.get("measured"):
+            continue
+        b, m = e["bench"], e["measured"]
+        a(f"| `\\unilid` | {_cellno(b, 'f1')} | {b}-{e['printed_languages']} F1 "
+          f"| {e['published_f1']} | **{fmt_f1(m['macro_f1'])}** |")
+        a(f"| `\\unilid` | {_cellno(b, 'fpr')} | {b}-{e['printed_languages']} "
+          f"FPR | {e['published_fpr']} | **{fmt_fpr(m['macro_fpr'])}** |")
+    for b in ("glotlidc", "udhr", "flores"):
+        i = COLUMNS.index((b, "subset")) * 2
+        a(f"| `\\unilid` (calibrated) | {_cellno(b, 'f1')} | {b} F1 | "
+          f"{rows_pub['unilid_calibrated'][i]} | **--** (6.3) |")
+    a("")
+    a("No other row changes. The three variant rows carry unchanged, adopted "
+      "2026-09-01 and consistent with the standing PD-3 condition; their "
+      "measured Restrict values are in 6.2 if that is ever overruled.")
+    return o
 
 
 def write_md(doc, path):
@@ -802,7 +976,7 @@ def write_md(doc, path):
           "outputs/rerelease/cld3_regenerated_2026-09-01.json "
           "outputs/rerelease/cld3_regenerated_2026-09-01.md` once they land.")
     a("")
-    a(CONSISTENCY)
+    o.extend(consistency_md(doc))
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
     with open(path, "w") as f:
         f.write("\n".join(o) + "\n")
