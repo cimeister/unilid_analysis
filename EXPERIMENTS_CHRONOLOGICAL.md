@@ -2183,3 +2183,19 @@ produced. Live: trainings 3246937/3246939/3246941 (12 h each), chained evals
 outputs/rerelease/cld3_regenerated_2026-09-01.md awaits the three measured
 F1/FPR pairs. Constraint carried into the paper proposal: the \unilid and
 calibrated rows move together or not at all.
+
+2026-09-01, later: the CLD3 wave completed clean (trainings 2.0-2.6 h base
+fits -- the reviewer's linear estimate was right, the two-point probe wrong;
+evals 3247404-3247406 replaced the walltime-mismatched 3246938/40/42 before
+they could start). Regenerated \unilid subset cells: GlotLID-C .974/1.52e-4
+(pub .971/1.63e-4), UDHR .995/5.73e-5 (pub .992/1.06e-5 -- consistent with
+the suspected exponent typo), FLORES .997/3.93e-5 (pub .997/3.29e-5, F1
+exact). Restricted-argmax GlotLID-C cells folded in (released .970, Nemo
+.977, DeepSeek .974, Qwen3 .971); the twelve-cell evidence confirms the
+variants' published cells are not reproducible by any tested mechanism ->
+variant rows carry unchanged. FILESYSTEM FINDING: nine cross-node-written
+JSONs carried stale tails of longer previous versions (leading objects all
+verified exact before truncation-repair; originals preserved); the mechanism
+reproduced on fresh files -- records on capstor must be verified by
+regeneration diff, recorded in memory. Calibrated-row refit (the last
+blocker before the paper application) dispatched.
