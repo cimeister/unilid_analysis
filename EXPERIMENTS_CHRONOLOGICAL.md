@@ -2204,3 +2204,9 @@ blocker before the paper application) dispatched.
 evaluation (author reframing); gates exact on the surviving released arrays;
 FPR dashes kept (cross-convention direction reversal, values on record);
 ledger A2.17; two convention-alignment options flagged for the author.
+
+2026-09-01, final: subset half of tab:lid_main aligned on transfer (twelve
+cells), FPR dashes filled, single-convention caption, new appendix table
+tab:cld3_refit with the refit comparison, the pre-existing UDHR/FLORES
+residual disclosed in ledger A2.18. Open list: two co-author asks, the
+column-10 bolding note, the manual noise-table reinstatement.

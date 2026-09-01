@@ -1,0 +1,30 @@
+% New in the corrected round (2026-09-01). Sources:
+%   transfer columns  outputs/rerelease/cld3_calibrated_transfer_2026-09-01.md, section 4
+%   subset-fitted     outputs/rerelease/cld3_regenerated_2026-09-01.md, sections 4 and 6.1
+\begin{table}[htbp]
+\centering
+\small
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{l cc cc}
+\toprule
+& \multicolumn{2}{c}{\textbf{Full-set model}} & \multicolumn{2}{c}{\textbf{Subset-fitted model}} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5}
+\textbf{Benchmark} & F1$\uparrow$ & FPR$\downarrow$ & F1$\uparrow$ & FPR$\downarrow$ \\
+\midrule
+GlotLID-C (83 languages)  & .972 & 9.99e-5 & .974 & 1.52e-4 \\
+UDHR (80 languages)       & .986 & 1.64e-5 & .995 & 5.73e-5 \\
+FLORES-200 (77 languages) & .991 & 3.50e-5 & .997 & 3.93e-5 \\
+\bottomrule
+\end{tabular}
+\caption{\corrrev{\unilid on the \cld label subsets under two constructions.
+\emph{Full-set model}: the 1{,}940-language \unilid row of \cref{tab:lid_main},
+scored on the lines whose gold language is in \cld's coverage, with predictions
+left unrestricted, so that an error into any of the 1{,}940 labels counts against
+the gold language. \emph{Subset-fitted model}: one model per benchmark whose base
+vocabulary and per-language distributions are both trained only on that subset's
+languages, by the procedure of \cref{sec:exp_setup}, so that its predictions range
+over the subset's labels alone. Both are macro-averaged over the subset's own 83,
+80 and 77 labels, and both are uncalibrated.}}
+\label{tab:cld3_refit}
+\end{table}

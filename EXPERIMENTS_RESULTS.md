@@ -25,6 +25,25 @@ uniform sample (`seed=42`, without replacement).
 
 ---
 
+## Both subset rows aligned on transfer; the refit comparison becomes an appendix table (2026-09-01)
+
+Author rulings executed: tab:lid_main's \unilid and calibrated rows both
+report the transfer convention (full 1,940-language systems on subset-gold
+lines, predictions unrestricted) -- twelve cells, one code path, all gates
+passing. New appendix table tab:cld3_refit compares transfer against the
+subset-fitted models: specialization raises macro F1 by 0.002 (GlotLID-C),
+0.009 (UDHR), 0.006 (FLORES) and raises macro FPR on all three. The column
+reading is now honest and intended: calibration raises subset FPR on all
+three benchmarks while raising F1 on two.
+
+Disclosure recorded so the movement is not misread: under this same
+convention the RELEASED generation measures 0.9719/0.9873/0.9907 against the
+published .971/.992/.997 -- GlotLID-C reproduces (generation effect 0.00007)
+while UDHR/FLORES carry an unexplained ~0.005/0.006 residual that predates
+the correction; .992->.986 and .997->.991 are mostly that residual.
+Diagnosing it needs a re-score of the released model (its external-bench
+arrays were deleted 2026-08-21).
+
 ## The calibrated row's subset cells return as a transfer evaluation (2026-09-01)
 
 Author reframing: the calibrated subset cells should show the method working

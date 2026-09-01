@@ -29,7 +29,7 @@ or the framing needs the author). Nothing is BLOCKED or IN-PROGRESS any more.
 | group | count | state |
 |---|---|---|
 | A, the 2026-08-19 round | 11 items | all applied |
-| A2.1 -- A2.17, the corrected round | 17 entries | all applied |
+| A2.1 -- A2.18, the corrected round | 18 entries | all applied |
 | B1 -- B9, the blocked list | 9 items | 8 DONE, 1 CLOSED by ruling (B8) |
 | PD-1 -- PD-9, the author's decisions | 9 items | all decided: 4 applied to the paper, 5 closed with no paper edit |
 
@@ -40,18 +40,12 @@ What remains, in full:
    which after 2026-09-01 governs only the three carried variant rows and is what
    would reopen PD-3 and PD-5; and the DSL-ML competitor-score source and split.
 2. **`tab:lid_main`'s caption split**, which stays as written because PD-3 closed
-   with the variant rows carried. One small question rides with it: the
-   UDHR-subset FPR column's lowest value is now \glotlid's 2.09e-5 and no cell in
-   that column is bold, which was already true before this round (A2.16). Bolding
-   it or leaving the column as published is an author's call.
-3. **One convention question in `tab:lid_main`'s right half** (A2.17): the
-   `\unilid` row's subset cells are Refit and the calibrated row's are Transfer,
-   and the calibrated row's three measured transfer FPRs are held back because the
-   two rows' FPR conventions differ. Moving the `\unilid` row onto Transfer would
-   unify the half and let all six FPR cells print; the values for that are on
-   record. A restructuring, so an author's call, and the caption discloses both
-   provenances meanwhile.
-4. **The noise analysis**: removed by ruling (A2.13), and the author will re-add
+   with the variant rows carried. One small question rides with it: no cell in the
+   UDHR-subset FPR column is bold, although that column has a minimum like every
+   other. It was the `\unilid` row's 1.06e-5 before this round and it is the same
+   row's 1.64e-5 after it (A2.18), so bolding it would not move it between rows.
+   Bolding it or leaving the column as published is an author's call.
+3. **The noise analysis**: removed by ruling (A2.13), and the author will re-add
    `tab:noise_robustness` manually now that the co-author has rerun the
    experiments. Recorded rather than open; no session work should touch
    `paper/tables/noise_robustness.tex`.
@@ -821,6 +815,11 @@ convention and say nothing false.
 
 #### Author option, flagged and not applied
 
+**EXECUTED 2026-09-01 by the author's alignment ruling; see A2.18.** Both options
+below were taken: the `\unilid` row moved onto the transfer convention, the three
+held-back FPR cells were printed, and the refit results moved to the new appendix
+table `tab:cld3_refit`. The text below is kept as the record of what was decided.
+
 Moving the `\unilid` row's three subset FPR cells onto this transfer convention
 would let all six FPR cells be printed and read down the column. The corrected
 transfer values for that row are on record in section 4 of the source: F1 0.9718 /
@@ -854,6 +853,129 @@ replacement, in the caption:
 > cells are omitted because the \unilid row's subset FPR cells above them come
 > from a different convention, which would make the two sets of values not
 > comparable.
+
+### A2.18 Both rows of the \cld-subset half aligned on the transfer convention, plus a new appendix table, 2026-09-01
+
+Author ruling of 2026-09-01: align both rows of `tab:lid_main`'s subset half on the
+transfer convention, and put the refit (subset-vocabulary) results in the appendix.
+This closes the two convention options A2.17 flagged; both are now **EXECUTED**
+rather than open. Source, cross-checked cell by cell:
+`outputs/rerelease/cld3_calibrated_transfer_2026-09-01.md`, section 4 for the
+twelve cells and section 2 for the gate.
+
+#### `\unilid` row, cells 7-12: Refit (A2.16) replaced by Transfer
+
+| cell | column | A2.16 (Refit) -> A2.18 (Transfer) | full precision |
+|---|---|---|---|
+| 7 | GlotLID-C, 83 languages, F1 | .974 -> **.972** | 0.9718 |
+| 8 | GlotLID-C, 83 languages, FPR | 1.52e-4 -> **9.99e-5** | 9.99e-05 |
+| 9 | UDHR, 80 languages, F1 | .995 -> **.986** | 0.9857 |
+| 10 | UDHR, 80 languages, FPR | 5.73e-5 -> **1.64e-5** | 1.64e-05 |
+| 11 | FLORES, 77 languages, F1 | .997 -> **.991** | 0.9909 |
+| 12 | FLORES, 77 languages, FPR | 3.93e-5 -> **3.50e-5** | 3.50e-05 |
+
+#### `\unilid (calibrated)` row, cells 8, 10, 12: the dashes fill
+
+| cell | column | old -> new | full precision |
+|---|---|---|---|
+| 8 | GlotLID-C, 83 languages, FPR | `--` -> **1.24e-4** | 1.2392e-04 |
+| 10 | UDHR, 80 languages, FPR | `--` -> **2.11e-5** | 2.1107e-05 |
+| 12 | FLORES, 77 languages, FPR | `--` -> **3.83e-5** | 3.8330e-05 |
+
+Cells 7, 9 and 11 are unchanged from A2.17 at .975 / .985 / .992, verified in place.
+With both rows on one convention the FPR incomparability that held those three
+dashes is gone.
+
+#### The disclosure that must travel with cells 9 and 11
+
+**The visible movement in the `\unilid` UDHR and FLORES subset F1 cells is mostly a
+logged, unexplained residual against the published numbers, not an effect of the
+special-token correction.** Measured under this same convention:
+
+| column | published | released generation | corrected generation | generation effect |
+|---|---|---|---|---|
+| GlotLID-C, 83 | .971 | 0.9719 | 0.9718 | **0.00007** |
+| UDHR, 80 | .992 | **0.9873** | 0.9857 | 0.0016 |
+| FLORES, 77 | .997 | **0.9907** | 0.9909 | -0.0002 |
+
+On GlotLID-C the convention reproduces the published cell and the two generations
+agree to five decimals. On UDHR and FLORES the released-generation measurement
+already sits about 0.005 and 0.006 below the published cell, and that residual has
+never been explained; it is recorded in the August external-bench work and again in
+section 4 of the source. So `.992 -> .986` is roughly 0.005 of unexplained
+residual plus 0.0016 of correction, and `.997 -> .991` is roughly 0.006 of residual
+against 0.0002 moving the other way. **Nobody should read either as a correction
+effect.** The released arrays that would let the residual be diagnosed
+(`external_bench/scored_{udhr,flores}.npz`) were deleted 2026-08-21, so closing it
+needs a re-score of the released model, which is a SLURM job rather than
+post-processing.
+
+#### The column now reads honestly, and no prose says otherwise
+
+With both rows on one convention the comparison down each column is intended and
+visible: **calibration raises the subset FPR on all three benchmarks**
+(9.99e-5 to 1.24e-4 on GlotLID-C, 1.64e-5 to 2.11e-5 on UDHR, 3.50e-5 to 3.83e-5 on
+FLORES) **while raising F1 on two of three** (.972 to .975, .991 to .992) and
+lowering it on UDHR (.986 to .985). A sweep of every FPR sentence in
+`submission.tex` found nothing that contradicts this: `:838` and `:849` are both
+about the full 1,940-label GlotLID-C pool, where calibration does lower macro FPR
+(2.02e-5 to 1.77e-5), and `:837`'s "consistently maintaining low FPR" is about the
+`\unilid` row, whose subset FPRs fell in two of three columns and whose 1.64e-5 is
+now the lowest value in the UDHR-subset column.
+
+#### Caption
+
+Collapsed to one convention statement covering both rows, replacing A2.16's refit
+provenance sentence and A2.17's transfer-plus-incomparability pair:
+
+> The \unilid and calibrated rows' \cld-subset cells report the same two systems
+> as the left columns, every threshold and constant fitted on all
+> 1{,}940 languages, evaluated on the lines whose gold language is in \cld's
+> coverage with predictions left unrestricted, so that an error into any other
+> label counts against the gold language; these cells measure transfer to a
+> language group neither system was tuned on. \Cref{tab:cld3_refit} reports the
+> alternative, models fitted to a subset's languages alone. The \cld-subset cells
+> of the remaining rows are those of the original submission.
+
+Also deleted, and recorded here for recoverability: the dash legend's clause "or an
+omitted calibrated-row cell". The calibrated row now prints a value in all twelve
+positions, so the only dashes left in the table are coverage dashes in the \cld and
+\glotlid rows. The clause was removed rather than wrapped, since marking a deleted
+phrase is not possible and colouring the surviving semicolon would signal nothing.
+
+#### New appendix table `tab:cld3_refit` and its subsection
+
+`paper/tables/cld3_refit.tex` is new, and `submission.tex` gains
+`\subsection{Vocabularies Fitted to the \cld Label Subset}` with `\label{app:cld3_refit}`
+immediately before the Viterbi subsection in `\cref{app:additional_results}`. Cells:
+
+| benchmark | full-set F1 / FPR | subset-fitted F1 / FPR |
+|---|---|---|
+| GlotLID-C, 83 languages | .972 / 9.99e-5 | .974 / 1.52e-4 |
+| UDHR, 80 languages | .986 / 1.64e-5 | .995 / 5.73e-5 |
+| FLORES-200, 77 languages | .991 / 3.50e-5 | .997 / 3.93e-5 |
+
+The subset-fitted column is exactly the A2.16 cells, which is where those
+measurements now live. The two introducing sentences:
+
+> The \cld-subset columns of \cref{tab:lid_main} score the full 1{,}940-language
+> system on the lines of each benchmark whose gold language is in \cld's coverage.
+> An alternative is to build a model for the subset itself, and
+> \cref{tab:cld3_refit} compares the two: fitting the base vocabulary and the
+> per-language distributions to a subset's languages alone raises macro F1 by
+> 0.002 on GlotLID-C, 0.009 on UDHR and 0.006 on FLORES-200, and raises macro FPR
+> on all three.
+
+The main table's caption cross-references it, so a reader who wants the
+specialization result can find it from the row it qualifies.
+
+#### Why a refit *calibrated* row still does not exist
+
+Unchanged from A2.16 and still the governing reason: the promoted configuration's
+group B is the four high-entropy languages `sco_Latn`, `bjn_Latn`, `arg_Latn`,
+`vls_Latn`, none of which is a \cld language, and group A falls from 1,080 of 1,940
+rows (56%) to 12-14 of 93-99 (13-14%). `tab:cld3_refit` therefore compares
+uncalibrated systems only, and its caption says so.
 
 ---
 
@@ -950,6 +1072,15 @@ rules split: its corrected 9.8602e-06 has crossed below 1e-5, so the sub-1e-5
 rule gives **1.0e-5** and the two-figure rule would give 9.9e-6. Applied as
 1.0e-5 per the author's instruction. Either way it is a real move from the
 published 1.5e-5, and the measured value is 9.8602e-06.
+
+**7. A wholly new table is marked once, not cell by cell.** `tab:cld3_refit`
+(A2.18) is new in this round, so every number in it is an addition and marking each
+one would be noise. What carries the marker is its caption, wrapped in
+`\corrrev{}`, and the two prose sentences that introduce it in `submission.tex`.
+The file itself opens with a comment naming the round and the two source records.
+Its `\subsection` title and `\label` are deliberately left unwrapped: a
+`\textcolor` inside a sectioning argument travels into the table of contents and
+PDF bookmarks, which is a compilation risk for a draft marker.
 
 **6. New constant: `FPR_GATE_REL_TOL = 0.05`**, in
 `analysis/regen_resource_tier_counts.py`, alongside the existing

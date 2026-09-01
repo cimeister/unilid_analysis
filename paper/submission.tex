@@ -1191,6 +1191,21 @@ evaluation set for calibrated \unilid; no training or selection used it.}
 
 
 
+\subsection{Vocabularies Fitted to the \cld Label Subset}
+\label{app:cld3_refit}
+
+\corrrev{The \cld-subset columns of \cref{tab:lid_main} score the full
+1{,}940-language system on the lines of each benchmark whose gold language is in
+\cld's coverage. An alternative is to build a model for the subset itself, and
+\cref{tab:cld3_refit} compares the two: fitting the base vocabulary and the
+per-language distributions to a subset's languages alone raises macro F1 by 0.002
+on GlotLID-C, 0.009 on UDHR and 0.006 on FLORES-200, and raises macro FPR on all
+three.}
+
+\input{tables/cld3_refit}
+
+
+
 \subsection{Viterbi vs. Marginalization at Inference}
 \label{app:viterbi_vs_marginal}
 
