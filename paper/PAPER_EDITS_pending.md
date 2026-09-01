@@ -29,7 +29,7 @@ or the framing needs the author). Nothing is BLOCKED or IN-PROGRESS any more.
 | group | count | state |
 |---|---|---|
 | A, the 2026-08-19 round | 11 items | all applied |
-| A2.1 -- A2.16, the corrected round | 16 entries | all applied |
+| A2.1 -- A2.17, the corrected round | 17 entries | all applied |
 | B1 -- B9, the blocked list | 9 items | 8 DONE, 1 CLOSED by ruling (B8) |
 | PD-1 -- PD-9, the author's decisions | 9 items | all decided: 4 applied to the paper, 5 closed with no paper edit |
 
@@ -44,7 +44,14 @@ What remains, in full:
    UDHR-subset FPR column's lowest value is now \glotlid's 2.09e-5 and no cell in
    that column is bold, which was already true before this round (A2.16). Bolding
    it or leaving the column as published is an author's call.
-3. **The noise analysis**: removed by ruling (A2.13), and the author will re-add
+3. **One convention question in `tab:lid_main`'s right half** (A2.17): the
+   `\unilid` row's subset cells are Refit and the calibrated row's are Transfer,
+   and the calibrated row's three measured transfer FPRs are held back because the
+   two rows' FPR conventions differ. Moving the `\unilid` row onto Transfer would
+   unify the half and let all six FPR cells print; the values for that are on
+   record. A restructuring, so an author's call, and the caption discloses both
+   provenances meanwhile.
+4. **The noise analysis**: removed by ruling (A2.13), and the author will re-add
    `tab:noise_robustness` manually now that the co-author has rerun the
    experiments. Recorded rather than open; no session work should touch
    `paper/tables/noise_robustness.tex`.
@@ -672,7 +679,12 @@ inside a carried sentence kept its printed value and took no wrap.
 
 #### `\unilid (calibrated)` row, three F1 cells blanked
 
-Cells 7, 9 and 11 go from .975 / .986 / .992 to **`--`**, extending the `--`
+**Superseded the same day by A2.17**, after the author reframed these cells as a
+transfer measurement rather than a subset-refitted one. They now print .975 /
+.985 / .992. The paragraphs below record why a *refit* calibrated row was never
+available, which is still the governing reason and is why A2.17 uses transfer.
+
+Cells 7, 9 and 11 went from .975 / .986 / .992 to `--`, extending the `--`
 already printed in that row's three subset FPR positions. The reason, from section
 6.3 and now stated in the caption: the promoted configuration `gate_flat4_prox21`
 is a table of per-language thresholds over two groups defined on the full
@@ -747,6 +759,101 @@ The author can bold \glotlid's 2.09e-5 or leave the column as published.
 A sweep of `submission.tex` for .971, .975, .986 and .992 found no sentence
 quoting a \cld-subset cell; `:733` refers to the right half of the table without
 naming a number.
+
+### A2.17 The calibrated row's \cld-subset F1 cells, under the transfer reading, 2026-09-01
+
+Source, cross-checked before editing:
+`outputs/rerelease/cld3_calibrated_transfer_2026-09-01.md`. This supersedes A2.16's
+three dashes in cells 7, 9 and 11, on the author's reframing of the same day: those
+cells measure **transfer**, not a subset-refitted method. The system is the full
+calibrated system with every threshold and constant fitted on all 1,940 languages,
+evaluated on the subset-scoped slice of each benchmark with predictions left
+unrestricted. Nothing is refitted, restricted or reselected for the subset, which
+is what makes the reading well defined where a refit reading was not.
+
+| cell | column | old (A2.16) -> new | full precision | published |
+|---|---|---|---|---|
+| 7 | GlotLID-C, 83 languages, F1 | `--` -> **.975** | 0.9750 | .975 |
+| 9 | UDHR, 80 languages, F1 | `--` -> **.985** | 0.9846 | .986 |
+| 11 | FLORES, 77 languages, F1 | `--` -> **.992** | 0.9922 | .992 |
+
+Only UDHR moves against the published value, by one unit in the last place. All
+three are wrapped, including the two whose printed value matches the published
+one, under convention 1's whole-regeneration rule: they are measurements of the
+corrected generation, not carried cells.
+
+**Gate evidence.** The convention reproduces the published cell directly on
+GlotLID-C, where the released arrays survive: measured 0.9750901 against the
+recorded 0.9751, with the restricted line count exact at 23,293,775, and the
+released base value 0.9718774 against the recorded 0.9719. That is the evidence
+that the published `\unilid` and calibrated rows were both computed this way in
+the original submission. Each prediction memmap's sha256 was matched against the
+value its own generation's `paper_eval` record prints, so both generations' arrays
+are the ones behind the published left-half cells.
+
+UDHR and FLORES could not be gated the same way: the released score-stage arrays
+`external_bench/scored_{udhr,flores}.npz` were deleted 2026-08-21 (already recorded
+under "Known damage"), and the surviving per-label CSVs carry full-pool false
+positive counts that cannot be restricted to the subset's lines after the fact.
+The substitution, stated rather than silent: those two benches are gated on a
+replay of the corrected generation, where reconstructing the gated prediction from
+the banked top-5 candidates reproduces every recorded full-set cell and every
+re-examination count in
+`outputs_corrected_round/tables/external_bench_{udhr,flores}.md`, 14 of 14 checks
+each. The metric core and the subset label mapping are gated on GlotLID-C, whose
+released arrays do survive. The mapping itself aborts on a code with no variant in
+the pool and on a tie for the largest corpus, neither of which fired, and it
+reproduces the released record's line counts exactly (23,293,775 / 5,388 / 77,924).
+
+#### Cells 8, 10 and 12 keep their dashes, and the measured values are recorded here
+
+The transfer FPRs exist and are internally consistent: **1.24e-4** (GlotLID-C,
+1.2392e-04), **2.11e-5** (UDHR, 2.1107e-05), **3.83e-5** (FLORES, 3.8330e-05).
+They are not printed because they would sit directly below the `\unilid` row's
+subset FPR cells, which are on a different convention. The size of the problem is
+measured, not hypothetical: on the released generation this convention puts the
+base model at 9.71e-5 and the calibrated system at 1.22e-4, so the false positive
+rate rises under calibration, while a reader comparing the printed 1.24e-4 against
+the `\unilid` row's 1.52e-4 would read it as falling. No reconstructed convention
+has ever reproduced the published `\unilid` subset FPR of 1.63e-4 (measured
+9.71e-5 restricted, 7.77e-5 global-pool). Dashes keep the row's published
+convention and say nothing false.
+
+#### Author option, flagged and not applied
+
+Moving the `\unilid` row's three subset FPR cells onto this transfer convention
+would let all six FPR cells be printed and read down the column. The corrected
+transfer values for that row are on record in section 4 of the source: F1 0.9718 /
+0.9857 / 0.9909 and FPR 9.99e-5 / 1.64e-5 / 3.50e-5. That is a restructuring of
+the right half rather than a cell edit, so it is the author's call.
+
+**A second, related mixture, disclosed rather than resolved.** After A2.16 the
+`\unilid` row's subset F1 cells are Refit (a base vocabulary trained on each
+subset's languages) while the calibrated row's are Transfer (the full model scored
+on the subset slice). The published cells were both Transfer, so this is new. The
+caption now states each row's provenance separately, so the difference is visible
+rather than silent, but a reader taking .974 to .975 as the calibration gain would
+be crossing conventions: under Transfer the corrected pair is 0.9718 to 0.9750, a
+gain of 0.0032 rather than 0.001. Unifying the right half on Transfer, or leaving
+it as two disclosed conventions, is the same author decision as the FPR one above.
+
+#### Caption
+
+The A2.16 sentence explaining that the promoted configuration is undefined on a
+subset model is removed: it described a refit that is no longer what these cells
+are. Those facts (group B empty, since none of `sco_Latn`, `bjn_Latn`, `arg_Latn`,
+`vls_Latn` is a \cld language, and group A falling from 56\% to 13\% of rows) stay
+here as the reason a refit calibrated row was never the right instrument. The
+replacement, in the caption:
+
+> Its \cld-subset F1 cells report the full calibrated system, every threshold and
+> constant fitted on all 1{,}940 languages, evaluated on the lines whose gold
+> language is in \cld's coverage with predictions left unrestricted, so that an
+> error into any other label counts against the gold language; these cells measure
+> transfer to a language group the system was not tuned on. Its \cld-subset FPR
+> cells are omitted because the \unilid row's subset FPR cells above them come
+> from a different convention, which would make the two sets of values not
+> comparable.
 
 ---
 

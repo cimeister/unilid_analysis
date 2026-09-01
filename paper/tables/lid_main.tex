@@ -3,7 +3,7 @@
 \small
 \caption{Classification results on benchmark evaluation sets.
 \unilid variants and \fasttext are trained using the GlotLID-C corpus.
-The left columns show results on the full test sets of each benchmark for models that have full coverage of those benchmark's language label set\camrev{; GlotLID-C cells for the \unilid and calibrated rows are macro-averaged over the 1{,}940 labels on the 45{,}377{,}279 scored test lines (the test data minus an excluded 250{,}000-line validation sample; \cref{app:protocol}), while the remaining rows carry over from the original submission, computed on all 45{,}627{,}279 lines; \fasttext macro F1 on the scored pool differs from the printed full-file cell by $3.4\times10^{-4}$}. The right columns show results on the subsets of the benchmarks that \cld has label coverage for. \camrev{A dash marks a system without coverage of a column's label set, or an omitted calibrated-row cell; bold marks the best value in a column. \corrrev{The \unilid \cld-subset cells come from models whose base vocabulary is trained on each benchmark's subset of languages, by the same procedure as the full-set models. The \cld-subset cells of the remaining rows are those of the original submission.} The calibrated row (\cref{sec:calibration}) is evaluated on the same test sets. \corrrev{Its \cld-subset cells are omitted because the configuration of \cref{sec:calibration} is not defined on a subset model: none of its four high-entropy languages is in any \cld subset, and the share of languages eligible for a re-examination threshold falls from 56\% to 13\%.} The calibrated row's full-pool GlotLID-C cells include data on which two of the calibration constants were selected (\cref{app:protocol}); \cref{tab:calibrated_heldout} repeats the comparison on a held-out subset outside both selections.}}
+The left columns show results on the full test sets of each benchmark for models that have full coverage of those benchmark's language label set\camrev{; GlotLID-C cells for the \unilid and calibrated rows are macro-averaged over the 1{,}940 labels on the 45{,}377{,}279 scored test lines (the test data minus an excluded 250{,}000-line validation sample; \cref{app:protocol}), while the remaining rows carry over from the original submission, computed on all 45{,}627{,}279 lines; \fasttext macro F1 on the scored pool differs from the printed full-file cell by $3.4\times10^{-4}$}. The right columns show results on the subsets of the benchmarks that \cld has label coverage for. \camrev{A dash marks a system without coverage of a column's label set, or an omitted calibrated-row cell; bold marks the best value in a column. \corrrev{The \unilid \cld-subset cells come from models whose base vocabulary is trained on each benchmark's subset of languages, by the same procedure as the full-set models. The \cld-subset cells of the remaining rows are those of the original submission.} The calibrated row (\cref{sec:calibration}) is evaluated on the same test sets. \corrrev{Its \cld-subset F1 cells report the full calibrated system, every threshold and constant fitted on all 1{,}940 languages, evaluated on the lines whose gold language is in \cld's coverage with predictions left unrestricted, so that an error into any other label counts against the gold language; these cells measure transfer to a language group the system was not tuned on. Its \cld-subset FPR cells are omitted because the \unilid row's subset FPR cells above them come from a different convention, which would make the two sets of values not comparable.} The calibrated row's full-pool GlotLID-C cells include data on which two of the calibration constants were selected (\cref{app:protocol}); \cref{tab:calibrated_heldout} repeats the comparison on a held-out subset outside both selections.}}
 \label{tab:lid_main}
 \setlength{\tabcolsep}{5pt}
 \renewcommand{\arraystretch}{1.15}
@@ -75,9 +75,9 @@ The left columns show results on the full test sets of each benchmark for models
 & \corrrev{\textbf{.956}} & \camrev{\textbf{1.77e-5}}
 & \corrrev{.842} & \corrrev{2.03e-4}
 & \corrrev{.932} & 2.91e-4
-& \corrrev{--} & --
-& \corrrev{--} & --
-& \corrrev{--} & -- \\
+& \corrrev{.975} & --
+& \corrrev{.985} & --
+& \corrrev{.992} & -- \\
 
 \unilid-Mistral-Nemo
 & .912 & \camrev{1.84e-5}

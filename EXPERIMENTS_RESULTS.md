@@ -25,6 +25,33 @@ uniform sample (`seed=42`, without replacement).
 
 ---
 
+## The calibrated row's subset cells return as a transfer evaluation (2026-09-01)
+
+Author reframing: the calibrated subset cells should show the method working
+outside the language group its parameters were tuned on. Measured as pure
+post-processing over banked prediction arrays
+(`outputs/rerelease/cld3_calibrated_transfer_2026-09-01.{md,json}`,
+`analysis/cld3_calibrated_transfer.py`): the full calibrated system (all
+thresholds and constants fitted on the 1,940 languages) on the subset-gold
+lines with predictions unrestricted. Gates: the convention reproduces the
+published .975 exactly on the surviving released GlotLID-C arrays (0.9750901,
+restricted pool 23,293,775 lines exact; released base 0.9718774 vs recorded
+0.9719); UDHR/FLORES gated on the corrected replay (14/14 checks each) since
+their released arrays were deleted 2026-08-21 -- a stated substitution.
+
+Corrected transfer cells: GlotLID-C .975 (pub .975), UDHR .985 (pub .986),
+FLORES .992 (pub .992). Applied to the paper as the calibrated row's subset
+F1 cells; the FPR positions keep their dashes because the transfer FPRs
+(1.24e-4 / 2.11e-5 / 3.83e-5, on record) are cross-convention against the
+refit \unilid row above and the comparison reverses direction (released
+generation under one convention: base 9.71e-5 vs calibrated 1.22e-4).
+
+Open author options, flagged with values on record, applied by neither side:
+move the \unilid row's subset FPRs (transfer values 9.99e-5/1.64e-5/3.50e-5)
+and/or its subset F1s onto the transfer convention for full column
+comparability -- under transfer-for-both the calibration gain reads
+0.9718 -> 0.9750 rather than the cross-convention .974 -> .975.
+
 ## CLD3 reassessment under the author's answer: explained for one row, one live mechanism for another, and a five-input reproduction bill (2026-08-31)
 
 `outputs/rerelease/cld_subset_gate_2026-08-31.md` section 10 (regenerated,

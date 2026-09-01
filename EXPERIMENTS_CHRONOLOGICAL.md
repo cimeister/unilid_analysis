@@ -2199,3 +2199,8 @@ verified exact before truncation-repair; originals preserved); the mechanism
 reproduced on fresh files -- records on capstor must be verified by
 regeneration diff, recorded in memory. Calibrated-row refit (the last
 blocker before the paper application) dispatched.
+
+2026-09-01, latest: calibrated-row subset cells applied as a transfer
+evaluation (author reframing); gates exact on the surviving released arrays;
+FPR dashes kept (cross-convention direction reversal, values on record);
+ledger A2.17; two convention-alignment options flagged for the author.
