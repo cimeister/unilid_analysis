@@ -33,8 +33,11 @@ So the subset convention is, in full:
      script.
   2. Model: loaded restricted to exactly those labels
      (`UnilidModel(..., languages=...)`, i.e. `model_io.subset_rows`), so the
-     argmax cannot leave the subset. Uncalibrated (`calibrated=False`): the
-     published \\unilid row is the base model, the calibrated row is separate.
+     argmax cannot leave the subset. Uncalibrated by default: the published
+     \\unilid row is the base model. `--calibrated` evaluates the separate
+     published "\\unilid (calibrated)" row instead, and requires the container to
+     carry a calibration artifact DERIVED ON THAT MODEL -- a calibration is a
+     table of per-language thresholds and cannot be transferred between models.
   3. Line pool: the `only_model_langs` filter of the paper team's own scripts
      (eval_glotlid.py:47-54, eval_udhr.py:43-46, eval_flores.py:38-39) applied
      to that restricted model -- i.e. exactly the lines whose gold bare ISO is
@@ -255,16 +258,27 @@ def model_langs_of(model_path: str) -> list[str]:
     return list(langs)
 
 
-def load_model(model_path: str, languages: list[str] | None):
+def load_model(model_path: str, languages: list[str] | None,
+               calibrated: bool = False):
     """Base-mode load, optionally restricted to `languages`.
 
-    calibrated=False: the published \\unilid row is the uncalibrated model. The
-    package default is calibrated=True, which would either abort (version-1 file,
-    no bundled calibration) or silently evaluate a different system.
+    calibrated defaults to False and every caller that omits it gets exactly the
+    behaviour this module has always had: the published \\unilid row is the
+    UNCALIBRATED model, and the package's own default of calibrated=True would
+    either abort (version-1 file, no bundled calibration) or silently evaluate a
+    different system. The default is the thing being protected here, so it stays
+    the default.
+
+    calibrated=True is for the SEPARATE published row
+    "\\unilid (calibrated, \\cref{sec:calibration})" and requires the container to
+    carry a bundled calibration artifact; UnilidModel raises if it does not.
+    Note that a calibration is specific to the model it was derived on -- it is a
+    table of per-language thresholds -- so this flag cannot lend one model's
+    calibration to another.
     """
     _add_unilid_to_path()
     from unilid.model_io import UnilidModel
-    return UnilidModel(model_path, calibrated=False, languages=languages)
+    return UnilidModel(model_path, calibrated=calibrated, languages=languages)
 
 
 def subset_labels_of(model_langs: list[str], subset_codes: list[str],
@@ -344,7 +358,8 @@ def _git_commit() -> str:
 
 def run(model_path: str, bench: str, mode: str, out_path: str,
         limit: int | None = None, per_lang_out: str | None = None,
-        label_universe: str | None = None, pred_out: str | None = None):
+        label_universe: str | None = None, pred_out: str | None = None,
+        calibrated: bool = False):
     reg = BENCHES[bench]
     _require(model_path, "model")
     lang_only = (mode == "subset")
@@ -361,7 +376,7 @@ def run(model_path: str, bench: str, mode: str, out_path: str,
         # ~776 MB weight matrix into the Rust cache for nothing.
         full_langs = model_langs_of(model_path)
         keep = subset_labels_of(full_langs, subset_codes, subset_file)
-        model = load_model(model_path, keep)
+        model = load_model(model_path, keep, calibrated=calibrated)
         model_langs = list(model.langs)
         if len(model_langs) != len(keep):
             raise SystemExit(
@@ -369,7 +384,7 @@ def run(model_path: str, bench: str, mode: str, out_path: str,
                 f"expected {len(keep)}")
     elif mode == "full":
         subset_file, subset_codes = None, None
-        model = load_model(model_path, None)
+        model = load_model(model_path, None, calibrated=calibrated)
         model_langs = list(model.langs)
         full_langs = list(model_langs)
     else:
@@ -471,7 +486,7 @@ def run(model_path: str, bench: str, mode: str, out_path: str,
         "samples_per_sec": n_kept / elapsed if elapsed else None,
         "predict_batch": PREDICT_BATCH,
         "decode": "viterbi (forward=False)",
-        "calibrated": False,
+        "calibrated": calibrated,
         "git_commit": _git_commit(),
         "argv": sys.argv,
     })
@@ -525,13 +540,20 @@ def main(argv=None):
     p.add_argument("--label-universe", default=None, choices=["goldpred", "gold"],
                    help="override the per-benchmark default taken from the "
                         "paper team's own eval script")
+    p.add_argument("--calibrated", action="store_true",
+                   help="load the model's BUNDLED calibration and evaluate "
+                        "calibrated inference (the separate published "
+                        "'\\unilid (calibrated)' row). Default off: every "
+                        "cell this module has produced is uncalibrated, and "
+                        "the container must carry a calibration artifact "
+                        "derived on THAT model or the load aborts.")
     p.add_argument("--limit", type=int, default=None,
                    help="smoke-test only: stop reading after N benchmark rows "
                         "(disables the row/label count checks)")
     a = p.parse_args(argv)
     run(a.model, a.bench, a.mode, a.out, limit=a.limit,
         per_lang_out=a.per_lang_out, label_universe=a.label_universe,
-        pred_out=a.pred_out)
+        pred_out=a.pred_out, calibrated=a.calibrated)
 
 
 if __name__ == "__main__":
