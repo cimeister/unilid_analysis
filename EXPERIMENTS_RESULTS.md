@@ -25,6 +25,33 @@ uniform sample (`seed=42`, without replacement).
 
 ---
 
+## The calibration procedure generalizes to the subset-fitted models (2026-09-02)
+
+Author ruling executed and adversarially cleared: the gate_flat4_prox21
+procedure applied to the three subset-fitted models with all ten constants
+carried unswept from the full model (c = -17, head_n, proximity 21, quantile
+and sampling settings -- imported from build_release_calibration.CONSTANTS so
+they cannot drift). The review independently re-derived all 38 thresholds
+(exact), recomputed all twelve cells (zero difference), and measured the
+clamp's special_idx guard as load-bearing (without it zero rows move).
+
+| bench | baseline | calibrated | dF1 | dFPR |
+|---|---|---|---|---|
+| glotlidc-83 | 0.97419/1.52e-4 | 0.98120/1.48e-4 | +0.0070 | -3.9e-6 |
+| udhr-80 | 0.99521/5.73e-5 | 0.99344/7.57e-5 | -0.0018 | +1.8e-5 |
+| flores-77 | 0.99701/3.93e-5 | 0.99750/3.29e-5 | +0.0005 | -6.4e-6 |
+
+F1 delta signs match the full model's transfer deltas on all three benchmarks
+(the generalizability evidence; FPR signs differ on two, in the subset's
+favor, and the paper claims F1 signs only). Disclosed beside it: 87% of the
+GlotLID-C gain is Corsican alone (F1 0.439 -> 0.947, 0.0061 of 0.0070).
+Group findings: group B empty on all three (highest head-language zH 1.30,
+below the 1.5 threshold -- measured, not assumed), group A 14/12/12 with zero
+exclusions, clamp moves 22-24% of rows. Cells applied to tab:lid_main
+(calibrated row fully populated, no bold moved); both statements the change
+falsified repaired; ledger A2.20. Containers byte-verified on the durable
+store.
+
 ## The subset half returns to specialists-vs-specialists; transfer moves to the appendix (2026-09-02)
 
 Author information: the fastText and CLD3 models in the subset columns were

@@ -2215,3 +2215,10 @@ column-10 bolding note, the manual noise-table reinstatement.
 information (fastText/CLD3 subset-trained); transfer table re-oriented to the
 appendix with a main-body pointer; ledger A2.19. DSL-ML 2024 shared-task
 research dispatched (comparability-first, URLs verified), vetting to follow.
+
+2026-09-02: subset-calibration generalizability test complete (interrupted
+agent resumed from transcript; SLURM 3261635 + login-node hedge + movement
+pass = three agreeing measurements). Review FIX FIRST on record hygiene only;
+chain committed 8d211c5, generator fixes 5a2c438, provenance gate clean.
+Cells applied; calibrated row fully populated. DSL-ML research + vetting
+complete and reported; the paper revision awaits the author's word.

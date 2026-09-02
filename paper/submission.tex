@@ -1201,9 +1201,10 @@ unrestricted so that an error into any of the 1{,}940 labels counts against the
 gold language. \Cref{tab:cld3_refit} reports that transfer for \unilid and for its
 calibrated form, beside the subset-fitted \unilid of the main table: transfer
 costs 0.002 macro F1 on GlotLID-C, 0.009 on UDHR and 0.006 on FLORES-200. The
-calibrated system appears only in transferred form, because its per-language
-thresholds are defined on the full label set and no subset-fitted calibrated
-variant exists.}
+calibration of \cref{tab:lid_main}'s subset rows moves each benchmark in the same
+direction as it moves the full system on the same slices: up on GlotLID-C and
+FLORES-200, down on UDHR. Most of that GlotLID-C gain is one language: Corsican
+rises from F1 0.439 to 0.947, which is 0.0061 of the column's 0.0070.}
 
 \input{tables/cld3_refit}
 

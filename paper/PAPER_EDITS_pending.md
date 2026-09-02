@@ -29,7 +29,7 @@ or the framing needs the author). Nothing is BLOCKED or IN-PROGRESS any more.
 | group | count | state |
 |---|---|---|
 | A, the 2026-08-19 round | 11 items | all applied |
-| A2.1 -- A2.19, the corrected round | 19 entries | all applied |
+| A2.1 -- A2.20, the corrected round | 20 entries | all applied |
 | B1 -- B9, the blocked list | 9 items | 8 DONE, 1 CLOSED by ruling (B8) |
 | PD-1 -- PD-9, the author's decisions | 9 items | all decided: 4 applied to the paper, 5 closed with no paper edit |
 
@@ -42,9 +42,9 @@ What remains, in full:
 2. **`tab:lid_main`'s caption split**, which stays as written because PD-3 closed
    with the variant rows carried. One small question rides with it: no cell in the
    UDHR-subset FPR column is bold, although that column has a minimum like every
-   other. With the subset-fitted cells in place (A2.19) that minimum is \glotlid's
-   2.09e-5, against the `\unilid` row's 5.73e-5. Bolding it or leaving the column
-   as published is an author's call.
+   other. With the subset-fitted cells in place (A2.19, A2.20) that minimum is
+   \glotlid's 2.09e-5, against the `\unilid` row's 5.73e-5 and the calibrated row's
+   7.57e-5. Bolding it or leaving the column as published is an author's call.
 3. **The noise analysis**: removed by ruling (A2.13), and the author will re-add
    `tab:noise_robustness` manually now that the co-author has rerun the
    experiments. Recorded rather than open; no session work should touch
@@ -976,7 +976,9 @@ specialization result can find it from the row it qualifies.
 
 #### Why a refit *calibrated* row still does not exist
 
-Unchanged from A2.16 and still the governing reason: the promoted configuration's
+**Superseded 2026-09-02 by A2.20.** Group B is indeed empty on all three subsets,
+measured, but the author ruled that the procedure be run anyway with every constant
+carried, which is what the row now reports. Recorded as it stood: the promoted configuration's
 group B is the four high-entropy languages `sco_Latn`, `bjn_Latn`, `arg_Latn`,
 `vls_Latn`, none of which is a \cld language, and group A falls from 1,080 of 1,940
 rows (56%) to 12-14 of 93-99 (13-14%). `tab:cld3_refit` therefore compares
@@ -1013,8 +1015,12 @@ These are the A2.16 cells returning, from
 | 7, 9, 11 | .975 / .985 / .992 -> **`--`** |
 | 8, 10, 12 | 1.24e-4 / 2.11e-5 / 3.83e-5 -> **`--`** |
 
-Under the specialists convention the row has nothing to print: no subset-fitted
-calibrated system exists. The A2.16 reasoning returns as the governing one, and it
+**Superseded 2026-09-02 by A2.20**, which fills all six cells: the author ruled
+that the procedure be applied unswept to the subset models as a generalizability
+test. The paragraph below records the state between the two rulings.
+
+Under the specialists convention the row had nothing to print: no subset-fitted
+calibrated system existed yet. The A2.16 reasoning returns as the governing one, and it
 is measured, not assumed: the promoted configuration's group B is `sco_Latn`,
 `bjn_Latn`, `arg_Latn` and `vls_Latn`, none of them a \cld language, so that half
 of the configuration has nothing to act on, and group A falls from 1,080 of 1,940
@@ -1085,6 +1091,123 @@ convention measures on the released generation (0.9873, 0.9907), an unexplained
 residual, while the correction itself moves those cells by 0.0016 and -0.0002.**
 The main table's cells no longer show that movement at all, because they are
 subset-fitted rather than transferred.
+
+### A2.20 The calibrated row's \cld-subset cells exist: the procedure applied unswept to the subset models, 2026-09-02
+
+**Author ruling, verbatim:** *"A calibrated row for the subset should still exist.
+Perform the calibration procedure on the subset-fitted UniLID model. Do not due any
+hyperparameter sweeps. This is a test to see the generalizability of that
+approach."* Source: `outputs/rerelease/cld3_subset_calibrated_2026-09-02.md`,
+provenance-gated to commit `5a2c438`, with its adversarial review record beside it.
+
+This supersedes A2.16's and A2.19's reason for dashing the row. Group B really is
+empty on all three subsets, and that is measured rather than assumed; under the
+ruling its absence is a **result** of the generalizability test, not a reason to
+stop.
+
+#### Cells 7-12: the six dashes fill
+
+| cell | column | old -> new | full precision |
+|---|---|---|---|
+| 7 | GlotLID-C, 83 languages, F1 | `--` -> **.981** | 0.98120 |
+| 8 | GlotLID-C, 83 languages, FPR | `--` -> **1.48e-4** | 1.4763e-04 |
+| 9 | UDHR, 80 languages, F1 | `--` -> **.993** | 0.99344 |
+| 10 | UDHR, 80 languages, FPR | `--` -> **7.57e-5** | 7.5683e-05 |
+| 11 | FLORES, 77 languages, F1 | `--` -> **.997** | 0.99750 |
+| 12 | FLORES, 77 languages, FPR | `--` -> **3.29e-5** | 3.2927e-05 |
+
+The dash legend's clause "or an omitted calibrated-row cell" is removed again: the
+calibrated row now prints a value in all twelve positions, and the only dashes left
+in the table are coverage dashes in the \cld and \glotlid rows.
+
+**No bold moved.** All six subset columns were rechecked against the caption's
+best-in-column rule with the row populated: \fasttext keeps columns 7 (.990 against
+the new .981), 8 (7.92e-5 against 1.48e-4) and 9 (.998 against .993); \glotlid keeps
+columns 11 (.999 against .997, no tie) and 12 (6.25e-6 against 3.29e-5); column 10
+still has no bold, and its minimum is still \glotlid's 2.09e-5 against the
+calibrated row's 7.57e-5.
+
+#### What was carried and what was recomputed
+
+Ten constants carried from the corrected full model with no sweep: the unseen-token
+constant c = -17.0, `head_n` 18,000, `replacement_min_n` 100,000,
+`proximity_bound` 21.0, `topk` 5, `margin_q` 5.0, `group_b_percentile` 5.0,
+`calib_max` 2,000, `min_calib_lines` 200, `calib_seed` 0, plus the flat-magnet
+rule's `ZH_MAGNET` 1.5, `ZH_EXTREME` 5.0 and `MAGNET_RATIO_MIN` 2.0. Three
+quantities recomputed, because the procedure defines them from the model being
+calibrated: group A membership, group B membership, and the per-language thresholds.
+
+Measured groups: group A is 14 of 99 rows on subset-83, 12 of 94 on subset-80 and
+12 of 93 on subset-77, none excluded; **group B is empty on all three**; the clamp
+lowers 24, 21 and 21 rows. Against the full model's 1,080 of 1,940 in group A, 4 in
+group B and 1,655 clamped.
+
+#### The disclosure that must travel with cell 7
+
+**The GlotLID-C gain is 87% one language.** The column moves +0.00701 macro F1, and
+Corsican alone contributes +0.00612 of it, its own F1 rising from 0.43930 to
+0.94718 on a support of 1,663. Reporting the cell without that would let a
+one-language result read as an 83-language one. It is now stated in the appendix
+prose beside the transfer discussion, in the same sentence pair as the sign
+agreement, since that is the only prose in the paper that discusses these columns'
+internals.
+
+**One number from the task message was not used.** The message gave Corsican's
+precision as 0.282 -> 0.925. Neither the record nor its JSON carries a precision
+figure for `cos`; they carry F1 (0.43930 -> 0.94718), support (1,663) and the
+contribution (0.006119). The paper therefore states the F1 pair and the
+contribution, which are in the authoritative record, and not the precision pair,
+which is not. If the author wants the precision in the sentence, it needs a source.
+
+#### The generalizability evidence
+
+The F1 change has the same sign as the full model's transfer change on all three
+benchmarks: up on GlotLID-C-83 (+0.00701 against +0.00322), down on UDHR-80
+(-0.00177 against -0.00116), up on FLORES-77 (+0.00049 against +0.00131). The FPR
+signs differ on two of the three, and in the subset's favour: its FPR falls where
+the full model's rises. The appendix sentence claims only the F1 sign agreement,
+which is what the record establishes.
+
+Worth keeping in view when reading the size: on the subsets 86 to 87 percent of
+languages have at least `head_n` training lines, so re-examination applies to 12 to
+14 languages per model. The subset columns contain almost none of the tail the
+mechanism acts on, so the size of the change there is not comparable with the
++0.0237 the same procedure produces over all 1,940 languages.
+
+#### Caption, main table
+
+The omission sentence is replaced by:
+
+> For the calibrated row's \cld-subset cells, the procedure of \cref{sec:calibration}
+> is applied to each subset model with every constant fixed on the full model and
+> carried unchanged; no hyperparameter was swept for the subset. Only the language
+> groups and the per-language thresholds are recomputed, which the procedure
+> defines as functions of the model being calibrated. The high-entropy group is
+> empty on all three subsets, so re-examination there applies to the low-resource
+> group alone.
+
+#### Two false statements repaired
+
+Both said the calibrated system exists only in transferred form, which this round
+makes untrue:
+
+- `tab:cld3_refit`'s caption: "The calibrated system appears only in this form: its
+  per-language thresholds are defined on the full label set, so no subset-fitted
+  calibrated variant exists" becomes "The calibrated system appears in both forms:
+  transferred here, and fitted to each subset in \cref{tab:lid_main}."
+- the appendix prose's closing sentence, which carried the same claim, is replaced
+  by the sign-agreement and Corsican sentences above.
+
+A sweep for any other prose stating that the calibrated row omits subset cells
+found none.
+
+#### One note on the source file
+
+`outputs/rerelease/cld3_subset_calibrated_2026-09-02.md` ends with a duplicated
+fragment of its own sha256 table. That is the recorded `/capstor` stale-tail
+behaviour, not a content error; every value used above comes from the body of the
+file and from
+`outputs/rerelease/cld3_subset_calibrated_2026-09-02.json`, which agree.
 
 ---
 
