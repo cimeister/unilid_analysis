@@ -2210,3 +2210,8 @@ cells), FPR dashes filled, single-convention caption, new appendix table
 tab:cld3_refit with the refit comparison, the pre-existing UDHR/FLORES
 residual disclosed in ledger A2.18. Open list: two co-author asks, the
 column-10 bolding note, the manual noise-table reinstatement.
+
+2026-09-02: subset half swapped to specialists-vs-specialists per author
+information (fastText/CLD3 subset-trained); transfer table re-oriented to the
+appendix with a main-body pointer; ledger A2.19. DSL-ML 2024 shared-task
+research dispatched (comparability-first, URLs verified), vetting to follow.

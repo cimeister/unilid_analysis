@@ -25,6 +25,22 @@ uniform sample (`seed=42`, without replacement).
 
 ---
 
+## The subset half returns to specialists-vs-specialists; transfer moves to the appendix (2026-09-02)
+
+Author information: the fastText and CLD3 models in the subset columns were
+themselves trained only on the subset languages -- the published design was a
+comparison of subset-fitted systems, which is why the co-author built
+subset-vocabulary UniLID models. Ruling applied: the refit cells return to
+tab:lid_main (\unilid .974/1.52e-4, .995/5.73e-5, .997/3.93e-5; calibrated
+row all-dashed, no subset-fitted calibrated system existing), and
+tab:cld3_refit re-orients into the transfer table (both full systems on the
+subset slices, the refit row repeated for comparison; transfer costs
+0.002/0.009/0.006 macro F1). Main-body pointer added. The A2.18 residual
+disclosure now attaches to the appendix transfer row, not the main table.
+The one caption claim resting on unmeasured information is flagged in the
+ledger: fastText and CLD3 being subset-trained is stated on the author's
+word.
+
 ## Both subset rows aligned on transfer; the refit comparison becomes an appendix table (2026-09-01)
 
 Author rulings executed: tab:lid_main's \unilid and calibrated rows both

@@ -29,7 +29,7 @@ or the framing needs the author). Nothing is BLOCKED or IN-PROGRESS any more.
 | group | count | state |
 |---|---|---|
 | A, the 2026-08-19 round | 11 items | all applied |
-| A2.1 -- A2.18, the corrected round | 18 entries | all applied |
+| A2.1 -- A2.19, the corrected round | 19 entries | all applied |
 | B1 -- B9, the blocked list | 9 items | 8 DONE, 1 CLOSED by ruling (B8) |
 | PD-1 -- PD-9, the author's decisions | 9 items | all decided: 4 applied to the paper, 5 closed with no paper edit |
 
@@ -42,9 +42,9 @@ What remains, in full:
 2. **`tab:lid_main`'s caption split**, which stays as written because PD-3 closed
    with the variant rows carried. One small question rides with it: no cell in the
    UDHR-subset FPR column is bold, although that column has a minimum like every
-   other. It was the `\unilid` row's 1.06e-5 before this round and it is the same
-   row's 1.64e-5 after it (A2.18), so bolding it would not move it between rows.
-   Bolding it or leaving the column as published is an author's call.
+   other. With the subset-fitted cells in place (A2.19) that minimum is \glotlid's
+   2.09e-5, against the `\unilid` row's 5.73e-5. Bolding it or leaving the column
+   as published is an author's call.
 3. **The noise analysis**: removed by ruling (A2.13), and the author will re-add
    `tab:noise_robustness` manually now that the co-author has rerun the
    experiments. Recorded rather than open; no session work should touch
@@ -815,7 +815,8 @@ convention and say nothing false.
 
 #### Author option, flagged and not applied
 
-**EXECUTED 2026-09-01 by the author's alignment ruling; see A2.18.** Both options
+**EXECUTED 2026-09-01 by the author's alignment ruling; see A2.18, and then
+re-arranged again by the 2026-09-02 specialists ruling; see A2.19.** Both options
 below were taken: the `\unilid` row moved onto the transfer convention, the three
 held-back FPR cells were printed, and the refit results moved to the new appendix
 table `tab:cld3_refit`. The text below is kept as the record of what was decided.
@@ -887,6 +888,10 @@ With both rows on one convention the FPR incomparability that held those three
 dashes is gone.
 
 #### The disclosure that must travel with cells 9 and 11
+
+**Superseded in placement by A2.19**: those cells are subset-fitted again in the
+main table, and this disclosure now attaches to `tab:cld3_refit`'s first row. The
+measurement below is unchanged.
 
 **The visible movement in the `\unilid` UDHR and FLORES subset F1 cells is mostly a
 logged, unexplained residual against the published numbers, not an effect of the
@@ -976,6 +981,110 @@ group B is the four high-entropy languages `sco_Latn`, `bjn_Latn`, `arg_Latn`,
 `vls_Latn`, none of which is a \cld language, and group A falls from 1,080 of 1,940
 rows (56%) to 12-14 of 93-99 (13-14%). `tab:cld3_refit` therefore compares
 uncalibrated systems only, and its caption says so.
+
+### A2.19 The subset half re-arranged: specialists in the main table, transfer in the appendix, 2026-09-02
+
+**The ruling and the new fact behind it.** The author reported that the \fasttext
+and \cld models in `tab:lid_main`'s subset columns were themselves trained only on
+the subset languages. The published design is therefore specialists against
+specialists, which settles the fairness question A2.17 and A2.18 were working
+around: the main table's subset columns should hold the subset-fitted \unilid, and
+the transfer measurements belong in the appendix. Every value was already measured;
+this round moves them.
+
+#### `\unilid` row, cells 7-12: back to subset-fitted
+
+| cell | column | A2.18 (Transfer) -> A2.19 (subset-fitted) | full precision |
+|---|---|---|---|
+| 7 | GlotLID-C, 83 languages, F1 | .972 -> **.974** | 0.97419 |
+| 8 | GlotLID-C, 83 languages, FPR | 9.99e-5 -> **1.52e-4** | 1.5150e-04 |
+| 9 | UDHR, 80 languages, F1 | .986 -> **.995** | 0.99521 |
+| 10 | UDHR, 80 languages, FPR | 1.64e-5 -> **5.73e-5** | 5.7332e-05 |
+| 11 | FLORES, 77 languages, F1 | .991 -> **.997** | 0.99701 |
+| 12 | FLORES, 77 languages, FPR | 3.50e-5 -> **3.93e-5** | 3.9343e-05 |
+
+These are the A2.16 cells returning, from
+`outputs/rerelease/cld3_regenerated_2026-09-01.md` sections 4 and 6.1.
+
+#### `\unilid (calibrated)` row, cells 7-12: all six dashed
+
+| cells | old -> new |
+|---|---|
+| 7, 9, 11 | .975 / .985 / .992 -> **`--`** |
+| 8, 10, 12 | 1.24e-4 / 2.11e-5 / 3.83e-5 -> **`--`** |
+
+Under the specialists convention the row has nothing to print: no subset-fitted
+calibrated system exists. The A2.16 reasoning returns as the governing one, and it
+is measured, not assumed: the promoted configuration's group B is `sco_Latn`,
+`bjn_Latn`, `arg_Latn` and `vls_Latn`, none of them a \cld language, so that half
+of the configuration has nothing to act on, and group A falls from 1,080 of 1,940
+rows (56%) to 12-14 of 93-99 (13-14%). The row's transfer cells are not lost; they
+are now the second row of `tab:cld3_refit`.
+
+The dash legend's clause "or an omitted calibrated-row cell", deleted in A2.18 when
+the row briefly printed everywhere, is restored.
+
+#### `tab:cld3_refit` re-oriented: it is now the transfer table
+
+Three rows, seven columns. Both \unilid systems transferred, then the subset-fitted
+\unilid repeated as the comparison line:
+
+| system | GlotLID-C 83 | UDHR 80 | FLORES 77 |
+|---|---|---|---|
+| \unilid, transferred | .972 / 9.99e-5 | .986 / 1.64e-5 | .991 / 3.50e-5 |
+| \unilid calibrated, transferred | .975 / 1.24e-4 | .985 / 2.11e-5 | .992 / 3.83e-5 |
+| \unilid, fitted to the subset | .974 / 1.52e-4 | .995 / 5.73e-5 | .997 / 3.93e-5 |
+
+The third row is stated in the caption to be `tab:lid_main`'s own cells, so a
+reader can see it is a repetition rather than a fourth measurement. The subsection
+is retitled "Transfer to the \cld Label Subsets"; **both labels are unchanged**
+(`tab:cld3_refit`, `app:cld3_refit`), so every cross-reference still resolves and
+the ledger's earlier entries stay addressable.
+
+The specialization-gain sentence survives with the same measured numbers, read from
+the other direction: transfer costs 0.002 macro F1 on GlotLID-C, 0.009 on UDHR and
+0.006 on FLORES-200.
+
+#### Main caption
+
+The A2.18 transfer sentence is replaced by the specialists statement:
+
+> The \cld-subset columns compare systems each fitted to the subset's languages:
+> the \unilid row comes from models whose base vocabulary and per-language
+> distributions are trained only on that subset's languages, by the procedure of
+> \cref{sec:exp_setup}, and \fasttext and \cld are likewise trained on the subset
+> languages alone. The calibrated row's \cld-subset cells are omitted because no
+> subset-fitted calibrated system exists: none of the configuration's four
+> high-entropy languages is in any \cld subset, and the share of languages
+> eligible for a re-examination threshold falls from 56\% to 13\%.
+> \Cref{tab:cld3_refit} reports what the full 1{,}940-language \unilid and its
+> calibrated form score on the same benchmark slices. The \cld-subset cells of the
+> \unilid variant rows are those of the original submission.
+
+The \fasttext and \cld training claim is stated as fact on the author's report; it
+is the one sentence in this round's caption work that rests on something this
+repository did not measure. The left-half sentences are untouched.
+
+#### Main-body pointer
+
+The author asked for a pointer outside the caption. One sentence added at `:733`,
+where the text already explains why the subset columns exist:
+
+> Each system in those columns is fitted to the subset's languages;
+> \cref{tab:cld3_refit} reports what the full 1{,}940-language \unilid and its
+> calibrated form score on the same slices.
+
+#### Prose sweep
+
+Nothing in `submission.tex` cited the transfer values or the calibrated subset F1s
+as main-table facts, so the swap invalidated no sentence. The A2.18 disclosure
+about cells 9 and 11 still holds and still matters, but it now attaches to the
+appendix table's first row rather than to the main table: **the published \unilid
+UDHR and FLORES subset F1s (.992, .997) sit about 0.005 and 0.006 above what this
+convention measures on the released generation (0.9873, 0.9907), an unexplained
+residual, while the correction itself moves those cells by 0.0016 and -0.0002.**
+The main table's cells no longer show that movement at all, because they are
+subset-fitted rather than transferred.
 
 ---
 

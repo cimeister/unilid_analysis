@@ -730,7 +730,7 @@ We train supervised \fasttext  \cite{joulin-etal-2017-bag} classifiers using the
 We use the publicly available pre-trained model from their Python package.\footnote{\href{https://github.com/google/cld3}{\myemph{https://github.com/google/cld3}}.}
 %\clara{@ahmetcan can you add a pointer to repo you used?}\ahmetcan{I don't exactly remember it was very hard to run I started from https://github.com/google/cld3 but then I think I used pip install but installing it wasn't straightforward as well}
 Its language coverage does not fully overlap with that of our test sets. 
-Thus, for a fairer comparison, we provide systems' results computed over only the subset of languages covered by \cld (right side of \cref{tab:lid_main}).
+Thus, for a fairer comparison, we provide systems' results computed over only the subset of languages covered by \cld (right side of \cref{tab:lid_main}). \corrrev{Each system in those columns is fitted to the subset's languages; \cref{tab:cld3_refit} reports what the full 1{,}940-language \unilid and its calibrated form score on the same slices.}
 
 \paragraph{\glotlid (pre-trained).}
 \glotlid is the model provided with the GlotLID-C benchmark dataset. Architecturally, it utilizes the \fasttext framework but differentiates itself through its training data curation.  We use their openly available checkpoint, hosted on the same platform as the dataset. 
@@ -1191,16 +1191,19 @@ evaluation set for calibrated \unilid; no training or selection used it.}
 
 
 
-\subsection{Vocabularies Fitted to the \cld Label Subset}
+\subsection{Transfer to the \cld Label Subsets}
 \label{app:cld3_refit}
 
-\corrrev{The \cld-subset columns of \cref{tab:lid_main} score the full
-1{,}940-language system on the lines of each benchmark whose gold language is in
-\cld's coverage. An alternative is to build a model for the subset itself, and
-\cref{tab:cld3_refit} compares the two: fitting the base vocabulary and the
-per-language distributions to a subset's languages alone raises macro F1 by 0.002
-on GlotLID-C, 0.009 on UDHR and 0.006 on FLORES-200, and raises macro FPR on all
-three.}
+\corrrev{The \cld-subset columns of \cref{tab:lid_main} compare systems each
+fitted to the subset's languages. A second question is what the full
+1{,}940-language systems score on the same slices, with predictions left
+unrestricted so that an error into any of the 1{,}940 labels counts against the
+gold language. \Cref{tab:cld3_refit} reports that transfer for \unilid and for its
+calibrated form, beside the subset-fitted \unilid of the main table: transfer
+costs 0.002 macro F1 on GlotLID-C, 0.009 on UDHR and 0.006 on FLORES-200. The
+calibrated system appears only in transferred form, because its per-language
+thresholds are defined on the full label set and no subset-fitted calibrated
+variant exists.}
 
 \input{tables/cld3_refit}
 
