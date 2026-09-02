@@ -561,6 +561,22 @@ def run_flatrule(subsets: list[int], scratch_root: str,
         is_magnet = ((zH > ZH_MAGNET) & (magnet_ratio > MAGNET_RATIO_MIN)) | \
             (zH > ZH_EXTREME)
         flat_mask = is_magnet & (N >= HEAD_N)
+        # The zH ceiling over the languages that are eligible for group B at all
+        # (N >= HEAD_N). Group B membership needs zH > ZH_MAGNET on top of the
+        # magnet_ratio test, so if this ceiling is below ZH_MAGNET then no head
+        # language can be flagged at ANY magnet_ratio. That matters because
+        # magnet_ratio is the one quantity the validation-half restriction can
+        # move, and it can only move it down. Recording the ceiling here shows
+        # the empty group B is fixed by the flatness term alone and cannot be an
+        # artefact of the restriction.
+        head = N >= HEAD_N
+        if head.any():
+            hi = int(np.argmax(np.where(head, zH, -np.inf)))
+            head_zh_ceiling = {"lang": langs[hi], "zH": float(zH[hi]),
+                               "N": int(N[hi]), "n_head_languages": int(head.sum()),
+                               "below_zh_magnet": bool(zH[hi] <= ZH_MAGNET)}
+        else:
+            head_zh_ceiling = None
         flat_idx = np.where(flat_mask)[0]
         rows = [{"lang": langs[i], "N": int(N[i]), "zH": round(float(zH[i]), 4),
                  "support_val": int(support_val[i]), "fp_val": int(fp_val[i]),
@@ -597,6 +613,7 @@ def run_flatrule(subsets: list[int], scratch_root: str,
             "max_N_among_magnets": (max(m["N"] for m in magnet_langs)
                                     if magnet_langs else None),
             "n_flat_set": int(len(flat_idx)),
+            "head_zh_ceiling": head_zh_ceiling,
             "flat_set": rows,
             "zH_max": float(zH.max()), "zH_min": float(zH.min()),
             "magnet_ratio_max": float(magnet_ratio.max()),

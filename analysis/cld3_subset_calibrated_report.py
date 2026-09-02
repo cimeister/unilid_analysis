@@ -74,6 +74,49 @@ def _git_commit() -> str:
         return f"unavailable: {exc}"
 
 
+# The four scripts that produce everything this record reports. Their tracked
+# state is checked at generation time, because a record naming a commit that
+# does not contain the code that produced it is exactly the failure the
+# 2026-09-02 review raised as its one MAJOR finding.
+CHAIN_FILES = (
+    "analysis/cld3_subset_calibration.py",
+    "analysis/cld3_subset_calibrated_report.py",
+    "slurm_cld3_subset_calibrated_eval.sh",
+    "run_cld3_subset_calibrated_eval_loginnode.sh",
+)
+
+
+def _chain_file_state() -> dict:
+    """Whether each chain script is tracked at HEAD and whether the working-tree
+    copy matches it. Reported, never asserted: the record states its own
+    provenance accurately instead of claiming a cleanliness it cannot enforce."""
+    state = {}
+    for f in CHAIN_FILES:
+        try:
+            subprocess.check_output(["git", "-C", REPO_ROOT, "ls-files",
+                                     "--error-unmatch", f],
+                                    stderr=subprocess.DEVNULL)
+            tracked = True
+        except Exception:
+            tracked = False
+        modified = False
+        if tracked:
+            try:
+                out = subprocess.check_output(
+                    ["git", "-C", REPO_ROOT, "diff", "--name-only", "HEAD", "--", f],
+                    text=True, stderr=subprocess.DEVNULL)
+                modified = bool(out.strip())
+            except Exception as exc:
+                raise SystemExit(f"FATAL: cannot determine git state of {f}: {exc}")
+        state[f] = {"tracked_at_head": tracked,
+                    "working_tree_differs_from_head": modified}
+    return {"files": state,
+            "all_tracked": all(v["tracked_at_head"] for v in state.values()),
+            "all_match_head": all(v["tracked_at_head"]
+                                  and not v["working_tree_differs_from_head"]
+                                  for v in state.values())}
+
+
 def _load_json(path: str, what: str) -> dict:
     with open(_require(path, what)) as f:
         return json.load(f)
@@ -274,7 +317,8 @@ def build(out_root: str = OUT_ROOT, eval_root: str = None) -> dict:
     # the only differences are the machine and the rayon thread count. Recorded
     # rather than asserted silently, so the report states how many cells carry
     # two independent measurements.
-    cross = {"n_cells_confirmed": 0, "n_cells_single_arm": 0, "disagreements": []}
+    cross = {"n_cells_confirmed": 0, "n_cells_single_arm": 0,
+             "n_cells_third_measurement": 0, "disagreements": []}
     for subset, conf in SUBSETS.items():
         for arm in ("baseline", "calibrated"):
             other = os.path.join(out_root, "loginnode",
@@ -294,6 +338,19 @@ def build(out_root: str = OUT_ROOT, eval_root: str = None) -> dict:
                         f"subset-{subset}/{conf['bench']}/{arm}: {field} "
                         f"{p[field]!r} vs {o[field]!r}")
             cross["n_cells_confirmed"] += 1
+            # The movement pass banked per-line predictions for the two small
+            # benchmarks under both arms, writing its own summary. That is a
+            # third independent run of the same cell, so it is checked too.
+            third = os.path.join(out_root,
+                                 f"movement_{conf['bench']}_{arm}_summary.json")
+            if os.path.exists(third):
+                t = _load_json(third, "movement pass summary")
+                for field in ("macro_f1", "macro_fpr", "total_samples"):
+                    if t[field] != p[field]:
+                        cross["disagreements"].append(
+                            f"subset-{subset}/{conf['bench']}/{arm}: {field} "
+                            f"{p[field]!r} vs movement pass {t[field]!r}")
+                cross["n_cells_third_measurement"] += 1
     if cross["disagreements"]:
         raise SystemExit("FATAL: the two evaluation arms disagree:\n  "
                          + "\n  ".join(cross["disagreements"]))
@@ -353,6 +410,7 @@ def build(out_root: str = OUT_ROOT, eval_root: str = None) -> dict:
             "source": FULL_MAIN_MD,
         },
         "published_cells": PUBLISHED,
+        "chain_file_state": _chain_file_state(),
         "eval_root": eval_root,
         "eval_ran_where": ("login node "
                            "(run_cld3_subset_calibrated_eval_loginnode.sh)"
@@ -361,6 +419,24 @@ def build(out_root: str = OUT_ROOT, eval_root: str = None) -> dict:
     }
     return rep
 
+
+
+def _group_a_N(rep: dict, subset: int, lang: str) -> int:
+    """One group A language's training-line count, read from the tau stage
+    report rather than retyped into the prose."""
+    for r in rep["stages"]["tau"]["subsets"][str(subset)]["group_a"]["rows"]:
+        if r["lang"] == lang:
+            return int(r["N"])
+    raise SystemExit(f"FATAL: {lang!r} is not in subset-{subset}'s group A")
+
+
+def _agree(a: int, b: int) -> str:
+    """Sign-agreement label for two changes. `0` means the quantity did not
+    move, which is neither an increase nor a decrease and is reported as such
+    rather than folded in with one of them."""
+    if a == 0 or b == 0:
+        return "no change" if a == b else "one is zero"
+    return "yes" if a == b else "no"
 
 
 def _fmt_md(rep: dict) -> str:
@@ -571,23 +647,54 @@ def _fmt_md(rep: dict) -> str:
           f"{f['n_languages_with_a_scored_zH']} | "
           f"{f['n_languages'] - f['n_languages_with_a_scored_zH']} |")
     A("")
-    A("On subset-80, 24 of 94 languages are ineligible for group B whatever "
-      "their entropy, because their script carries fewer than three "
-      "languages. On the full 1,940-language model almost every script clears "
-      "the three-language bar.")
+    f80 = flat["80"]
+    A(f"On subset-80, {f80['n_languages'] - f80['n_languages_with_a_scored_zH']} "
+      f"of {f80['n_languages']} languages are ineligible for group B whatever "
+      "their entropy, because their script carries fewer than three languages. "
+      "On the full 1,940-language model almost every script clears the "
+      "three-language bar.")
+    A("")
+    A("One possibility remains to rule out, and this stage has the "
+      "measurement for it. "
+      "The restriction of the validation half to lines the model can express "
+      "(section 2) can only lower `magnet_ratio`, never raise it, so on its "
+      "own it could in principle have suppressed a flag on a head language. It "
+      "did not, for a structural reason rather than an empirical one: "
+      "`is_magnet` also requires `zH > ZH_MAGNET`, and the highest `zH` among "
+      "the languages eligible for group B at all is below that bar on every "
+      "subset.")
+    A("")
+    A("| subset | languages with N_L >= head_n | highest zH among them | which "
+      "language | ZH_MAGNET | can any head language be flagged |")
+    A("|---|---|---|---|---|---|")
+    for subset in (83, 80, 77):
+        h = flat[str(subset)]["head_zh_ceiling"]
+        A(f"| {subset} | {h['n_head_languages']} | {h['zH']:.4f} | "
+          f"`{h['lang']}` | {T['ZH_MAGNET']} | "
+          f"{'no' if h['below_zh_magnet'] else 'yes'} |")
+    A("")
+    A("No head language clears the flatness bar at any `magnet_ratio`, so the "
+      "empty group B is fixed by the flatness term alone. It cannot be an "
+      "artefact of the one place this chain departs from the reference "
+      "procedure.")
     A("")
 
     A("### 3.2 No language met the recipe's exclusion condition")
     A("")
-    A("The `low_calibration` exclusion of `build_release_calibration` applies "
-      "to a language with fewer than `min_calib_lines` "
-      f"({C['min_calib_lines']}) finite winning margins. It applies to 26 of "
-      "the full model's 1,080 group A languages. It applies to none of the 38 "
-      "group A languages across the three subset models. The mechanism is "
-      "direct: with 93 to 99 candidate languages instead of 1,940, each "
-      "language scores highest on nearly all of its own training lines. Every "
-      "group A language here drew the full `calib_max` sample and kept between "
-      "1,876 and 2,000 finite winning margins.")
+    all_a = [r for k in ("83", "80", "77") for r in tau[k]["group_a"]["rows"]]
+    fin_all = [r["n_finite_margins"] for r in all_a]
+    A("The `low_calibration` exclusion applies to a language with fewer than "
+      f"`min_calib_lines` ({C['min_calib_lines']}) finite winning margins. The "
+      "rule is at `analysis/solo_gates.py:181`, ported into "
+      "`_calibrate_group`; `analysis/build_release_calibration.py:96-99` only "
+      "validates the resulting invariant, that an excluded row carries "
+      "`tau = -inf`. It applies to 26 of the full model's 1,080 group A "
+      f"languages. It applies to none of the {len(all_a)} group A languages "
+      "across the three subset models. The mechanism is direct: with 93 to 99 "
+      "candidate languages instead of 1,940, each language scores highest on "
+      "nearly all of its own training lines. Every group A language here drew "
+      f"the full `calib_max` sample and kept between {min(fin_all):,} and "
+      f"{max(fin_all):,} finite winning margins.")
     A("")
     A("The other exclusion condition, `zero_strength` (`q_L <= 0`), cannot "
       "apply in group A by construction, since `q_L > 0` whenever "
@@ -605,8 +712,9 @@ def _fmt_md(rep: dict) -> str:
           f"{min(taus):.3f} to {max(taus):.3f} |")
     A("")
     A("The full corrected model's 1,054 non-excluded group A thresholds span "
-      "0.021 to 269.384 nats, with median 23.78. The subset thresholds lie "
-      "inside that range.")
+      "0.021 to 269.384 nats, with median 23.78 "
+      "(`outputs_corrected_round/release/calibration_glotlidc_corrected.json`)."
+      " The subset thresholds lie inside that range.")
     A("")
     A("Every threshold this run derived. `q_L` is the size-adaptive quantile "
       "`margin_q * (1 - min(N_L, head_n) / head_n)`; `tau` is that percentile "
@@ -660,13 +768,19 @@ def _fmt_md(rep: dict) -> str:
     A("### 3.4 The clamp lowers a smaller fraction of rows than on the full "
       "model")
     A("")
+    cl = {k: tau[str(k)]["clamp"]["clamp"] for k in (83, 80, 77)}
+    pcts = [100.0 * cl[k]["n_modified"] / cl[k]["n_languages"] for k in
+            (83, 80, 77)]
     A(f"At the carried c = {C['unseen_token_constant']}, the one-sided clamp "
-      "lowers 24 of 99 rows on subset-83, 21 of 94 on subset-80 and 21 of 93 "
-      "on subset-77, close to 22 percent in each case. On the full model it "
-      "lowers 1,655 of 1,940 rows, 85 percent. Every subset language is a CLD3 "
-      "language and therefore high-resource, and an unseen-token plateau is "
-      "resource-tied, so most subset rows already have their plateau at or "
-      "below -17 and the clamp leaves them unchanged.")
+      + ", ".join(f"lowers {cl[k]['n_modified']} of {cl[k]['n_languages']} "
+                  f"rows on subset-{k}" for k in (83, 80, 77))
+      + f", between {min(pcts):.1f} and {max(pcts):.1f} percent. On the full "
+      "model it lowers 1,655 of 1,940 rows, 85 percent "
+      "(`outputs_corrected_round/tables/floor_equalization.md`, the floor-17 "
+      "row). Every subset language is a CLD3 language and therefore "
+      "high-resource, and an unseen-token plateau is resource-tied, so most "
+      "subset rows already have their plateau at or below "
+      f"{C['unseen_token_constant']} and the clamp leaves them unchanged.")
     A("")
     A("The one-sided condition was checked for every row "
       "(`analysis/floor_equalization.py::verify_one_sided_clamp`). The "
@@ -718,17 +832,28 @@ def _fmt_md(rep: dict) -> str:
         A(f"| `\\unilid (calibrated)` | {fpr_cell} | {COLUMN_NAMES[bench]} FPR "
           f"| {pub_fpr} | **{c['calibrated']['macro_fpr']:.2e}** |")
     A("")
-    A("The three published FPR cells print a dash, so those three are the "
-      "first values computed for them.")
+    A("The published and measured columns are not the same computation, and "
+      "the table pairs them for position in `tab:lid_main` rather than for "
+      "comparison. Section 6.1 of "
+      "`outputs/rerelease/cld3_regenerated_2026-09-01.md` records that the "
+      "published calibrated F1 values came from a third convention: lines "
+      "filtered to the subset, predictions not restricted, each bare ISO code "
+      "mapped to its largest-training-corpus `lang_Script` variant. A "
+      "difference between the two columns is therefore not a measurement of "
+      "what the calibration changed. The three published FPR cells print a "
+      "dash, so those three are the first values computed for them.")
     A("")
     x = rep["arm_cross_check"]
-    A(f"Of the six passes, {x['n_cells_confirmed']} were run twice: once "
-      "through SLURM job 3261635 and once through the login-node script that "
-      "hedged against the queue, on different machines and with different "
+    A(f"Of the six passes, {x['n_cells_confirmed']} were run at least twice: "
+      "once through SLURM job 3261635 and once through the login-node script "
+      "that hedged against the queue, on different machines and with different "
       "rayon thread counts. Both runs agree on macro F1, macro FPR, accuracy, "
-      "line count, correct count and label count. The remaining "
-      f"{x['n_cells_single_arm']} passes are the two GlotLID-C ones, which "
-      "were run once each.")
+      "line count, correct count and label count. The "
+      f"`movement_*_summary.json` files are a third pass over the same "
+      f"{x['n_cells_third_measurement']} cells, run to bank the per-line "
+      "predictions of section 4.1, and they agree with the other two on macro "
+      f"F1 and macro FPR. The remaining {x['n_cells_single_arm']} passes are "
+      "the two GlotLID-C ones, which were run once each.")
     A("")
 
     A("### 4.1 The predictions the calibration changed")
@@ -739,14 +864,22 @@ def _fmt_md(rep: dict) -> str:
       "this table: its calibrated pass over 23,462,651 lines costs about an "
       "hour and was not run a second time to bank predictions.")
     A("")
-    A("| benchmark | lines | predictions changed | changed from wrong to "
-      "right | changed from right to wrong | which languages |")
-    A("|---|---|---|---|---|---|")
+    A("| benchmark | lines | predictions changed | wrong before, right after | "
+      "right before, wrong after | wrong before and wrong after | which "
+      "languages |")
+    A("|---|---|---|---|---|---|---|")
     for bench in MOVEMENT_BENCHES:
         mv = rep["movement"][bench]
         pairs = ", ".join(f"`{k}` x{v}" for k, v in mv["moves_by_pair"].items())
         A(f"| {COLUMN_NAMES[bench]} | {mv['n_lines']:,} | {mv['n_moved']} | "
-          f"{mv['n_fixed']} | {mv['n_broken']} | {pairs or 'none'} |")
+          f"{mv['n_fixed']} | {mv['n_broken']} | {mv['n_neutral']} | "
+          f"{pairs or 'none'} |")
+    A("")
+    A("The three outcome columns sum to the number of changed predictions. The "
+      f"{rep['movement']['flores']['n_neutral']} FLORES-77 predictions in the "
+      "last column moved from one wrong language to another, so they change no "
+      "language's F1 through their own gold label, only through the false "
+      "positives they add and remove elsewhere.")
     A("")
     A("Every language whose F1 changed at all on those two benchmarks:")
     A("")
@@ -764,8 +897,9 @@ def _fmt_md(rep: dict) -> str:
       "Latin-script row taking lines that belong to other languages, and "
       "re-examination sends most of them to the right language. On UDHR-80 "
       "every re-examined prediction was Hawaiian on a genuine Hawaiian line, "
-      "and re-examination sent it elsewhere. `haw_Latn` has 6,448 training "
-      "lines, below `head_n`, and it is one of only two group A languages on "
+      "and re-examination sent it elsewhere. `haw_Latn` has "
+      f"{_group_a_N(rep, 80, 'haw_Latn'):,} training lines, below `head_n`, "
+      "and it is one of only two group A languages on "
       "subset-80 with no other row sharing its bare ISO code (section 3.3), so "
       "there is no sibling row for a moved prediction to land on and still "
       "score correct.")
@@ -803,9 +937,11 @@ def _fmt_md(rep: dict) -> str:
     for bench in ("glotlidc", "udhr", "flores"):
         sc = rep["cells"][bench]
         f = rep["full_model_transfer_cells"][bench]
-        same_f1 = "yes" if (sc["delta_f1"] > 0) == (f["delta_f1"] > 0) else "no"
-        same_fpr = ("yes" if (sc["delta_fpr"] > 0) == (f["delta_fpr"] > 0)
-                    else "no")
+        # Three-way sign, so a change of exactly zero is reported as its own
+        # case instead of being folded in with a decrease.
+        sign = lambda v: (v > 0) - (v < 0)
+        same_f1 = _agree(sign(sc["delta_f1"]), sign(f["delta_f1"]))
+        same_fpr = _agree(sign(sc["delta_fpr"]), sign(f["delta_fpr"]))
         A(f"| {COLUMN_NAMES[bench]} | {f['delta_f1']:+.5f} | "
           f"**{sc['delta_f1']:+.5f}** | {same_f1} | {f['delta_fpr']:+.3e} | "
           f"**{sc['delta_fpr']:+.3e}** | {same_fpr} |")
@@ -852,7 +988,8 @@ def _fmt_md(rep: dict) -> str:
       f"{gl['calibrated_f1']:.5f}, which by itself is "
       f"{gl['contribution_to_macro_f1']:+.5f} of the "
       f"{rep['cells']['glotlidc']['delta_f1']:+.5f} column change. `cos_Latn` "
-      "has 9,423 training lines, is in group A, and is the case the "
+      f"has {_group_a_N(rep, 83, 'cos_Latn'):,} training lines, is in group A, "
+      "and is the case the "
       "re-examination mechanism was built for: a low-resource Latin-script row "
       "taking lines that belong to higher-resource languages. Reporting the "
       "GlotLID-C-83 cell without this sentence would make a one-language "
@@ -904,7 +1041,42 @@ def _fmt_md(rep: dict) -> str:
       "`analysis/cld_subset_eval.py --mode subset` on both arms. Summaries "
       f"under `{rep['eval_root']}`.")
     A("- This record: `analysis/cld3_subset_calibrated_report.py`.")
-    A(f"- Repository commit at generation: `{rep['git_commit']}`.")
+    cfs = rep["chain_file_state"]
+    A(f"- Repository commit at generation: `{rep['git_commit']}`. All four "
+      "stage reports carry the same commit.")
+    if cfs["all_match_head"]:
+        A("- All four chain scripts are tracked at that commit and the "
+          "working-tree copies match it, so the commit identifies the code "
+          "that produced this record.")
+    else:
+        untracked = [f for f, v in cfs["files"].items()
+                     if not v["tracked_at_head"]]  # absent from the commit
+        dirty = [f for f, v in cfs["files"].items()
+                 if v["tracked_at_head"] and v["working_tree_differs_from_head"]]
+        A("- **The named commit does not identify the code that produced this "
+          "record.** "
+          + (f"Absent from that commit: "
+             f"{', '.join('`' + f + '`' for f in untracked)}. "
+             if untracked else "")
+          + (f"Present at that commit but differing from the working-tree "
+             f"copy: {', '.join('`' + f + '`' for f in dirty)}. "
+             if dirty else "")
+          + "Commit those files and regenerate this record so the commit and "
+            "the code agree.")
+    A("")
+    A("Stage re-run history. An adversarial review noted that the stage "
+      "artifacts on disk were not in dependency order: `stage_tau.json` and "
+      "`stage_bundle.json` had been written before the `flatrule` stage whose "
+      "flat-set CSVs `run_tau` reads, and the calibval arrays had been "
+      "rewritten later still. Rather than record that history and leave it, "
+      "all four stages were re-run in dependency order, `calibval` then "
+      "`flatrule` then `tau` then `bundle`. Every artifact came back "
+      "byte-identical: the three flat-set CSVs, the six tau CSVs, the three "
+      "clamp fingerprints, the three calibration JSONs, the three calibval "
+      "`.npz` arrays and the three version-2 containers, checked by sha256 "
+      "before and after. The stage reports on disk are now the ones the later "
+      "stages consumed, and the evaluation summaries were produced against "
+      "containers whose sha256 values are unchanged by the re-run.")
     A("")
     A("| subset | version-1 container | version-2 container | calibration JSON "
       "| group A tau CSV | group B tau CSV |")
