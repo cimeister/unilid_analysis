@@ -3,7 +3,7 @@
 \small
 \begin{tabular}{lrrrrrr}
 \toprule
-\textbf{Length (chars)} & \textbf{N} & \textbf{Mean $\Delta$} & \textbf{Median $\Delta$} & \textbf{\% fewer} & \textbf{\% same} & \textbf{\% more} \\
+\textbf{Length (chars)} & \corrrev{\textbf{\# Errors}} & \textbf{Mean $\Delta$} & \textbf{Median $\Delta$} & \textbf{\% fewer} & \textbf{\% same} & \textbf{\% more} \\
 \midrule
 All misclassified & \corrrev{9,906} & \corrrev{$-0.05$} & $0.00$ & \corrrev{25.29} & \corrrev{52.12} & \corrrev{22.59} \\
 \midrule
@@ -19,12 +19,12 @@ $<$30    &   \corrrev{2,814} & \corrrev{$-0.05$} & $0.00$ & \corrrev{19.76} & \c
   For each misclassified sample, $\Delta = n_{\mathrm{pred}} - n_{\mathrm{true}}$ is the
   difference in Viterbi segmentation length (in tokens) between the predicted and the true
   language; negative values mean the predicted language uses fewer tokens. \corrrev{Computed over the
-  $9{,}906$ misclassifications in the $250{,}000$-line golden subset, the test half of the
-  seed-42 $500{,}000$-line draw and the same subset as \cref{tab:lenbias-norm}; the N column is
+  $9{,}906$ misclassifications in the diagnostic half of the $500{,}000$-line draw
+  ($250{,}000$ lines; \cref{app:protocol}), the same subset as \cref{tab:lenbias-norm}; the error-count column is
   therefore not comparable with a count over the full test set.} The mean
   $\Delta$ is negative in every row and \corrrev{grows in magnitude only for inputs above $150$
   characters}, while the median is zero and \corrrev{$52\%$} of errors leave the token count unchanged: a small but systematic bias toward
-  fewer-token languages, driven by a minority of samples. \emph{\% fewer/same/more} give the
+  fewer-token languages, \corrrev{produced by the $25\%$ of misclassifications in which the predicted language uses fewer tokens}. \emph{\% fewer/same/more} give the
   share of misclassifications where the predicted language uses fewer, equal, or more tokens
   than the true language. 
 }

@@ -3,7 +3,7 @@
 \small
 \begin{tabular}{lrr}
 \toprule
-\textbf{Method} & \textbf{Macro F1} & \textbf{Ma-FPR (x1e5)} \\
+\textbf{Method} & \textbf{Macro F1} & \corrrev{\textbf{Macro FPR ($\times 10^{5}$)}} \\
 \midrule
 \unilid & \corrrev{0.916} & \corrrev{2.03} \\
 calibrated \unilid & \corrrev{0.949} & \corrrev{1.78} \\
@@ -25,7 +25,7 @@ $100{,}000$-sample \camrev{requirement} (see the provenance table). Right: paire
 bootstrap of calibrated \unilid minus each comparator on the held-out part
 (10{,}000 resamples over the 1{,}940 languages, percentile interval). FPR
 values are multiplied by $10^5$. \camrev{Macro F1 is not invariant to
-subsampling, so the held-out levels sit below the full-pool levels of
+subsampling, so \corrrev{the held-out values are below the full-pool values} of
 \cref{tab:lid_main} for every system; the quantity of interest here is the
 paired difference.}}
 \label{tab:calibrated_heldout}

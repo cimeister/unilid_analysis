@@ -20,10 +20,10 @@ views, on the 45{,}377{,}279 scored test lines. Global view: every false
 positive counts against the predicted language. Within-stratum view: test
 examples are restricted to true labels inside the tier, so false positives
 arriving from other tiers are excluded (the view used by
-\cref{tab:resource-tier}). The two views rank the methods oppositely in the
-smallest tiers: calibrated \unilid removes false positives \camrev{\emph{into}} small
-languages, which only the global view counts, and re-examination moves some
-of the smallest languages' own low-margin lines away, which only the
-within-stratum view penalizes.}
+\cref{tab:resource-tier}). \corrrev{The two views rank the methods oppositely
+in the two smallest tiers. Calibrated \unilid removes false positives into
+small languages, and only the global view counts those. Re-examination also
+reassigns some of the smallest languages' own low-margin lines to other
+languages, and only the within-stratum view counts those.}}
 \label{tab:calibrated_views}
 \end{table*}
