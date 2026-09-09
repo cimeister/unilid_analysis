@@ -2222,3 +2222,21 @@ pass = three agreeing measurements). Review FIX FIRST on record hygiene only;
 chain committed 8d211c5, generator fixes 5a2c438, provenance gate clean.
 Cells applied; calibrated row fully populated. DSL-ML research + vetting
 complete and reported; the paper revision awaits the author's word.
+
+## 2026-09-09: the reviewer feedback round
+
+PAPER_FEEDBACK.md arrived (155 lines, three parts: mathematical/notation
+consistency, reviewer-facing risk, prose quality). One agent began the
+application and was cut off by a session end mid-work (347 uncommitted lines,
+no ledger record); a fresh agent reconstructed the partial state from the
+diff and completed the round -- the stale git-status snapshot understated the
+partial work (9 files shown, 14 real). Dispositions and the applied content
+are in the ledger's R1 section; results entry above. Commits 4180a06 (round)
+and 4cc9168 (table header naming pass). The author's own working-tree changes
+(the slurm-script cleanup deletions, noise_robustness.tex with the fixed-code
+rerun numbers, analysis/cld3_calibrated_transfer.py) were deliberately left
+uncommitted. Two build blockers recorded as R1.HOLD-2 and R1.HOLD-3: the
+noise table file carries the author's new numbers but nothing \inputs it
+(the removal took all four wiring sites; the reviewed PDF had the table, so
+the wiring exists in some other tree), and paper/custom.bib is not in this
+repo while three new cite keys live in paper/r1_bib_entries.bib.

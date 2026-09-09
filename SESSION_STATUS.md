@@ -1,9 +1,11 @@
 # Session Status
 
-Snapshot, 2026-08-24. Two workstreams run in parallel: correcting and
-regenerating the GlotLID-C numbers, and regenerating the WiLI-trained models.
-The corrected open-source release SHIPPED 2026-08-24 (see the readiness section
-at the bottom, now a shipped record).
+Snapshot, 2026-09-09. The correction campaign is COMPLETE: every table cell
+in the revised paper traces to a gated instrument or a recorded, stated carry.
+The corrected release SHIPPED 2026-08-24; PR #4 and PR #5 MERGED upstream
+2026-08-31 (left untagged by author ruling). The current front is R1, the
+reviewer-feedback round, applied 2026-09-09 (commits 4180a06/4cc9168); what
+remains is the R1.HOLD list below.
 
 ## Read these first
 
@@ -24,26 +26,18 @@ at the bottom, now a shipped record).
 
 ## Running
 
-All 18 SLURM jobs of the 2026-08-23 wave COMPLETED 0:0. No jobs queued.
-Compilations: `outputs/rerelease/wave_2026-08-24_compilation.md` (WiLI) and
-`outputs/rerelease/corrected_chain_2026-08-24.md` (GlotLID-C chain).
+Nothing. No SLURM jobs, no agents, no watches. Every wave through 2026-09-02
+completed and is recorded in `EXPERIMENTS_RESULTS.md` /
+`EXPERIMENTS_CHRONOLOGICAL.md`.
 
-CLD3 regeneration in flight (2026-09-01): trainings 3246937/39/41 (12 h,
-subset-vocabulary models per author ruling of approximate reproduction) with
-chained evals 3246938/40/42; restricted-argmax GlotLID-C jobs 3244447-3244450
-also queued. On completion: cld3_regenerated_2026-09-01.md fills in; the
-right half of tab:lid_main is then applied as ONE convention (\unilid +
-calibrated rows together, variants via restricted argmax).
+## The author's own uncommitted working-tree changes -- DO NOT commit or revert
 
-Agents in flight (2026-08-24):
-
-| agent | what | react how |
-|---|---|---|
-| null-arm analysis | fp32null vs stored-transformed AND vs fp64 retrain | decides the wording for the wili_100k_500 gate FAIL (build effect vs non-reproduction) |
-| blocker fix | DONE: external_bench fixed (selfcheck 42/42), corrected UDHR/FLORES cells produced, calibrated bundle packed, release_gates PASS both modes at exact equality | cells sent to the paper agent |
-| cap-4192 null arm | job 3173500 RUNNING/PENDING: fp32 build + default cap 4192 | membership separation already EXACT (106 encoded-over-cap languages = the 106 failing); on completion run `analysis/wili_null_arm_verdict.py --arm fp32null_cap4192` then `_augment` |
-| paper edits + verification | CLOSED 2026-08-24: nine table files + submission.tex applied under \corrrev{}; all cells verified at full precision; the 3 verification findings fixed (+0.039/+0.024, 0.916, the two seed-free 95.64 sites); ledger carries A2.11, marking conventions, PD-1..PD-9 | `paper/PAPER_EDITS_pending.md` is the authority |
-| CommonLID | DONE: all binding gates pass, corrected cells 0.848/0.722, 0.851/0.720, 0.862/0.717; B4 sent to the paper agent | outputs_corrected_round/tables/commonlid_calibrated.md |
+- ~75 deleted `slurm_*.sh`/`run_*.sh` plus `OPEN_SOURCE_HANDOFF.md` and
+  `SETUP_FEEDBACK.md`: the author's cleanup. Leave exactly as found.
+- `paper/tables/noise_robustness.tex`: the author's manual re-add of the
+  fixed-code noise rerun (verified: neither session agent touched it). Its
+  wiring into the document is R1.HOLD-2.
+- `analysis/cld3_calibrated_transfer.py`: modified by the author.
 
 ## Settled since 2026-08-21, with the numbers
 
@@ -127,6 +121,21 @@ Agents in flight (2026-08-24):
 - **A plateau anomaly that survives a retrain is coverage; one that disappears
   was corruption.**
 - **Latency is closed** (author, 2026-08-19).
+- **The sentence-length cap**: sentencepiece's default 4,192 SKIPS over-cap
+  lines, counted in ENCODED bytes; the per-language step here overrides to
+  1,000,000 (now `--max-sentence-length`, PR #5). The published
+  `wili_100k_500` was trained at the DEFAULT cap -- measured: the cap-4192
+  fp32 retrain reproduces it on all 235 languages, closing the 107-row gate
+  question (100 cap + 7 build).
+- **Capstor stale tails**: a cross-node overwrite can expose the old file
+  tail to another node; verify written records by regeneration diff.
+- **Approximate reproduction is the author's bar** for regeneration decisions
+  (stated repeatedly); exact-match gates are for instrument validation only.
+- **Paper terminology since R1**: "log-probability margin" is the defined
+  term; the threshold symbol is delta (renamed from tau); the tab:lid_main
+  subset convention is specialists in the main table (incl. the calibrated
+  row: procedure applied with all constants carried unswept; 87% of its
+  GlotLID-C gain is Corsican, disclosed) with transfer in tab:cld3_refit.
 
 ## Open decisions
 
@@ -145,52 +154,21 @@ Full text of each question: section **R1.HOLD** of `paper/PAPER_EDITS_pending.md
 - Also open: R1.HOLD-3 (rename constant `c`?), -4 (scope the incremental-addition and pipeline claims), -5 (memory column for the efficiency claim), -10 (Kargaran sentence rewritten to LID systems; want an LLM citation instead?), -13 (three cosmetic residuals).
 - **R1 HOLD-MEASUREMENT, highest value**: the shared-phi naive-Bayes control that isolates the paper's central claim (one segmentation pass + 1,940 count vectors + one scoring pass). Also queued: branching factor `b`; train/test dedup; fastText epoch curve on GlotLID-C (expensive, can invert the 9x claim); alpha = 0.25/0.5 length normalization; mean input length for the CLD3 latency explanation.
 
-### Repo-side remainder
+### Repo-side remainder (everything else is settled)
 
-The paper-side decisions are itemized as PD-1..PD-9 in
-`paper/PAPER_EDITS_pending.md` (fastText carry; the three linked breakdown
-tables; variant-row swap; the "unchanged" Nemo claim; samples-accuracy seeds;
-noise on hold; LLaMA3.2 repo confirmation). The list below is the repo-side
-remainder.
+Historical PD-1..PD-9 and their dispositions live in the ledger; the 2026-08
+open list below it is SUPERSEDED by later measurement -- do not re-open from
+stale copies: the variant rows, subset columns, lenbias tables, vocab-size
+table, CLD3 columns, and the commonlid chain are all applied and recorded
+(ledger A2.1-A2.20 + R1). Still genuinely open on the repo side:
 
-- **Swap the lid_main variant rows to corrected numbers?** GlotLID-C cells
-  match at paper precision; doing it retires the caption's pool mixture but
-  needs the variant UDHR/FLORES/CLD-subset columns re-run (not yet scored).
-- **How to read the `wili_100k_500` gate FAIL** — waits on the fp32 null arm
-  (job 3157851).
-- **Mistral / LLaMA3.2 / LLaMA2 base tokenizers**: author-designated HF repos,
-  unconfirmed against the originals; vocab-size sanity checks required.
-  `\unilid-Mistral` cannot be Mistral-Nemo (0.921 vs 0.958).
-- **`tab:vocab_size_efficiency`**: no 10k/20k/50k/200k container exists; base
-  vocabularies trained here, gated by the 100k reproducibility check (not yet
-  run).
-- **`tab:samples-accuracy`**: needs the seed count behind its standard
-  deviations (author).
-- ~~Mistral identity~~ SETTLED 2026-08-23: \unilid-Mistral is a 32k
-  Mistral (same-table adjacency proof + F1-vs-vocab pattern;
-  outputs/rerelease/mistral_identity_verification.json); Mistral-Nemo-Base-2407
-  verified byte-identical to the Nemo container base. Author chose the
-  v0.1/v0.2 32,000-entry tokenizer (byte-identical pair), stated unconfirmed.
-- ~~CR-token blocker~~ SETTLED 2026-08-23 (author): refused entries DROPPED
-  whole (51 / 24, all \r-only); filter verified both directions against
-  vocab_io's writer; jobs 3162788/3162789 submitted.
-- **`tab:lenbias-delta`**: same golden-subset instrument question as
-  `lenbias-norm`, not yet decided.
-- **The fastText halves** of the WiLI tables: unaffected by the defect;
-  carrying them must be a stated choice.
-- Whether the Apertus 200k and 131k variants are published; whether the package
-  offers a migration for pre-0.3.0 models.
-- ~~Corrected-weight filenames on the Hub~~ SETTLED 2026-08-24 (author):
-  overwrite `unilid-1940-calibrated.unilid` and `calibration.json` in place.
-  Shipped; see the release record at the bottom.
-- ~~Publish the corrected UNcalibrated (version-1) model?~~ SHIPPED 2026-08-24
-  (author authorized): `unilid-1940.unilid` in Hub commit `d2af7950`, atomic with
-  the card update. The docs now name a version-1 download (PR #4, `cf9f44c`).
-  Open only if the filename should be `unilid-1940-base.unilid` instead; nothing
-  depends on the current name yet.
-- `commonlid_calibrated.py` asserts old-model reproduction and needs the
-  carried npz regenerated first (`commonlid_carried` corrected run not yet
-  done) -- the one remaining unparametrized corrected-chain piece.
+- Whether the Apertus 200k/131k variants are ever published; whether the
+  package offers a migration for pre-0.3.0 models.
+- `full_test_eval_corrected/` also has a store copy now (2026-08-24,
+  byte-verified), as do the six CLD3 subset containers -- nothing load-bearing
+  is scratch-only.
+- The base-model Hub filename (`unilid-1940.unilid` vs a `-base` suffix) is
+  free to change until adoption.
 
 ## Corrected release: SHIPPED 2026-08-24
 
@@ -206,12 +184,12 @@ All three readiness blockers cleared, then published. Full record in
   names it as the route to the superseded weights.
 - **Package**: PR #3 merged upstream 2026-08-24T19:24Z, merge commit a47d4f5.
   Annotated tag **v0.3.0** on a47d4f5, pushed to Ahmetcanyvz/UNILID.
-- **PR #4 OPEN**: https://github.com/Ahmetcanyvz/UNILID/pull/4, now at commit
+- **PR #4 MERGED** upstream 2026-08-31 (008f76aa): was at commit
   `cf9f44c` on branch `generation-report` off a47d4f5. Carries the load-time
   real-token-mass report, the corrected doc numbers, and (2026-08-24) the
-  download entries for `unilid-1940.unilid`. 119 tests pass. Not in v0.3.0; if
-  the tag should include it, v0.3.1 on the merge commit is the clean move.
-- **PR #5 OPEN**: https://github.com/Ahmetcanyvz/UNILID/pull/5, commit `795e5db`
+  download entries for `unilid-1940.unilid`. 119 tests pass. Not in v0.3.0;
+  the author ruled 2026-09-02: leave untagged.
+- **PR #5 MERGED** upstream 2026-08-31 (5504cc22): commit `795e5db`
   on branch `max-sentence-length` off a47d4f5, base `release`. The three
   `--max-sentence-length` files only, no PR #4 content. 111 tests pass on the
   branch. Committed from a temporary worktree, so the UNILID/ working tree still
@@ -225,8 +203,9 @@ All three readiness blockers cleared, then published. Full record in
   c = -17 (285 untouched), 0 of 1,940 on the 0.2.1 path, real-token mass
   1.000000 every row, real-column row minima -18.3292 to -11.6063 median
   -16.0486.
-- STILL SCRATCH-ONLY and purge-exposed: `full_test_eval_corrected/` (690 MB),
-  the reference arrays both corrected gates are measured against.
+- `full_test_eval_corrected/` (690 MB, the gates' reference arrays) copied to
+  the durable store 2026-08-24, byte-verified; nothing load-bearing is
+  scratch-only.
 
 ## Known damage, recorded
 
@@ -240,8 +219,12 @@ ever recomputed. `external_bench_eval.py` now writes non-default models to
 
 - Edit pass applied 2026-08-09, wrapped in `\camrev{}`; dispositions in
   `paper/review_notes_2026-08-09.md`.
-- Ahmetcan ask list, reduced: the subset-evaluation script or command; the
-  UDHR-subset FPR of 1.06e-5; the DSL-ML competitor-score source and split.
+- Ahmetcan ask list, reduced to TWO: the CLD3 prediction label space in the
+  subset columns (R1.HOLD-1) and the Table 5 fastText K=10 diagnosis
+  (R1.HOLD-8). CLOSED since: the DSL-ML source/split (answered by the
+  2026-09-02 research + vetting, applied in R1) and the UDHR-subset FPR
+  1.06e-5 (a measured decimal-exponent reading; the cell is superseded by the
+  regenerated subset columns anyway).
 - The user compiles the PDF (no icml2026.sty here).
 
 ## Author decisions 2026-08-24 (all PD items resolved)

@@ -25,6 +25,37 @@ uniform sample (`seed=42`, without replacement).
 
 ---
 
+## Reviewer feedback round applied; the DSL-ML claim corrected to three of five groups (2026-09-09)
+
+`PAPER_FEEDBACK.md` (a reviewer's critical pass over the final draft) was
+triaged into 102 itemized points in `paper/PAPER_EDITS_pending.md` section
+R1: 71 applied, 16 held for the author (R1.HOLD-1..13, verbatim question
+blocks), 9 held on measurements, 6 declined with reasons. Commits 4180a06 and
+4cc9168.
+
+The one applied edit that changes a comparative claim: the DSL-ML comparison
+at submission.tex:887-899 now uses the vetted matched-protocol dev-split
+comparison against the organizers' baseline (the prior text compared the
+paper's dev-split single-label numbers against the shared task's TEST-split
+multi-label winners, uncited). The paper now claims three of five groups
+(ahead on English 0.835/0.775, Spanish 0.850/0.726, Portuguese 0.770/0.667;
+behind on French 0.534/0.638 and BCMS 0.769/0.826), with the cross-group
+asymmetry stated (UniLID predicts over all 14 labels, the baseline within a
+group, so the favorable margins are lower bounds and the unfavorable ones
+upper bounds). Sources: `outputs/rerelease/dslml2024_research.md` and
+`dslml2024_vetting.md` -- the vetting confirmed every number, found the
+shared-task data (downloaded, authenticated by reproducing the organizers'
+own baseline table), and established that test gold is not public.
+
+Also in the round: the log-probability margin defined at its first section-4
+use and the threshold symbol renamed tau -> delta (exhaustive audit, tau_
+7 -> 0); every reviewer-flagged prose passage polished under the style rules;
+enumeration-frame sentences removed (7 hits, including the reviewer's own
+suggested rewrite); claims scoped to what the tables support; revision
+bookkeeping moved out of captions; four citations corrected and URL-verified
+(Mistral NeMo release page, Dempster 1977, CommonLID 2026.acl-long.1527 with
+the full 97-author list, the VarDial 2024 overview).
+
 ## The calibration procedure generalizes to the subset-fitted models (2026-09-02)
 
 Author ruling executed and adversarially cleared: the gate_flat4_prox21
