@@ -2161,3 +2161,28 @@ HOLD-6(a) sentence merged into `:744` instead of duplicating the footnote;
 accepted: the `\paragraph{Effect of Calibrated \unilid}` heading (system name);
 the two qualified 0.933s in one Sec. 6 paragraph; the HOLD-3 clause sitting two
 sentences after `c`'s first use.
+
+### R2.1 fastText WiLI macro F1 aligned to the rerun value, 2026-09-09
+
+Author ruling: *"Change the fasttext F1 numbers to the 0.9533 everywhere for
+WiLI."* This adopts the noise-table rerun's F1 as the fastText WiLI macro F1,
+superseding the HOLD-7 treatment of that cell as a cross-table discrepancy to
+explain.
+
+Sites: `tab:unilid_llm_comparison` is the only place outside
+`tab:noise_robustness` that prints a fastText WiLI macro F1 (checked: no prose
+quotes the value or a delta derived from it; Tables 5 and 12 report accuracy,
+not F1; `tab:length_accuracy` reports accuracy; `tab:per_language_f1` is
+DSL-ML; the 0.946 at `submission.tex:1304` and in `tables/script-breakdown.tex`
+is fastText's GlotLID-C Latin-script F1, and `tables/lenbias-norm.tex`'s 0.946
+is a GlotLID-C cell -- all untouched). Cell changed 0.946 -> `\corrrev{0.953}`,
+printed at the column's three-decimal precision. Bolding unchanged (\unilid's
+0.960 remains the column best).
+
+Left deliberately, flagged for the author: the same row's FPR still reads
+2.331e-4 (the pre-rerun run) while the rerun's p=0% FPR is 2.023e-4, and the
+accuracy cells in Tables 5 and 12 still read 94.54/94.55 against the rerun's
+0.9527. The ruling named F1 only, so the row now mixes the rerun's F1 with the
+old run's FPR. The `:1268` provenance sentence ("come from a separate
+evaluation run ... differ slightly") remains true via the FPR and accuracy
+cells.
