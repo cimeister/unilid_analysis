@@ -2118,3 +2118,46 @@ Run after the last edit, on all 14 modified files:
   Anthology CommonLID page, the JRSS-B Dempster record via its DOI, and the
   VarDial 2024 overview page. All four resolve and show what is attributed to
   them. No URL in this round is unverified.
+
+## R2: the author's rulings on R1.HOLD, applied 2026-09-09
+
+The author answered the R1.HOLD questions. Rulings quoted verbatim where short.
+Marking convention unchanged: every new or rewritten span this round is
+`\corrrev{}`. An Opus editing agent applied the rulings; an independent Opus
+adversarial review then ran over the full diff, and its findings were applied
+as listed at the end of this section. Mechanical checks re-run after the last
+edit: brace depth 0 with no negative excursion and even `$` parity in
+`submission.tex` and all four touched table files; every `\cref` target
+resolves; no em/en-dash, enumeration frame, or bare "probability margin" in
+any new span.
+
+| item | ruling | disposition |
+|---|---|---|
+| R1.HOLD-1 | *"CLD3 predicted over just the language subset. There was no training involved"* | **APPLIED.** Sec. 5.2 `:757` and App. F `:1419-1421` now state the pretrained \cld model is scored with predictions restricted to the subset's labels, so \unilid, \fasttext and \cld predict over the same label set in those columns. Closes the last C3 fact |
+| R1.HOLD-2 | *"I added this back manually. Check that its there"* | **VERIFIED + COMPLETED.** The author restored A2.13 spans 1-2 (the `\input` and the appendix subsection, `:1265-1276`) with the fixed-code rerun numbers in `tables/noise_robustness.tex`. Spans 3 (intro clause, `:427`) and 4 (Sec. 6 Robustness Analysis sentences, `:1028`) were still missing and were restored here, rewritten to the new numbers (25% pair 0.8925 against 0.8562; rates stated as 5% to 50%). Markup drift, deliberate: A2.13 recorded parts of spans 3-4 as `\camrev{}`; they return as `\corrrev{}` under this round's convention. The author's own appendix prose was not altered (it keeps its `---` and its `$p<10\%$` boundary; the table itself supports the inclusive reading, since UniLID leads on all three metrics at exactly 10%) |
+| R1.HOLD-3 | *"Leave c"* | **APPLIED as the recorded default**: `c` keeps its name; one sentence at `:655-656` states it is unrelated to $\widehat{c}_\token$ of `\cref{sec:learning-params}` |
+| R1.HOLD-4 | *"Ignore, don't do anything"* | **CLOSED, no edit** |
+| R1.HOLD-5 | *"Can't add memory column. Inference speed changes with the size of the label set. I don't think there are any contradictions."* | **CLOSED, no edit** |
+| R1.HOLD-6 | (a) *"we use the default fasttext settings, sweeping over some of the hyper parameters"*; (b) *"same dataset"*; (c)-(f) *"I'll ask about the rest. Keep it as a todo list"* | **(a) APPLIED** at `:744`: the pre-existing "following their recommended hyperparameter settings" clause contradicted the ruling and is replaced by "with the package's default configuration, apart from a sweep over selected hyperparameters to improve performance (`\cref{app:fasttext_epochs}`)". **(b) APPLIED** at the end of the GlotLID-C data paragraph `:1146`, placed after the decontamination step so "the same training set" names the final set. **(c)-(f) remain the open co-author TODO list**: GlotLID-M version/label set/out-of-label scoring; UniLID base-hyperparameter selection basis; hardware behind Tables 13-15; Tatoeba label mapping |
+| R1.HOLD-7 | *"The first three are just rounding errors, it's fine. The noise table uses a different evaluation set. Mention that's the reason for the difference but keep it vague"* | **APPLIED, narrowed under review.** The review measured that the noise table's $p=0\%$ UniLID cells match `tab:unilid_llm_comparison` and `tab:length_accuracy` to every printed digit (0.9564 / 0.9601 / 1.863e-4); only the fastText cells differ. A different evaluation set would move both systems, so the ruling's premise is contradicted for UniLID and the sentence at `:1268` is scoped to what is observable and still vague: the fastText $p=0\%$ numbers "come from a separate evaluation run". **FLAG FOR AUTHOR**: the evidence pattern points at a different fastText artifact or run, not a different evaluation set |
+| R1.HOLD-8 | *"Leave it"* | **CLOSED, no edit.** Table 5's $J=10$ row stands |
+| R1.HOLD-9 | *"Sure, change the headline"* | **APPLIED.** Sec. 1 `:346` and Sec. 6 `:869-878` now lead with the held-out 0.916 -> 0.949 (against fastText's 0.933 on the same lines) and state the reason (two constants selected inside the full scored pool); the full-pool 0.933 / 0.956 pair and FPR 2.02e-5 -> 1.77e-5 follow with the App. F provenance pointer. The abstract contains no calibration number, so it needed nothing. `tab:lid_main` unchanged: its bolding rule is the column optimum among the measured full-pool values, which 0.956 and 1.77e-5 remain; the review re-derived all twelve columns and confirmed every bold is the optimum |
+| R1.HOLD-10 | *"If a clear citation for that exists, then add it"* | **APPLIED.** Chen et al. 2024, "Fumbling in Babel" (Findings of NAACL 2024, 2024.findings-naacl.274) evaluates GPT-3.5/GPT-4 on the LID task itself over 670 languages: 382 of 670 score zero F1 in the headline setting, and GPT-4 reaches F1 4.79 on the 517 African languages against AfroLID's 89.04. New sentence at `:313` ("near-zero F1 on more than half of the 670 languages" — understates the source); BibTeX added to `r1_bib_entries.bib` verbatim from the Anthology's own `.bib` (independently re-fetched by the review agent). **Four** keys now depend on the custom.bib merge (R1.HOLD-12) |
+| R1.HOLD-11 | *"Add these"* | **APPLIED, both.** (a) Novelty statement at `:568-573`: multinomial naive Bayes over subword tokens with latent segmentation; new = per-language segmentation estimation, Viterbi approximation of the marginal, vocabulary reusable from an existing LM (all three claimed, per the recorded proposal). (b) Sec. 4 paragraph retitled "Unseen-Token Floor and Low-Margin Reassignment" (`\label{sec:calibration}` and all labels unchanged); definition added at `:618-624` — the gloss says "capped at one shared constant", not "floor", because the operation is $\min(\cdot, c)$ and "floor" already names the genuine $10^{-12}$ training floor; `\defn{Calibrated \unilid}` moved to this first mention; the paragraph states the term is not used in the probability-calibration sense. Sweep: 16 prose sites reworded (`submission.tex` 346, 869, 891, 896, 1245, 1440, 1442, 1443, 1454, 1460, 1471, 1480, 1488; `tables/commonlid.tex` 17, 20; `tables/calibrated_nemo.tex` 15) plus `:1425` ("the model being calibrated" -> "the model it is applied to"); 51 system-name / constant-modifier / label uses deliberately left; `:424`'s "accuracy and calibration" kept because it is the genuine reliability sense about cited prior work, now distinguished by the new `:621` gloss. New anchored shorthand "the two corrections" used at `:1472` and two captions, resolved by Sec. 4's "first correction"/"second correction" |
+| R1.HOLD-12 | (not answered) | **STILL OPEN, compile blocker**: `custom.bib` merge, now four keys |
+| R1.HOLD-13 | *"Fix b"* | **(b) APPLIED**: `tables/lid_main.tex:54`, `\corrrev{\textbf{2.09e-5}}` after verifying it is the UDHR-subset FPR column minimum (next best 2.98e-5). (a) and (c) left by ruling |
+
+Review findings applied beyond the rulings: the HOLD-7 narrowing above (the one
+BLOCKER); the cap-not-floor gloss; the banned word "gap" removed from the new
+`:313` sentence ("fare no better"); the App. F "three systems" claim renamed to
+the three systems it covers (the columns hold eight rows); the duplicate
+`\defn`; "log-probability margin (defined below)" at first pre-definition use;
+the transfer-appendix direction claim corrected to "up on GlotLID-C, down on
+UDHR, and on FLORES-200 by less than the table's printed precision" (both
+subset FLORES cells print .997; the measured unrounded deltas agree in sign per
+`cld3_calibrated_transfer`); HOLD-6(b) moved after decontamination; the
+HOLD-6(a) sentence merged into `:744` instead of duplicating the footnote;
+"Setting ... to its own Good-Turing estimate" idiom. Left as reviewed-and-
+accepted: the `\paragraph{Effect of Calibrated \unilid}` heading (system name);
+the two qualified 0.933s in one Sec. 6 paragraph; the HOLD-3 clause sitting two
+sentences after `c`'s first use.

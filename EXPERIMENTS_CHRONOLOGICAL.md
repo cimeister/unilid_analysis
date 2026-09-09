@@ -2240,3 +2240,38 @@ noise table file carries the author's new numbers but nothing \inputs it
 (the removal took all four wiring sites; the reviewed PDF had the table, so
 the wiring exists in some other tree), and paper/custom.bib is not in this
 repo while three new cite keys live in paper/r1_bib_entries.bib.
+
+## 2026-09-09 (later): R2, the author's R1.HOLD rulings applied
+
+The author answered the R1.HOLD questions. Full dispositions: ledger section
+"R2". Executed by one Opus editing agent (all paper edits), one Sonnet research
+agent (the LLMs-on-LID citation hunt), and one Opus adversarial review over the
+diff; review findings applied by hand afterward.
+
+- Applied: HOLD-1 (CLD3 = pretrained model, predictions restricted to subset
+  labels), HOLD-2 completion (A2.13 spans 3-4 restored to the new numbers;
+  the author had manually restored spans 1-2), HOLD-3 (leave `c` + clause),
+  HOLD-6(a)(b), HOLD-7 (vague sentence, scoped to fastText -- see below),
+  HOLD-9 (held-out 0.949 becomes the headline; abstract had no site; lid_main
+  bolding correct unchanged), HOLD-10 (Chen et al. 2024 "Fumbling in Babel",
+  Findings of NAACL 2024, verified against the Anthology twice independently),
+  HOLD-11(a)(b) (novelty statement; Sec. 4 retitled, 16 calibration-sense
+  sites reworded, 51 left), HOLD-13(b) (2.09e-5 bolded after re-deriving the
+  column minimum). Closed no-action: HOLD-4, -5, -8. Open: HOLD-12 (bib merge,
+  now 4 keys), HOLD-6(c)-(f) co-author TODO.
+- Review blocker worth remembering: the HOLD-7 ruling's premise ("the noise
+  table uses a different evaluation set") is contradicted by the tables --
+  noise p=0% UniLID cells match tab:unilid_llm_comparison/tab:length_accuracy
+  to every printed digit (0.9564/0.9601/1.863e-4); only fastText differs
+  (0.9527/0.9533/2.023e-4 vs 94.54/0.946/2.331e-4). A different eval set would
+  move both systems. Sentence scoped to fastText ("a separate evaluation
+  run"); flagged to the author.
+- Second review catch: the drafted definition glossed the c = -17 operation as
+  a "floor on the log-probability of unseen tokens"; it is a cap
+  (min(logp, c)), and "floor" already names the genuine 1e-12 training floor
+  in the same section. Gloss fixed; the author-approved title "Unseen-Token
+  Floor and Low-Margin Reassignment" kept.
+- The author's manual noise re-add (submission.tex appendix hunk +
+  tables/noise_robustness.tex) is committed with this round per their ruling;
+  their other working-tree changes (script deletions,
+  cld3_calibrated_transfer.py) remain untouched.

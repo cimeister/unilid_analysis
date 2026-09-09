@@ -2,11 +2,12 @@
 %
 % paper/custom.bib is NOT in this repository, so these entries could not be
 % merged into it here. Paste them into custom.bib before compiling, or add this
-% file to the \bibliography command. Three keys in submission.tex depend on them:
+% file to the \bibliography command. Four keys in submission.tex depend on them:
 %   mistral-nemo-2024        (replaces the wrong \cite{mistral} = Jiang et al. 2023,
 %                             the Mistral 7B report, at submission.tex:793)
 %   suarez-etal-2026-commonlid (replaces "[citation to confirm]" at submission.tex:1158)
 %   dempster1977maximum      (new, at submission.tex:521)
+%   chen-etal-2024-fumbling  (new, Sec. 1: the LLMs-on-LID sentence, R1.HOLD-10)
 % chifu-etal-2024-vardial is already cited elsewhere in the paper and needs no
 % new entry.
 %
@@ -25,6 +26,13 @@
 %     2026 volume, pages 33063--33080.
 %   dempster1977maximum: DOI 10.1111/j.2517-6161.1977.tb01600.x resolves to the
 %     OUP record for JRSS-B 39(1), 1-22, 1977.
+%   chen-etal-2024-fumbling: https://aclanthology.org/2024.findings-naacl.274/
+%     resolves; the BibTeX below is the Anthology's own .bib file verbatim
+%     (fetched 2026-09-09), minus the editor field. arXiv:2311.09696 cross-checked.
+%     Added under the author's R1.HOLD-10 ruling ("If a clear citation for that
+%     exists, then add it"): the paper evaluates GPT-3.5/GPT-4 on the LID task
+%     itself over 670 languages; 382 languages score near-zero F1, and on the
+%     517 African languages GPT-4 reaches F1 4.79 against AfroLID's 89.04.
 
 @misc{mistral-nemo-2024,
   author       = {{Mistral AI}},
@@ -34,6 +42,23 @@
   month        = jul,
   url          = {https://mistral.ai/news/mistral-nemo/},
   note         = {Accessed 2026-09-09}
+}
+
+@inproceedings{chen-etal-2024-fumbling,
+    title = "Fumbling in {B}abel: An Investigation into {C}hat{GPT}{'}s Language Identification Ability",
+    author = "Chen, Wei-Rui  and
+      Adebara, Ife  and
+      Doan, Khai  and
+      Liao, Qisheng  and
+      Abdul-Mageed, Muhammad",
+    booktitle = "Findings of the Association for Computational Linguistics: NAACL 2024",
+    month = jun,
+    year = "2024",
+    address = "Mexico City, Mexico",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2024.findings-naacl.274/",
+    doi = "10.18653/v1/2024.findings-naacl.274",
+    pages = "4387--4413"
 }
 
 @article{dempster1977maximum,

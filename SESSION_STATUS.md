@@ -1,11 +1,13 @@
 # Session Status
 
-Snapshot, 2026-09-09. The correction campaign is COMPLETE: every table cell
-in the revised paper traces to a gated instrument or a recorded, stated carry.
-The corrected release SHIPPED 2026-08-24; PR #4 and PR #5 MERGED upstream
-2026-08-31 (left untagged by author ruling). The current front is R1, the
-reviewer-feedback round, applied 2026-09-09 (commits 4180a06/4cc9168); what
-remains is the R1.HOLD list below.
+Snapshot, 2026-09-09 (second update). The correction campaign is COMPLETE:
+every table cell in the revised paper traces to a gated instrument or a
+recorded, stated carry. The corrected release SHIPPED 2026-08-24; PR #4 and
+PR #5 MERGED upstream 2026-08-31 (left untagged by author ruling). R1, the
+reviewer-feedback round, was applied 2026-09-09 (commits 4180a06/4cc9168),
+and the author then ANSWERED the R1.HOLD questions; those rulings are applied
+as **R2** (ledger section "R2: the author's rulings on R1.HOLD"). What remains
+open is only the short list under "Open decisions" below.
 
 ## Read these first
 
@@ -16,8 +18,9 @@ remains is the R1.HOLD list below.
   spans were added in R1, against 192 pre-existing. Accept all with
   `\newcommand{\corrrev}[1]{#1}`.
 - `PAPER_FEEDBACK.md`: the reviewer feedback driving R1.
-- `paper/r1_bib_entries.bib`: three verified bib entries that must be merged into
-  `custom.bib` (not in this repo) before the paper compiles.
+- `paper/r1_bib_entries.bib`: four verified bib entries that must be merged into
+  `custom.bib` (not in this repo) before the paper compiles (fourth added in R2:
+  chen-etal-2024-fumbling, the LLMs-on-LID citation).
 - `~/.claude/plans/this-session-focuses-on-shimmering-dusk.md`: the approved WiLI
   training plan, revised after an adversarial review.
 - `EXPERIMENTS_RESULTS.md`: entries dated 2026-08-17 through 2026-08-23 at the top.
@@ -34,10 +37,11 @@ completed and is recorded in `EXPERIMENTS_RESULTS.md` /
 
 - ~75 deleted `slurm_*.sh`/`run_*.sh` plus `OPEN_SOURCE_HANDOFF.md` and
   `SETUP_FEEDBACK.md`: the author's cleanup. Leave exactly as found.
-- `paper/tables/noise_robustness.tex`: the author's manual re-add of the
-  fixed-code noise rerun (verified: neither session agent touched it). Its
-  wiring into the document is R1.HOLD-2.
 - `analysis/cld3_calibrated_transfer.py`: modified by the author.
+- (No longer on this list: `paper/tables/noise_robustness.tex` and the
+  author's noise-appendix hunk in `submission.tex` were committed in R2 by
+  the author's ruling "I added this back manually. Check that its there";
+  the re-add is now official paper content.)
 
 ## Settled since 2026-08-21, with the numbers
 
@@ -139,20 +143,29 @@ completed and is recorded in `EXPERIMENTS_RESULTS.md` /
 
 ## Open decisions
 
-### R1 reviewer round (2026-09-09), awaiting the author
+### After R2 (the author's R1.HOLD rulings, applied 2026-09-09)
 
-Full text of each question: section **R1.HOLD** of `paper/PAPER_EDITS_pending.md`.
-102 feedback points itemized: 71 applied, 16 HOLD-AUTHOR, 9 HOLD-MEASUREMENT, 6 declined.
+Full record: section **R2** at the end of `paper/PAPER_EDITS_pending.md`.
+R1.HOLD-1/-2/-3/-9/-10/-11/-13 applied; -4/-5/-8 closed no-action by ruling.
+Still open:
 
-- **R1.HOLD-2, most consequential**: `paper/tables/noise_robustness.tex` carries the author's fixed-code rerun but `submission.tex` has no `\input` for it and no App. B.3 (A2.13 removed all four spans) -- re-add per A2.13, with the Sec. 6 sentence rewritten to the new 25% pair (0.8562 vs 0.8925), or leave the analysis out?
-- **R1.HOLD-1**: for the CLD3-subset columns, did CLD3 predict over its 107 labels or over the subset's? The paper now asserts nothing either way; comparability is open. Last unanswered part of C3.
-- **R1.HOLD-6**: six co-author facts, one sentence each -- fastText config on GlotLID-C/WiLI; whether fastText used the same 100k cap; GlotLID-M version and out-of-label scoring; where UniLID's base hyperparameters were selected; hardware for Tables 13-15; the Tatoeba label mapping.
-- **R1.HOLD-9**: report the held-out 0.949 as the headline instead of 0.956? Editorial, no new measurement (0.949 already on record).
-- **R1.HOLD-11**: two framing proposals drafted -- the naive-Bayes novelty statement, and renaming "calibration" to "unseen-token floor and low-margin reassignment" (a ~25-site rename, decide once).
-- **R1.HOLD-7 / -8**: fastText's WiLI numbers disagree across Tables 5/7/12; Table 5's fastText row at 10 samples reads 0.85 +/- 0.00, below its own 5-sample 10.53. Neither is re-measurable here (PD-7: no fastText models, no seeds).
-- **R1.HOLD-12, blocks compilation**: `paper/custom.bib` is not in this repo; `paper/r1_bib_entries.bib` must be merged before the paper builds (3 new `\cite` keys depend on it).
-- Also open: R1.HOLD-3 (rename constant `c`?), -4 (scope the incremental-addition and pipeline claims), -5 (memory column for the efficiency claim), -10 (Kargaran sentence rewritten to LID systems; want an LLM citation instead?), -13 (three cosmetic residuals).
-- **R1 HOLD-MEASUREMENT, highest value**: the shared-phi naive-Bayes control that isolates the paper's central claim (one segmentation pass + 1,940 count vectors + one scoring pass). Also queued: branching factor `b`; train/test dedup; fastText epoch curve on GlotLID-C (expensive, can invert the 9x claim); alpha = 0.25/0.5 length normalization; mean input length for the CLD3 latency explanation.
+- **R1.HOLD-12, blocks compilation**: `paper/custom.bib` is not in this repo;
+  `paper/r1_bib_entries.bib` must be merged before the paper builds (now FOUR
+  `\cite` keys depend on it, chen-etal-2024-fumbling added in R2).
+- **R1.HOLD-6(c)-(f), co-author TODO** (author: "I'll ask about the rest. Keep
+  it as a todo list"): GlotLID-M version, label set, out-of-label scoring;
+  where UniLID's base hyperparameters (100k vocab, 20 EM rounds, 1e-12 floor)
+  were selected; hardware behind Tables 13-15; the Tatoeba label mapping.
+- **HOLD-7 flag for the author**: the ruling said the noise table's p=0%
+  mismatch comes from a different evaluation set, but the UniLID p=0% cells
+  match the paper's other WiLI tables to every printed digit; only fastText
+  differs, which points at a different fastText artifact or run. The paper
+  sentence was scoped to fastText and kept vague; confirm the provenance.
+- **R1 HOLD-MEASUREMENT, unchanged, highest value first**: the shared-phi
+  naive-Bayes control isolating the central claim; branching factor `b`;
+  train/test dedup; fastText epoch curve on GlotLID-C (expensive, can invert
+  the 9x claim); alpha = 0.25/0.5 length normalization; mean input length for
+  the CLD3 latency explanation. Do not start without the author's word.
 
 ### Repo-side remainder (everything else is settled)
 
