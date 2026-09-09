@@ -291,10 +291,10 @@
 % \maketitle
 \begin{abstract}
 Language Identification (LID) is an important component of many multilingual natural language processing pipelines, where it facilitates corpus curation, training data analysis, and cross-lingual evaluation of large language models. Despite near-perfect performance on high-resource languages, existing systems remain brittle in low-resource and closely related language settings.
-We introduce \unilid, a simple and efficient LID method based on the \unilm tokenization algorithm, leveraging its probabilistic framing, parameter estimation technique and inference strategy. 
+We introduce \unilid, a simple and efficient LID method based on the \unilm tokenization algorithm, \corrrev{using its generative model, its EM parameter estimation, and its Viterbi inference}.
 In short, to predict a string's language label, we simply ask: under which language's unigram distribution is this string most likely? 
 %In short, we learn language-conditional unigram distributions over a shared tokenizer vocabulary but treat segmentation as a language-specific phenomenon. 
-Our formulation is data- and compute-efficient,  supports incremental addition of new languages without retraining existing models, and can naturally be integrated into existing language model tokenization pipelines. Empirical evaluations against widely used baselines, including \fasttext, \glotlid, and \cld, show that \unilid achieves competitive performance on standard benchmarks, substantially improves sample efficiency in low-resource settings---reaching $\sim$70\% accuracy with as few as five labeled samples per language---and delivers large gains on fine-grained dialect identification.\footnote{Implementation at \href{https://github.com/Ahmetcanyvz/UNILID}{github.com/Ahmetcanyvz/UNILID}.}\looseness=-1
+Our formulation is data- and compute-efficient,  supports incremental addition of new languages without retraining existing models, and can naturally be integrated into existing language model tokenization pipelines. Empirical evaluations against widely used baselines, including \fasttext, \glotlid, and \cld, show that \unilid achieves competitive performance on standard benchmarks, \corrrev{reaches 69\% accuracy with five labeled samples per language and 89\% with 25 when the WiLI training set is subsampled,} and delivers large gains on fine-grained dialect identification.\footnote{Implementation at \href{https://github.com/Ahmetcanyvz/UNILID}{github.com/Ahmetcanyvz/UNILID}.}\looseness=-1
 \end{abstract}
 
 
@@ -302,21 +302,20 @@ Our formulation is data- and compute-efficient,  supports incremental addition o
 
 \section{Introduction}
 
-Language Identification (LID) systems are an important component of today's natural language processing (NLP) landscape. 
+Language Identification (LID) systems are an important component of today's natural language processing (NLP) \corrrev{pipelines}.
 They are particularly important for the training and evaluation of large multilingual language models, where they are used to: (i) construct labeled corpora with adequate coverage of the world’s languages, (ii) analyze the composition of large-scale training data,  and (iii) evaluate models' cross-lingual performance. 
 As a result, reliable and efficient LID systems have become a vital tool for multilingual language modeling pipelines.
 
 
 Simple and efficient algorithms have worked well for LID \cite{cavnar01,joulin-etal-2017-bag,lui-baldwin-2012-langid}; many regard it as a \enquote{solved} task since performance on high- and medium-resource languages is often near perfect \cite{mcnamee_solved,lid_survey}. 
 However, LID systems often still perform poorly on low-resource languages, closely related language pairs, or fine-grained dialectal distinctions \citep[][\emph{inter alia}]{caswell-etal-2020-language,chifu-etal-2024-vardial,goot-2025-identifying}. 
-Even state-of-the-art language models %---despite their strong reasoning and generative capabilities---
-fail to consistently identify less common languages \cite{kargaran-etal-2023-glotlid}. 
+\corrrev{Even the language identification systems in widest use fail to consistently identify less common languages} \cite{kargaran-etal-2023-glotlid}.
 Collectively, these findings suggest that LID remains far from solved.
 
 
 In this work, we propose a simple and computationally efficient approach to LID that combines the generative modeling framework underlying the \unilm tokenization algorithm with the classical Bayes decision rule. 
 Concretely, \unilm assumes that a string is generated as a sequence of latent subword units drawn independently from a unigram distribution. Rather than learning a single global distribution, we estimate a separate unigram distribution per language. 
-Given these language-specific distributions, we approximate the likelihood of an input string in each language using the probability of its most likely subword segmentation under the corresponding unigram model---intuitively, this allows segmentation itself to be treated as a language-dependent latent variable. 
+\corrrev{For each language, we find the most probable segmentation of the input string under that language's unigram distribution. The probability of that segmentation is our estimate of the string's likelihood under that language. Segmentation is therefore a language-dependent latent variable.}
 Finally, we apply Bayes’ rule to the resulting language-conditional likelihoods to obtain a posterior distribution over languages, and we assign the language label with the highest posterior probability.
 % A direct application of Bayes’ rule to these language-conditional string likelihoods then yields a posterior distribution over languages, and we assign the label that maximizes this posterior. 
 %This enables language identification to be carried out as a by-product of tokenization, yielding an interpretable and easily extensible LID system.
@@ -327,11 +326,10 @@ Finally, we apply Bayes’ rule to the resulting language-conditional likelihood
 % Given these language-conditional distributions, we compute the likelihood of an input string under each language as the probability induced by its most probable segmentation with respect to the corresponding unigram distribution, \ie, we perform the \unilm inference step with per-language distributions. A direct application of Bayes’ rule then yields a posterior distribution over languages, and we assign the label that maximizes this posterior, resulting in a complete language identification system.
 
 
-The proposed method offers several advantages over prior LID approaches. 
-While related to earlier generative LID models \cite{cavnar01,dunning1994statistical}, it departs in a key respect by treating segmentation as a language-specific phenomenon rather than enforcing a fixed tokenization across languages. 
-This design choice encourages token boundaries that align with meaningful morphological structure rather than arbitrary statistical artifacts, an approach that is both linguistically motivated and empirically supported in prior NLP work \cite{bostrom-durrett-2020-byte,klein-tsarfaty-2020-getting}.
-The per-language distribution formulation further enables incremental extension to new languages or dialects without retraining existing models, and empirically, only a few samples per language are needed to learn language-specific parameters that achieve strong performance. 
-Finally, inference is computationally efficient: using clever dynamic programming tricks, inference can be done in an amount of time comparable to the inference step of the classic \unilm tokenization algorithm. %; in practice, the additional pass to compute and compare segmentation probabilities across languages effectively takes $\mathcal{O}(|\languages|)$ time (for language set $\languages$).
+While related to earlier generative LID models \cite{cavnar01,dunning1994statistical}, our method departs in a key respect by treating segmentation as a language-specific phenomenon rather than enforcing a fixed tokenization across languages.
+\corrrev{Within a single language, unigram segmentation has been reported to place token boundaries closer to morphological units than BPE does \cite{bostrom-durrett-2020-byte,klein-tsarfaty-2020-getting}; whether per-language distributions over a shared vocabulary inherit that property is not measured here.}
+The per-language distribution formulation further enables incremental extension to new languages or dialects without retraining existing models, and empirically, only a few samples per language are needed to learn language-specific parameters that achieve strong performance.
+Finally, \corrrev{the segmentation lattice of an input string is built once and reused across languages, so scoring $|\languages|$ languages costs one lattice construction plus one pass per language over its edges (\cref{sec:unilid}). Measured end to end, \unilid is $1.85\times$ slower per sample than \fasttext on the 1{,}940-label GlotLID-C setting and $1.4\times$ slower on the 235-label WiLI setting (\cref{app:efficiency}).} %; in practice, the additional pass to compute and compare segmentation probabilities across languages effectively takes $\mathcal{O}(|\languages|)$ time (for language set $\languages$).
 
 % The method\clara{potentially shorten this section} we propose has several distinct advantages over previous approaches.
 % While related to earlier generative methods for LID \cite{cavnar01,dunning1994statistical}, our approach differs in a key respect: we treat segmentation itself as a language-specific phenomenon, rather than using fixed segmentation rules across languages. 
@@ -343,9 +341,9 @@ Finally, inference is computationally efficient: using clever dynamic programmin
 % Specifically, using clever dynamic programming tricks, inference can be done in almost the same time as the inference step of the \unilm tokenization algorithm, requiring only an additional $\mathcal{O}(|\languages|)$ pass (for language set $\languages$) to evaluate and compare segmentation probabilities.\looseness=-1 
 
 Across a diverse set of benchmarks, \unilid achieves performance competitive with widely-used baselines while requiring substantially fewer labeled examples. The method is particularly effective in regimes where LID remains challenging. 
-In low-resource settings, \unilid attains $\sim$70\% accuracy with as few as five samples per language and $\sim$90\% accuracy with fewer than 50 samples.
+\corrrev{When the WiLI training set is subsampled, \unilid attains 69\% accuracy with five samples per language, 89\% at 25 samples and 93\% at 50 (\cref{tab:samples-accuracy}).}
 On fine-grained dialect identification, \unilid improves macro F1 from 0.53 to 0.72 relative to a \fasttext baseline. 
-Simple post-training calibration steps (calibrated \unilid, \cref{sec:calibration}) raise macro F1 on the 1{,}940-language GlotLID-C test set from \corrrev{.933} to \corrrev{.956}, \camrev{above every system we evaluate on the full GlotLID-C label set (\cref{tab:lid_main})}.
+Simple post-training calibration steps (calibrated \unilid, \cref{sec:calibration}) raise macro F1 on the 1{,}940-language GlotLID-C test set from \corrrev{0.933} to \corrrev{0.956}, \camrev{above every system we evaluate on the full GlotLID-C label set (\cref{tab:lid_main})}.
 %From a practical perspective, \unilid exhibits substantially shorter training times than \fasttext, while achieving comparable inference throughput, despite using a non-optimized research implementation. 
 Taken together, these results suggest that treating segmentation as a language-specific phenomenon provides an effective foundation for language identification.
 
@@ -392,7 +390,7 @@ These models set a long-standing baseline for robust LID, particularly on short 
 \paragraph{Discriminative Frameworks.}
 %Subsequent work explored discriminative frameworks.  %that directly optimize for classification performance given labeled examples. 
 In supervised settings, discriminative frameworks often showed improvements over earlier generative approaches, particularly when sufficient training data was available and languages were well represented \cite{lid_survey}.
-The standard approach represents input strings as feature vectors encoding character \ngram statistics, such as term-frequency or TF-IDF weights.
+The standard approach represents input strings as feature vectors encoding character \ngram statistics, such as term frequency or \corrrev{term frequency scaled by inverse document frequency (TF-IDF)} weights.
 Formally, letting $\gamma(\str) \in \R^d$ denote this representation, a linear discriminative model scores each language with $f_\theta(\str, \lang) = \theta_{\lang}^{\top} \gamma(\str)$, instantiating \cref{eq:discriminative}, with $\theta_\lang$ learned by minimizing empirical cross-entropy over labeled data.
 A canonical example is \fasttext \cite{joulin-etal-2017-bag}, which averages character $n$-gram embeddings into a single hidden representation and passes it to a linear classifier.
 Its architecture is simple, but it has become a standard reference point in LID research: \myemph{OpenLID} and \glotlid pair it with large-scale, curated training data \cite{burchell-etal-2023-open,kargaran-etal-2023-glotlid}, and \myemph{ConLID} \cite{foroutan2025conlid} adds supervised contrastive learning on the same architecture.
@@ -413,7 +411,7 @@ Multilingual Transformer encoders (\eg, mBERT, XLM-R) reach high accuracy with t
 \subsection{Open Problems}
 
 \paragraph{Varietal and dialectal discrimination.} 
-Closely related languages or dialects (\eg, Bosnian, Croatian, and Serbian; Hindi and Urdu; or Maghrebi and Levantine Arabic) have highly similar statistical properties, with a strong overlap in subword-structure and orthography. As a result, even state-of-the-art models struggle with distinguishing between them. Further, there is typically insufficient labeled training data to be able to learn these more fine-grained distinctions \cite{gaman-etal-2020-report,chifu-etal-2024-vardial}.
+Closely related languages or dialects (\eg, Bosnian, Croatian, and Serbian; Hindi and Urdu; or Maghrebi and Levantine Arabic) \corrrev{share most of their orthography and much of their subword inventory}. \corrrev{As a result, current LID systems make more errors on these distinctions than on unrelated languages.} Further, there is typically insufficient labeled training data to be able to learn these more fine-grained distinctions \cite{gaman-etal-2020-report,chifu-etal-2024-vardial}.
 
 \paragraph{Low-resource performance.} 
 As with many NLP datasets, there exists much more data for a core set of high-resource languages than for the long tail of low-resource ones.
@@ -425,7 +423,7 @@ Reweighting, data augmentation, and contrastive objectives have shown promising 
 Models trained on curated text collections often generalize poorly to informal or domain-mismatched inputs such as social media or transliterated scripts \cite{goot-2025-identifying,ojo2025diversbenchevaluatinglanguageidentification}. Many systems are also not robust to perturbations in orthography (\eg, diacritic omission in languages like French or Vietnamese), as these substantially alter character \ngram statistics, leading to pronounced drops in both accuracy and calibration \cite{caswell-etal-2020-language}.\looseness=-1
 
 
-\paragraph{This work.} UniLID directly targets the first two challenges. As we show in (\cref{sec:results}), it substantially improves dialect discrimination on DSL-ML 2024 (macro F1 0.53 $\rightarrow$ 0.72) and yields large sample-efficiency gains in the low-resource regime ($\sim$70\% accuracy with five samples per language). On out-of-domain inputs it gives partial improvements (\cref{sec:results}).
+\paragraph{This work.} \corrrev{UniLID targets varietal discrimination and low-resource performance.} As we show in (\cref{sec:results}), it substantially improves dialect discrimination on DSL-ML 2024 (macro F1 0.53 $\rightarrow$ 0.72) and yields large sample-efficiency gains in the low-resource regime \corrrev{(69\% accuracy with five samples per language when the WiLI training set is subsampled)}. On out-of-domain inputs it gives partial improvements (\cref{sec:results}).
 %Code-switching and segmentation. Sentence-level classifiers assume monolinguality and misclassify mixed-language inputs. Per-token or per-character labeling with structured decoding improves detection but requires fine-grained supervision and increases computational cost.
 
 
@@ -443,7 +441,7 @@ $\tokens=\langle \token_1,\token_2,\dots\rangle\in\vocab^*$, which we denote as
 $\tokfunc\colon \stralphabet^* \rightarrow \vocab^*$. This mapping is typically injective and thus reversible: the original string can be obtained from its tokenized form through a deterministic detokenization function $\detokfunc\colon \vocab^* \rightarrow \stralphabet^*$, \ie, $\str=\detokfunc(\tokfunc(\str))$. As each token (typically) represents a character span, the definition of $\detokfunc$ is often simple, reducing to concatenating the characters within each token together, \ie: $\detokfunc(\langle\token_1, \token_2, \ldots\rangle) \defeq \token_1 \circ \token_2 \circ \cdots$. 
 For example, $\detokfunc(\langle\tokenprint{he},\tokenprint{llo}\rangle) = \chspan{hello}$. Notably, the detokenization function is not necessarily 1-to-1: different token sequences may yield the same string. Reusing the example above, we observe that $\detokfunc(\langle\tokenprint{hell},\tokenprint{o}\rangle)$ still detokenizes to $\chspan{hello}$.
 The non-injectivity of $\detokfunc$ is an aspect of tokenization that we will later take advantage of in our LID approach. 
-Going forward, we refer to $\tokens$ as a \defn{segmentation} of $\str$ if $\detokfunc(\tokens) = \str$ and define $\allsegmentations_{\vocab}(\str) = \{\tokens : \detokfunc(\tokens) = \str\}$ as the set of all valid segmentations of $\str$ under vocabulary $\vocab$.
+Going forward, we refer to $\tokens$ as a \defn{segmentation} of $\str$ if $\detokfunc(\tokens) = \str$ and define $\allsegmentations_{\vocab}(\str) = \{\tokens \corrrev{\in \vocab^*} : \detokfunc(\tokens) = \str\}$ as the set of all valid segmentations of $\str$ under vocabulary $\vocab$.
 
 Numerous tokenization algorithms exist. 
 These algorithms define a mapping function $\tokfunc$ and the method for learning the parameters of this mapping function from data. 
@@ -458,7 +456,7 @@ In broad strokes, \unilm casts tokenization as the uncovering of a latent segmen
 Let $\unigramdist \in \Delta^{|\vocab|-1}$ denote a probability distribution over a vocabulary $\vocab$, where $\tokenprob$ gives the probability of token $\token$. By construction, $\tokenprob \geq 0$ and $\sum_{\token\in\vocab}\tokenprob = 1$. 
 Under the \unilm framework, a token sequence of fixed length $\toklength$ is generated by independently sampling each token from this distribution, and the likelihood of a token sequence $\tokens = \langle \token_1, \smalldots, \token_M\rangle$ is the joint probability of those tokens:\footnote{We would need either an \textsc{eos} token (absorbing state) or a length prior in order to make this a valid probability distribution over $\vocab^*$. This detail is ignored in the standard \unilm implementation, and so we disregard it here as well for faithfulness to the original algorithm.}\clara{@Tiago, would it be correct to say in this footnote also that: in the context of comparing per-language string probabilities, if we assume eos is the same across languages, it would just cancel out? \response{tiago} Hmm, you mean if you assume p(eos) is fixed and constant across languages? Yeah, than I think it's true that it cancels out. Not sure if this is a reasonable assumption though... }
 \begin{equation}\label{eq:pZ_single}
-    \underset{\text{for}\,\,\tokindex = 1, \ldots, \toklength }{\token_{\tokindex} \stackrel{\text{i.i.d.}}{\sim} \mathrm{Categorical}(\unigramdist)} \, \implies p_{\unigramdist}(\tokens) \defeq \prod_{\tokindex=1}^{|\tokens|} \unigramdist[\token_{\tokindex}] 
+    \underset{\text{for}\,\,\tokindex = 1, \ldots, \toklength }{\token_{\tokindex} \stackrel{\text{i.i.d.}}{\sim} \mathrm{Categorical}(\unigramdist)} \, \implies p_{\unigramdist}(\tokens) \defeq \prod_{\tokindex=1}^{\corrrev{\toklength}} \unigramdist[\token_{\tokindex}]
 \end{equation}
 A string $\str$ is then deterministically generated by detokenization. Consequently, the probability of $\str$ is obtained by marginalizing over all valid segmentations:
 \begin{equation}
@@ -496,7 +494,7 @@ Since we only observe strings, and not their underlying segmentations, we cannot
 \end{equation}
 The quantity in \cref{eq:corpus-likelihood} is difficult to optimize directly due to the log-sum structure. The EM algorithm establishes a relationship between this quantity and the expected value of the complete-data log-likelihood, which allows us to solve an easier problem in its stead. 
 %To circumvent this issue, \unilm employs the EM algorithm to find unigram probabilities that (approximately) maximize this likelihood.  
-In short, the EM algorithm iteratively optimizes parameters with respect to the expected value of the complete data log-likelihood given our observed data $\corpus$ and the distributions induced by our current belief of model parameter values. In the context of \unilm, this boils down to performing the following two steps iteratively until our estimates $\unigramdistcur$ converge:\footnote{$\unigramdist^{(0)}$ can be initialized as \eg, the uniform distribution. See \citet{land2025piecesdoesunigramtokenization} for a discussion of this design choice. }
+\corrrev{The EM algorithm alternates an E-step and an M-step until the estimates $\unigramdistcur$ converge. The E-step computes the expected complete-data log-likelihood of the observed corpus $\corpus$ under the current estimate $\unigramdistcur$. The M-step maximizes that expectation over $\unigramdist$. In the context of \unilm:}\footnote{$\unigramdist^{(0)}$ can be initialized as \eg, the uniform distribution. See \citet{land2025piecesdoesunigramtokenization} for a discussion of this design choice. }
 %
 %
 \begin{enumerate}[nosep,leftmargin=*]
@@ -519,7 +517,7 @@ In short, the EM algorithm iteratively optimizes parameters with respect to the 
     \end{equation}
 \end{enumerate}
 
-For a proof of\tiago{Is "proof" accurate here? Or would maybe "For a longer exposition on why ..." be better?} why this is a valid approximation of MLE parameters (for a fixed $\vocab$), we refer the reader to the exposition on \unilm in \citet{meister2025unigramlm}.
+For a proof of\tiago{Is "proof" accurate here? Or would maybe "For a longer exposition on why ..." be better?} why this is a valid approximation of \corrrev{maximum likelihood estimation (MLE)} for a fixed $\vocab$, we refer the reader to \corrrev{\citet{dempster1977maximum} for the general EM result and to} the exposition on \unilm in \citet{meister2025unigramlm}.
 
 Intuitively, this procedure resembles maximum likelihood estimation for a categorical distribution, but with a key difference: we cannot compute observed (``hard'') counts of token occurrences, since the segmentation of each string into tokens is latent.  
 We instead compute expected (``soft'') token counts under the current model by marginalizing over all possible segmentations. 
@@ -530,8 +528,8 @@ In this way, the EM procedure integrates out segmentation uncertainty when estim
 \paragraph{Learning $\vocab$.} 
 The EM procedure above operates over a fixed vocabulary $\vocab$. Indeed, the validity of the approximation relies on the fact that $\vocab$ is fixed (and known). 
 In the case of our language identification algorithm, we can pre-specify it as, \eg, the vocabulary of a chosen language model. 
-If one wishes to also learn the vocabulary, the \unilm algorithm proposes a heuristic approach which works as follows. Initially, $\vocab$ is defined as an oversized set consisting of the most frequently occurring substrings in the corpus; this set can be found efficiently using Enhanced Suffix Array-based algorithms \citep[\eg,][]{Abouelhoda2002TheES}.
-The vocabulary is then \enquote{learned} by iterating between: (i) holding it fixed and estimating $\unigramdistcur$ via EM; (ii) a pruning step, where the tokens whose removal hurts corpus log-likelihood the least---under current parameter beliefs $\unigramdistcur$---are removed. 
+If one wishes to also learn the vocabulary, the \unilm algorithm proposes a heuristic approach. Initially, $\vocab$ is defined as an oversized set consisting of the most frequently occurring substrings in the corpus; this set can be found efficiently using Enhanced Suffix Array-based algorithms \citep[\eg,][]{Abouelhoda2002TheES}.
+The vocabulary is then \enquote{learned} by iterating between: (i) holding it fixed and estimating $\unigramdistcur$ via EM; (ii) a pruning step, where the tokens \corrrev{whose removal lowers corpus log-likelihood the least, evaluated at the current estimate $\unigramdistcur$,} are removed.
 Via this pruning step, the algorithm ultimately trims the vocabulary down to the user's desired size.\looseness=-1
 
 
@@ -539,7 +537,7 @@ Via this pruning step, the algorithm ultimately trims the vocabulary down to the
 
 \newcommand{\unigramdistfinal}{\widehat{\unigramdist}}
 
-At inference time (\ie, when turning text into tokens), the \unilm tokenization algorithm finds the most likely segmentation of $\str$ under the learned parameters $\unigramdistfinal = \unigramdist^{(N)}$ as:\footnote{In the original \unilm algorithm, the most-probable segmentation is chosen rather than the one that has the highest marginal probability. \camrev{We compared both strategies at inference on GlotLID-C: marginalizing scored 0.002 higher macro F1 \corrrev{and the same accuracy to three decimals} (no uncertainty estimate for this comparison) but took \corrrev{roughly 1.7 times as much time} (see \cref{app:viterbi_vs_marginal}).}
+At inference time (\ie, when turning text into tokens), the \unilm tokenization algorithm finds the most likely segmentation of $\str$ under the learned parameters $\unigramdistfinal = \unigramdist^{\corrrev{(R)}}$, \corrrev{the estimate after the final EM round $R$}, as:\footnote{In the original \unilm algorithm, the most-probable segmentation is chosen rather than the one that has the highest marginal probability. \camrev{We compared both strategies at inference on GlotLID-C: marginalizing scored 0.002 higher macro F1 \corrrev{and the same accuracy to three decimals} (no uncertainty estimate for this comparison) but took \corrrev{roughly 1.7 times as much time} (see \cref{app:viterbi_vs_marginal}).}
 %; we therefore use max-probability formulation throughout.
 }\looseness=-1%
 \begin{subequations}\label{eq:approx-inference}
@@ -552,7 +550,7 @@ At inference time (\ie, when turning text into tokens), the \unilm tokenization 
 \end{subequations}
 % where \cref{eq:drop_strprob} follows from the definition of our posterior and the fact that $p_{\unigramdistfinal}(\str)$ does not depend on $\tokens$ and thus can be dropped.
 where we dropped $p_{\unigramdistfinal}(\str)$ in \cref{eq:drop_strprob} since it does not depend on $\tokens$.
-The exact solution to \cref{eq:target} can be found efficiently using a Viterbi-style algorithm, which runs in \camrev{$\mathcal{O}(T\cdot \maxtoklength)$ time, where $T$ is the length of the input string $\str$} and $\maxtoklength$ is the length of the longest token $\token\in\vocab$.
+The exact solution to \cref{eq:target} can be found efficiently using \corrrev{Viterbi decoding}, which runs in \camrev{$\mathcal{O}(T\cdot \maxtoklength)$ time, where $T$ is the length of the input string $\str$} and $\maxtoklength$ is the length of the longest token $\token\in\vocab$.
 
 
 
@@ -565,7 +563,7 @@ The exact solution to \cref{eq:target} can be found efficiently using a Viterbi-
 
 %Framing of LID as a Bayes classifier, where UnigramLM provides our generative model. Application of Bayes rule gives us the probabilty of each language and we choose the max probability one
 We propose a generative modeling approach for the LID task using the \unilm framework.
-In short, we define language-conditional distributions $\model^{\lang}$ by learning unigram distribution parameters for each language $\lang$, albeit with a shared vocabulary across languages. We then compute language label probabilities, as in  \cref{eq:bayes}, applying the Bayes' decision rule to ultimately assign the language label.
+In short, we define \corrrev{a language-conditional distribution $\model(\str\mid\lang)$ for each language $\lang$} by learning unigram distribution parameters \corrrev{per language}, albeit with a shared vocabulary across languages. We then compute language label probabilities, as in  \cref{eq:bayes}, applying the Bayes' decision rule to ultimately assign the language label.
 
 \paragraph{Language-Conditional Distribution Estimation.}
 Let $\vocab$ be the vocabulary of a base tokenizer.\footnote{This does not need to be a \unilm tokenizer. Any tokenizer that uses a fixed vocabulary can be used.} 
@@ -576,8 +574,9 @@ Given a corpus $\corpus^\lang$
 %=\{\str_k^\lang\}_{k=1}^{K_\lang}$ 
 consisting of strings from language $\lang$, we then learn each of these distributions' parameters $\unigramdistlang$ using the EM procedure described in \cref{sec:learning-params}.\clara{it might be the case that for this problem, we're guaranteed to find the global optimum. Look into that... \response{tiago} Because it's a `simple' distribution? \response{clara}{I guess it would be because of the properties of the objective}}  In other terms, similarly to as in standard \unilm, we compute an approximate maximum likelihood estimate by maximizing the observed-data log-likelihood, albeit on only a subset of the data: 
 \begin{equation}
-    \unigramdistlang \defapproxeq \argmax_{\unigramdist} \,\,\likelihood(\corpus^\lang; \unigramdist)
+    \unigramdistlang \corrrev{\approx} \argmax_{\unigramdist} \,\,\likelihood(\corpus^\lang; \unigramdist)
 \end{equation}
+\corrrev{where $\unigramdistlang$ is the estimate at which the EM iteration of \cref{sec:learning-params} converges, and the approximation is the one EM makes.}
 As in the standard \unilm formulation, this procedure integrates over segmentation uncertainty\clara{is this mathematically accurate? \response{tiago} does this mean it marginalises over possible segmentations? I guess it's correct if yes, but a bit of a complicated way of saying that. } when estimating parameters. 
 Because data from each language is processed separately, each language gets its own token frequency profile---and consequently its own set of optimal segmentations---despite sharing a common vocabulary across languages. We discuss several design choices we make in our practical implementation of \unilid (\eg, initialization of $\unigramdistlang$ for the EM loop and floor values for token probabilities) in \cref{sec:exp_setup}.
 
@@ -587,15 +586,16 @@ This yields a flexible model where the probability of a string reflects language
 We then approximate the probability of a string under language $\lang$ as the probability of its most probable segmentation in that language: $\model(\str\mid\lang) = p_{\unigramdistlang}(\tokfunc_{\unigramdistlang}(\str))$. Finally, we assign the language label that optimizes the posterior probability, \ie, \cref{eq:lang-id}. We write the instantiation of  \cref{eq:lang-id} here explicitly for the reader's convenience:%
 % \begin{subequations}
 \begin{align}
-    \lidfunc(\str) = \argmax_{\lang\in\languages} p(\lang\mid \str)
+    \lidfunc(\str) = \argmax_{\lang\in\languages} \corrrev{\model}(\lang\mid \str)
    =\argmax_{\lang\in\languages}p_{\unigramdistlang}(\tokfunc_{\unigramdistlang}(\str)) \nonumber
 \end{align}
+\corrrev{The second equality uses the prior over $\languages$ assumed in \cref{eq:bayes}, which is uniform, and drops that equation's denominator, which does not depend on $\lang$.}
 % \end{subequations}
 
 \paragraph{Computational Complexity.}
 At training time, \unilid estimates a separate unigram distribution for each language by running the EM procedure over the corresponding language-specific corpus. 
 For a corpus $\corpus^\lang$ of total character length \camrev{$T_\lang$} (\eg, number of Unicode code points or bytes), each EM iteration requires computing expected token counts via the forward--backward algorithm, which runs in \camrev{$\mathcal{O}(T_\lang \cdot \maxtoklength)$}, where again $\maxtoklength$ denotes the maximum token length. Parameter updates are linear in the vocabulary size $|\vocab|$. 
-Since per-language distribution parameters are estimated independently, training parallelizes trivially across languages. At inference time, \unilid uses a similar Viterbi-style dynamic program as in \unilm:
+Since per-language distribution parameters are estimated independently, training parallelizes trivially across languages. At inference time, \unilid uses \corrrev{the same Viterbi decoding as} \unilm:
 first building a lattice that enumerates all valid segmentations of a string $\allsegmentations_\vocab(\str)$ and then finding the maximum probability option among them. 
 %; we remind the reader that this runs in $\mathcal{O}(N \cdot \maxtoklength)$ time.  
 The lattice needs only to be constructed once per string, regardless of the number of language-conditional distributions. 
@@ -620,58 +620,66 @@ for their script and which \camrev{receive} misclassified samples for the same r
 \unilid's false positives (578{,}270 of 1{,}779{,}499) are predictions into
 these two groups, whose 1{,}084 languages together hold 3.8\% of the test
 lines by gold label.} Both patterns
-are symptoms of under-fit distribution estimates. \defn{Calibrated \unilid}
-corrects for the two symptoms at inference time; obtaining better estimates
+\corrrev{arise from} under-fit distribution estimates. \defn{Calibrated \unilid}
+corrects \corrrev{for the two patterns} at inference time; obtaining better estimates
 of $\unigramdistlang$ at training time is left to future work.
-The first correction makes the treatment of unseen tokens consistent across
-languages: the log-probability that language $\lang$ assigns to tokens in
-$\vocab$ not observed in $\corpus^\lang$ is \camrev{lowered to one shared
-constant wherever it exceeds it,
+\corrrev{The first correction concerns the tokens in $\vocab$ that never occur
+in $\corpus^\lang$. Base \unilid assigns every such token the smallest value of
+$\log\unigramdistlang$ over $\vocab$, and that value varies with the size of
+$\corpus^\lang$: across the 1{,}940 languages it decreases by 2.04 nats for each
+tenfold increase in the number of training tokens, and its Pearson correlation
+with $\log_{10}$ of that token count is $-0.99$. For each of three languages
+whose corpora were subsampled across two orders of magnitude, the same decrease
+per tenfold increase is measured within that one language, so the quantity that
+determines the value is corpus size and not the identity of the language. The
+training-time probability floor of $10^{-12}$ does not determine it: every value
+lies above that floor, and the smallest distance to it is 7.7 nats. Since
+\cref{eq:lang-id} compares scores across languages, this variation acts as a
+language-dependent offset on every unseen token. Calibrated \unilid lowers the
+value to one shared constant $c$ wherever it exceeds $c$, that is,
 $\log\unigramdistlang[\token] \defeq \min\bigl(\log\unigramdistlang[\token],\, c\bigr)$
-for every $\token$ unseen in $\corpus^\lang$; \corrrev{for the base \unilid
-model 1{,}655 of the 1{,}940 unseen-token values lie above $c$ and are set to
-$c$; the remaining 285 already lie below $c$ and are unchanged, because the
-minimum above never raises a value.}}
-\corrrev{Without this correction, that value is the smallest value of
-$\log\unigramdistlang$ over $\vocab$, and it varies with the size of
-$\corpus^\lang$. Across the 1{,}940 languages, the value decreases by 2.04 nats
-for each tenfold increase in the number of training tokens, and the correlation
-between the value and $\log_{10}$ of that token count is $-0.99$. For each of
-three languages whose corpora were subsampled across two orders of magnitude, the
-same decrease per tenfold increase is measured within that one language, so the
-quantity that determines the value is corpus size and not the identity of the
-language. The training-time
-probability floor of $10^{-12}$ does not determine it: every value lies above
-that floor, and the smallest distance to it is 7.7 nats.} Since \cref{eq:lang-id} compares
-scores across languages, the variation acts as a language-dependent offset on
-every unseen token. \camrev{The correction is applied without renormalizing
+for every $\token$ unseen in $\corpus^\lang$. For 1{,}655 of the 1{,}940
+languages the value lies above $c$ and is set to $c$; for the remaining 285 it
+already lies below $c$ and is unchanged.} \camrev{The correction is applied without renormalizing
 $\unigramdistlang$, so the corrected per-language values are unnormalized
 scores; the decision rule compares them as in \cref{eq:bayes}, and the
 posterior interpretation holds up to this approximation.}
-The second correction \camrev{re-examines low-margin predictions into} the
-two identified groups. Let $s_\lang(\str) = \log
+The second correction \camrev{re-examines} \corrrev{predictions into} the
+two identified groups \corrrev{whose log-probability margin is small}. Let \corrrev{$g_\lang(\str)$} $= \log
 \punigramlang(\tokfunc_{\unigramdistlang}(\str))$ be the score assigned by
-language $\lang$ and $\hat\lang = \argmax_\lang s_\lang(\str)$ the
-prediction. If $\hat\lang$ belongs to either group and $s_{\hat\lang}(\str)$
-exceeds the runner-up score by less than a threshold $\tau_{\hat\lang}$, the
-prediction moves to the highest-ranked of the candidates ranked 2 to 5 that
+language $\lang$ and \corrrev{$\hat\lang = \argmax_\lang g_\lang(\str)$} the
+prediction. \corrrev{The \defn{log-probability margin} of the prediction is the
+top language's log-probability score minus the runner-up's, that is,
+$g_{\hat\lang}(\str)$ minus the second-largest value of
+$g_\lang(\str)$ over $\lang\in\languages$. If $\hat\lang$ belongs to
+either group and its log-probability margin is smaller than a per-language
+threshold $\delta_{\hat\lang}$, the prediction is reassigned to} the highest-ranked of the candidates ranked 2 to 5 that
 has at least 100{,}000 training samples and a score within 21 natural-log
 units of the top candidate; if no candidate qualifies, the prediction is
-unchanged. \camrev{Each threshold $\tau_\lang$ is a percentile of the
-margins on $\lang$'s own training samples for which $\lang$ is the
-top-scoring language, so the threshold bounds the fraction of those samples
-that would fall below it; the corresponding statement for test samples is approximate, both
-because test margins can differ from training margins and because the
-training margins are computed under a distribution estimated from the same
-samples.}
-\camrev{Each $\tau_\lang$ comes from language $\lang$'s own training
-samples. The remaining constants were selected on a validation sample
-excluded from every evaluation in this paper and on a development subset of
-the scored test pool; the held-out subset behind the confirmation intervals
-we report, as well as UDHR, FLORES-200, and CommonLID, entered no constant
-selection, with one exception, the $100{,}000$-sample requirement on
-replacement candidates, fixed before the development split existed
-(\cref{app:protocol} lists which data selected each constant). Because the
+unchanged. \corrrev{Calibrated \unilid is therefore a two-stage rule: it takes
+the argmax of the corrected scores, and then reassigns that prediction under
+the conditions just stated. The final prediction is not in general the argmax
+of \cref{eq:lang-id}.}
+
+\corrrev{The threshold $\delta_\lang$ is set from language $\lang$'s own
+training lines. We take the training lines on which $\lang$ is the
+top-scoring language, compute the log-probability margin of each, and set
+$\delta_\lang$ to a low percentile of those margins. Setting $\delta_\lang$ at
+the $q$th percentile means that $q$ percent of those training lines fall below
+it and would be re-examined. On test data the re-examined fraction is only
+approximately $q$: test margins differ from training margins, and the training
+margins are computed under a distribution that was estimated from the same
+lines. One threshold shared by all languages gives a higher aggregate on the
+held-out part (0.953 against 0.949) but no such per-language statement, and
+under it the per-language F1 of nine languages falls by more than 0.10 each,
+which is why the per-language thresholds are the default (\cref{app:protocol}).}
+\camrev{The remaining constants were selected on two sets: a validation sample
+excluded from every evaluation in this paper, and a development subset of the
+scored test pool. The held-out subset used for the confirmation intervals,
+UDHR, FLORES-200, and CommonLID entered no constant selection, with one
+exception. The $100{,}000$-sample requirement on replacement candidates was
+fixed on the full pool before the development split existed.
+\cref{app:protocol} lists which data selected each constant. Because the
 development subset is part of the scored pool,
 \cref{tab:calibrated_heldout} repeats the comparison of \cref{tab:lid_main}
 on the held-out subset alone.} Apart from the high-entropy-group
@@ -730,7 +738,7 @@ We train supervised \fasttext  \cite{joulin-etal-2017-bag} classifiers using the
 We use the publicly available pre-trained model from their Python package.\footnote{\href{https://github.com/google/cld3}{\myemph{https://github.com/google/cld3}}.}
 %\clara{@ahmetcan can you add a pointer to repo you used?}\ahmetcan{I don't exactly remember it was very hard to run I started from https://github.com/google/cld3 but then I think I used pip install but installing it wasn't straightforward as well}
 Its language coverage does not fully overlap with that of our test sets. 
-Thus, for a fairer comparison, we provide systems' results computed over only the subset of languages covered by \cld (right side of \cref{tab:lid_main}). \corrrev{Each system in those columns is fitted to the subset's languages; \cref{tab:cld3_refit} reports what the full 1{,}940-language \unilid and its calibrated form score on the same slices.}
+Thus, for a fairer comparison, we provide systems' results computed over only the subset of languages covered by \cld (right side of \cref{tab:lid_main}). \corrrev{In those columns \unilid and \fasttext are each fitted to the subset's languages; \cld is the pretrained model described above. \Cref{tab:cld3_refit} reports what the full 1{,}940-language \unilid and its calibrated form score on the same slices.}
 
 \paragraph{\glotlid (pre-trained).}
 \glotlid is the model provided with the GlotLID-C benchmark dataset. Architecturally, it utilizes the \fasttext framework but differentiates itself through its training data curation.  We use their openly available checkpoint, hosted on the same platform as the dataset. 
@@ -740,7 +748,8 @@ authors state that UDHR and FLORES-200 are not part of the training
 set,\footnote{Their contamination check finds that for 57 languages,
 $\leq 10\%$ of UDHR sentences appear in training; see \S3 of
 \citet{kargaran-etal-2023-glotlid}.} so we restrict GlotLID-M evaluations
-to these two benchmarks.
+to these two benchmarks. \corrrev{For those 57 languages the UDHR column of
+\cref{tab:lid_main} favors \glotlid.}
 
 \input{tables/lid_main}
 
@@ -764,10 +773,10 @@ We report standard evaluation metrics for language identification, namely the ma
 
 \subsection{\unilid Training}
 For each benchmark, we learn language-conditional unigram distributions using the EM procedure of the \unilm tokenization algorithm, described in \cref{sec:learning-params}.  
-In all experiments, we initialize the unigram distribution as the uniform distribution and run EM for $20$ rounds.\footnote{We observed empirically that unigram distributions always converged within 20 rounds (\ie, the total variation distance between subsequent rounds fell below $10^{-6}$).}\clara{Footnote comment: could also use the SentencePiece settings to justify $\leq 20$ rounds if that would make the argument stronger \response{tiago} I think saying it converged is enough. Also, it's our own method and not a baseline, so maybe we don't need to motivate it as much as for baselines? (I mean if our own method underperforms a bit at these settings, it's not really a big issue.)} 
+In all experiments, we initialize the unigram distribution as the uniform distribution and run EM for $20$ rounds.\footnote{We observed empirically that unigram distributions always converged within 20 rounds (\ie, the total variation distance between subsequent rounds fell below $10^{-6}$\corrrev{; the total variation distance here is half the sum, over the vocabulary, of the absolute differences between the two rounds' token probabilities}).}\clara{Footnote comment: could also use the SentencePiece settings to justify $\leq 20$ rounds if that would make the argument stronger \response{tiago} I think saying it converged is enough. Also, it's our own method and not a baseline, so maybe we don't need to motivate it as much as for baselines? (I mean if our own method underperforms a bit at these settings, it's not really a big issue.)} 
 To avoid zero-probability segmentations when a token's expected counts are estimated to be 0 under a given language (most common in the few-sample regime), we floor token probabilities at $10^{-12}$ during training. For calibrated \unilid (\cref{sec:calibration}) we use the shared unseen-token constant \corrrev{$c = -17$} (natural log).
 %, re-examine predictions into languages with fewer than 18{,}000 training samples (and four large-corpus languages with unusually flat token distributions), 
-We set each margin threshold $\tau_\lang$ at the $q_\lang = 5\,(1 - N_\lang/18{,}000)$ percentile of language $\lang$'s own training margins for the languages below 18{,}000 samples, and at a fixed 5th percentile for the four high-entropy languages of \cref{sec:calibration}.
+We set each \corrrev{log-probability margin threshold $\delta_\lang$} at the $q_\lang = 5\,(1 - N_\lang/18{,}000)$ percentile of language $\lang$'s own training margins for the languages below 18{,}000 samples, and at a fixed 5th percentile for the four high-entropy languages of \cref{sec:calibration}.
 The full protocol, remaining constants, and their provenance are in \cref{app:protocol}.
 We consider two variants of \unilid: one that uses a dedicated base tokenizer trained on the LID training set, and one that uses the vocabulary of a pretrained language model; more details below.
 
@@ -781,7 +790,7 @@ The base version of \unilid trains a tokenizer on the training split of each ben
 \paragraph{\unilid-X.}
 This variant uses the vocabulary of a pretrained base tokenizer and learns only the per-language unigram distributions. 
 This setting evaluates \unilid’s ability to operate with pretrained, task-agnostic vocabularies. 
-We report results using the \myemph{Mistral-Nemo-Base-2407}\footnote{\href{https://huggingface.co/mistralai/Mistral-Nemo-Base-2407}{\myemph{https://huggingface.co/mistralai/Mistral-Nemo-Base-2407}}.} tokenizer \cite{mistral}, which we refer to as \unilid-Mistral-Nemo. Results obtained with other base tokenizers, which yield comparable performance, are reported in \cref{sec:ablations}.
+We report results using the \myemph{Mistral-Nemo-Base-2407}\footnote{\href{https://huggingface.co/mistralai/Mistral-Nemo-Base-2407}{\myemph{https://huggingface.co/mistralai/Mistral-Nemo-Base-2407}}.} tokenizer \corrrev{\cite{mistral-nemo-2024}}, which we refer to as \unilid-Mistral-Nemo. \corrrev{\Cref{tab:lid_main} also reports \unilid-DeepSeek3.2 and \unilid-Qwen3 on the same benchmarks, and \cref{tab:unilid_llm_comparison} reports six pretrained base tokenizers on WiLI.}
 
 
 
@@ -834,11 +843,10 @@ We report results using the \myemph{Mistral-Nemo-Base-2407}\footnote{\href{https
 \section{Results}\label{sec:results}
 
 \paragraph{Base Results.} 
-We first evaluate \unilid on standard LID benchmarks: GlotLID-C, UDHR, and FLORES-200. Although \unilid is not always the top-performing system in terms of F1, \cref{tab:lid_main} shows that both \unilid and \unilid-Mistral-Nemo achieve competitive macro-averaged F1 scores while consistently maintaining low FPR across both large-scale settings and low-resource datasets. 
-Notably, on the largest evaluation set (full GlotLID-C test), \unilid reduces FPR by roughly 25\% compared to \fasttext (\corrrev{2.02e-5} vs 2.71e-5)---a property that can be more critical than F1 in many LID applications. For example, in web-scale crawling, a poor FPR for a low-resource language can lead to a training corpus dominated by noise (common languages misclassified as rare ones). 
+We first evaluate \unilid on standard LID benchmarks: GlotLID-C, UDHR, and FLORES-200. \unilid is not always the top-performing system in terms of F1. \corrrev{Its macro FPR is below \fasttext's on GlotLID-C (2.02e-5 against 2.71e-5) and on UDHR (1.52e-4 against 1.87e-4), and above \fasttext's on FLORES-200 (2.83e-4 against 2.38e-4) and in all three \cld-subset columns (\cref{tab:lid_main}).}
+Notably, on the largest evaluation set (full GlotLID-C test), \unilid reduces FPR by roughly 25\% compared to \fasttext (\corrrev{2.02e-5} vs 2.71e-5)\corrrev{, a property} that can be more critical than F1 in many LID applications. For example, in web-scale crawling, a poor FPR for a low-resource language can lead to \corrrev{a training corpus in which misclassified lines outnumber correct ones} (common languages misclassified as rare ones).
 %the erroneous assignment of data to a low-resource language is essential.
-%, minimizing the risk of false positives in large-scale filtering pipelines. 
-Overall, these results demonstrate \unilid’s efficacy as a general-purpose LID system.
+%, minimizing the risk of false positives in large-scale filtering pipelines.
 In subsequent sections, we compare primarily against \fasttext. It is the only of these systems for which we can control training data (\glotlid is an instantiation of \fasttext, just with a particular dataset); we cannot control for test-set contamination or sample efficiency with the other systems.
 
 
@@ -851,31 +859,47 @@ every calibration-constant selection \camrev{except the $100{,}000$-sample
 requirement}
 (\cref{app:protocol}), the paired bootstrap interval of the
 improvement over \unilid is \corrrev{$+0.034$} with 95\% interval \corrrev{$[+0.029, +0.038]$}
-(\cref{tab:calibrated_heldout}). \camrev{The gain sits where
-\cref{tab:calibrated_views} reports \unilid's weakness: under the view in
+(\cref{tab:calibrated_heldout}). \corrrev{To obtain that interval we resample the
+1{,}940 languages with replacement 10{,}000 times, compute the difference in
+macro F1 on each resample, and report the 2.5th and 97.5th percentiles of those
+differences.} \camrev{The gain \corrrev{is in the tiers where}
+\cref{tab:calibrated_views} reports \unilid's \corrrev{lowest F1}: under the view in
 which every false positive counts against the predicted language, mean
 per-language F1 rises from \corrrev{0.596} to \corrrev{0.781} for languages with fewer than 500
 training samples, and from \corrrev{0.676} to \corrrev{0.893} for languages with 500 to 1{,}000
-training samples (scored GlotLID-C test pool).} \camrev{The gains are
-specific to test data whose per-language line counts follow the
-collection's natural imbalance, where false-positive volume into
-under-resourced languages matters: on the parallel, equal-support UDHR set
-(366 labels, many of them under-resourced) calibration lowers macro F1
-(\corrrev{0.856} to \corrrev{0.842}), while FLORES-200 (190 labels, mostly larger languages)
-changes little (\corrrev{0.931} to \corrrev{0.932}); \cref{app:protocol} reports the
-balanced-draw measurement of the same effect.}
+training samples (scored GlotLID-C test pool).} \corrrev{The gain appears only
+when per-language test counts follow the collection's natural imbalance. On
+UDHR, where every one of the 366 labels has the same number of lines and many
+of them are under-resourced, calibration lowers macro F1 from 0.856 to 0.842.
+On FLORES-200, whose 190 labels are mostly larger languages, macro F1 changes
+from 0.931 to 0.932. \Cref{app:protocol} reports the same comparison on a
+balanced draw of GlotLID-C.}
 On out-of-domain web-domain data (CommonLID, \cref{tab:commonlid}),
 calibration raises macrolanguage-aware accuracy from \corrrev{0.848} to \corrrev{0.862}\camrev{,
-while tag-level macro F1 moves from \corrrev{0.722} to \corrrev{0.717}}. The
-re-examination touches few lines on benchmarks of larger languages: on
-FLORES-200 it examines 1{,}484 of 192{,}280 lines and moves 799.
+while tag-level macro F1 \corrrev{falls} from \corrrev{0.722} to \corrrev{0.717}}. \corrrev{On
+benchmarks of larger languages the re-examination changes few predictions: on
+FLORES-200 it examines 1{,}484 of 192{,}280 lines and reassigns 799.}
 
 %\Ahmetcan{On dslml we didn't use sentencepiece because it gives an error on dslml we use your custom EM method, Also updated numbers}
 \paragraph{Dialect Differentiation.}
 \cref{tab:per_language_f1} reports results on the DSL-ML 2024 benchmark. 
-\unilid demonstrates strong performance in comparison to participant submissions in the DSL-ML 2024 shared task. On French dialects, \unilid achieves a macro-F1 of 0.534 in comparison to 0.385 for the top shared-task system.  \unilid provides smaller but consistent gains on the other dialect groups as well:  Spanish (0.850 vs 0.823), Portuguese (0.770 vs 0.752), and BCMS (0.769 vs 0.762). 
-It also substantially outperforms \fasttext on macro F1, improving from 0.53 to 0.72. We note that part of this result is driven by the 0.00 F1 achieved by \fasttext on several of the Slavic languages. This poor performance may in part be due to the small amount of training data for those languages (see \cref{app:datasets} for the dataset breakdown), a regime that \cref{fig:samples-accuracy} likewise evinces that \fasttext struggles with. 
-There are several potential reasons why \unilid  performs particularly well in this regime: First, UniLID's vocabulary $\vocab$ provides a structural inductive bias; only per-language token frequencies must be estimated from the data. This stands in contrast to setups like \fasttext, where high-dimensional embeddings for millions of $n$-gram spans must be adjusted to give signal for the language. Second, generative classifiers are known to be more sample-efficient than discriminative ones in low-data regimes \cite{ng2001discriminative}, and UniLID is generative while fastText is discriminative.
+\corrrev{We compare \unilid against the organizers' SVM baseline on the same dev
+split, scored with the shared task's official scoring script
+\cite{chifu-etal-2024-vardial}. That script averages F1 over a group's atomic
+variety labels under a multi-label protocol, while \unilid is scored
+single-label, so we also score the baseline on the dev instances whose gold
+label set holds exactly one label; that restriction is the protocol-matched
+comparison. Against the protocol-matched baseline, \unilid is higher on English
+(0.835 against 0.775), Spanish (0.850 against 0.726) and Portuguese (0.770
+against 0.667), and lower on French (0.534 against 0.638) and BCMS (0.769
+against 0.826). \unilid predicts over all 14 labels while the baseline chooses
+among the 2 or 4 labels of a single group, so any confusion across groups lowers
+\unilid's F1 and leaves the baseline's unchanged: the three margins in
+\unilid's favor are lower bounds and the two against it are upper bounds. We do not compare
+against the shared task's ranked submissions, which are scored on a private
+test split under the multi-label protocol.}
+It also substantially outperforms \fasttext on macro F1, improving from 0.53 to 0.72. \corrrev{Part of that difference is the 0.00 F1 \fasttext obtains on HR, BS, and ME.} This poor performance may in part be due to the small amount of training data for those languages (see \cref{app:datasets} for the dataset breakdown), \corrrev{a setting in which \fasttext also scores low when the WiLI training set is subsampled (\cref{fig:samples-accuracy}: 10.5\% at five samples per language). The three labels on which the two systems differ most also have the fewest dev instances: 16 for HR, 16 for BS and 4 for ME (\cref{tab:dialect_stats}), so one flipped prediction changes an F1 in those columns by roughly 0.25.}
+\corrrev{\unilid's vocabulary $\vocab$ provides a structural inductive bias, so only per-language token frequencies must be estimated from the data, whereas \fasttext must adjust high-dimensional embeddings for millions of $n$-gram spans. Generative classifiers are also known to be more sample-efficient than discriminative ones when training data is scarce \cite{ng2001discriminative}, and \unilid is generative while \fasttext is discriminative. Neither explanation is isolated by an experiment here.}
 
 
 %---one characterized by high lexical overlap and minimal orthographic differences---supports the hypothesis that treating segmentation as language-specific provides a meaningful advantage in fine-grained classification settings.
@@ -956,24 +980,22 @@ There are several potential reasons why \unilid  performs particularly well in t
 
     \end{axis}
     \end{tikzpicture}}
-    \caption{Sample efficiency analysis on WiLI (mean $\pm$ std). \unilid achieves substantially higher accuracy in the low-resource regime while maintaining consistently low variance across runs.}
+    \caption{\corrrev{Sample efficiency on WiLI: accuracy against the number of training samples per language, reported as the mean and standard deviation over repeated subsampling runs. \unilid's accuracy is higher than \fasttext's at every subsample size, and its standard deviation is below 1 accuracy point at every subsample size.}}
     \label{fig:samples-accuracy}
 \end{figure}
 
 \paragraph{Low-resource Regime.}
 We evaluate sample efficiency on WiLI by varying the training dataset size.\tiago{Table 1 seems to have quite mixed results, but all the extra experiments are on Wili in which we seem quite better. So maybe justifying why wili could be nice?}
-Concretely, we train each model on a subset of the WiLI training set, created by taking $K$ points from each language set. \textit{E.g.}, at $K=5$, there are a total of $5\times |\languages|$ data points in the entire training set; training subsets are the same for each model at a given value of $K$. 
-\cref{fig:samples-accuracy}\tiago{Table 4 currently appears before Table 3. Maybe we should switch their order.} shows system accuracy as a function of $K$.  
+Concretely, we train each model on a subset of the WiLI training set, created by taking \corrrev{$J$} points from each language set. \textit{E.g.}, at \corrrev{$J=5$}, there are a total of $5\times |\languages|$ data points in the entire training set; training subsets are the same for each model at a given value of \corrrev{$J$}.
+\cref{fig:samples-accuracy}\tiago{Table 4 currently appears before Table 3. Maybe we should switch their order.} shows system accuracy as a function of \corrrev{$J$}.
 Results show that \unilid dramatically outperforms \fasttext\footnote{We tuned \fasttext extensively for this setting but could not improve performance; the best configuration is reported here, with a subset of our sweep of \fasttext hyperparameters in \cref{app:fasttext_epochs}. } in the low-resource regime. 
-With as few as 5 samples per language, \unilid achieves $\sim$70\% accuracy, while \fasttext fails to generalize. 
-Performance remains strong even with fewer than 50 samples per language, highlighting the strength of \unilid in scenarios in which labeled data is scarce or expensive to obtain.
+\corrrev{With 5 samples per language, \unilid reaches 69\% accuracy against 10.5\% for \fasttext; at 25 samples per language \unilid reaches 89\% and at 50 it reaches 93\% (\cref{tab:samples-accuracy}).} This is the setting in which labeled data is scarce or expensive to obtain.
 We provide the values displayed in \cref{fig:samples-accuracy} in \cref{tab:samples-accuracy} in \cref{app:additional_results}.
 
 \paragraph{Out-of-domain Performance.}
 \cref{tab:tatoeba_udhr_comparison} evaluates generalization by training on Wikipedia (WiLI) and testing on short, noisy community-contributed text (Tatoeba) and formal legal documents (UDHR). 
-\unilid demonstrates superior domain robustness, \emph{more than doubling} the Macro F1 of \fasttext on Tatoeba (\corrrev{0.420} vs. 0.160).
-%While performance drops compared to in-domain evaluation, \unilid achieves strong performance on UDHR relative to the \fasttext baseline. 
-These results evince the generalization abilities of the \unilid approach, particularly for short, informal inputs, which is a domain in which current SOTA systems struggle.
+\unilid \corrrev{more than doubles the macro F1 of \fasttext on Tatoeba (0.420 against 0.160), and is 0.017 above it on UDHR (0.866 against 0.849)}.
+%While performance drops compared to in-domain evaluation, \unilid achieves strong performance on UDHR relative to the \fasttext baseline.
 
 
 
@@ -982,11 +1004,11 @@ These results evince the generalization abilities of the \unilid approach, parti
 
 \paragraph{Robustness Analysis.}
 \cref{tab:length_accuracy} reports accuracy as a function of input length on WiLI. 
-\unilid consistently outperforms \fasttext across all length buckets, with the largest gains observed for shorter inputs, which is a regime in which most LID systems struggle. 
+\unilid consistently outperforms \fasttext across all length buckets, \corrrev{and the difference is largest for the shortest inputs: 2.3 accuracy points at 101 to 150 characters, against 0.3 points at 1000 characters and above}.
 This highlights the robustness of \unilid's language-specific segmentation assumptions for low-context settings, which are common in practical LID applications, such as determining the language of social media posts.
 
 \paragraph{Vocabulary Sensitivity.}
-\cref{tab:lid_main} includes three UniLID-X variants that reuse off-the-shelf LLM tokenizer vocabularies (Mistral-Nemo, DeepSeek-3.2, Qwen-3); all are \corrrev{within 0.03 macro F1}
+\cref{tab:lid_main} includes three \unilid-X variants that reuse off-the-shelf LLM tokenizer vocabularies (\corrrev{\unilid-Mistral-Nemo, \unilid-DeepSeek3.2, \unilid-Qwen3}); all are \corrrev{within 0.03 macro F1}
 of base UniLID on GlotLID-C, with similar behavior for other LLM
 tokenizers (\cref{app:additional_results}).
 The gap in F1 is not negligible though. Clearly, training the base \unilid tokenizer on broad multilingual data, such that it attains a comprehensive multilingual vocabulary, does lead to better performance---both in-distribution (e.g., GlotLID-C train $
@@ -995,7 +1017,7 @@ LLM tokenizers, on the other hand, are optimized for general-purpose language mo
 accordingly recommend, for production deployment, training the base
 tokenizer once on a broad, web-representative multilingual corpus, and
 then estimating per-language unigram distributions incrementally as data
-for new languages arrives. \unilid-X is intended as a convenience mode for practitioners who wish to reuse an existing LLM tokenizer or to integrate LID into an existing LLM tokenization pipeline at no additional vocabulary cost.
+for new languages arrives. \unilid-X is intended as a convenience mode for practitioners who wish to reuse an existing LLM tokenizer or to integrate LID into an existing LLM tokenization pipeline \corrrev{without training a second vocabulary}.
 We additionally explore the effect of vocabulary size in \cref{app:additional_results}. 
 %: training base tokenizers with vocabularies ranging in size from 10$k$ to 200$k$ tokens. 
 Performance improves modestly with increasing vocabulary size before plateauing, suggesting that UniLID is relatively robust to this choice and does not require extremely large vocabularies to perform well.
@@ -1044,7 +1066,7 @@ that adding a language needs only that language's own data.
 
 \unilid extends naturally to text classification tasks outside of LID: nothing in the formulation is specific to LID, so estimating a separate unigram distribution per class and scoring by Viterbi segmentation applies to any partition of text with distinct subword statistics, such as domain, register, or source identification.
 The unigram assumption of \unilid could also be relaxed to incorporate token dependencies, for example via language-conditional $n$-gram models over token sequences, either built directly into the generative model formulation or learned over text already segmented with the unigram model. This would substantially increase computational complexity, especially in the first case, where segmentation would need to account for token-pair interactions.
-To mitigate the scaling of inference cost and memory with the number of languages, two directions could be explored: hierarchical decoding, which reduces the effective $|\languages|$ by first selecting a script or language family (\eg, via a script detection filter) before discriminating within it, and sparse per-language distribution representations, since per-language distributions are sparse after EM convergence.
+\corrrev{Hierarchical decoding would reduce the effective $|\languages|$ by first selecting a script or language family (\eg, via a script detection filter) and then discriminating within it. Sparse representations of the per-language distributions would reduce memory, since those distributions are sparse after EM convergence. Either would mitigate the scaling of inference cost and memory with the number of languages.}
 %Another promising direction is to explore approximate marginalization over segmentations, rather than relying on the most probable segmentation as a point estimate.
 %Incorporating uncertainty over tokenizations may further improve robustness in low-resource and highly ambiguous settings.
 
@@ -1112,7 +1134,7 @@ In LID, UDHR is only used as a test set, and its domain differs from most LID tr
 \paragraph{FLORES-200 \citep[eval only;][]{nllb2022}.} 
 FLORES-200  is another benchmark consisting of parallel texts. It covers 204 languages. 
 Unlike crowdsourced datasets, FLORES-200 consists of professional translations of sentences extracted from Wikimedia projects (WikiNews, WikiVoyage, and WikiBooks). 
-It thus provides a robust measuring stick against which we can assess low-resource language performance. We do not train on the FLORES-200 dataset; we evaluate on the \texttt{devtest} portion.
+\corrrev{It thus provides a controlled test set for assessing performance on low-resource languages.} We do not train on the FLORES-200 dataset; we evaluate on the \texttt{devtest} portion.
 
 
 \paragraph{DSL-ML 2024 \cite{chifu-etal-2024-vardial}.}
@@ -1124,7 +1146,7 @@ We use the train and dev splits released by the shared task, training on the tra
 \input{tables/dialect_stats}
 
 \paragraph{WiLI-2018 \citep{Thoma2018TheWB}.} The Wikipedia Language Identification benchmark  contains 235,000 paragraphs balanced equally across 235 languages, all derived from Wikipedia.
-We use WiLI-2018 to study data efficiency, base tokenizer choice, and the impact of input sequence length on classification accuracy, as it provides sufficient depth (1,000 samples per language, 500 train/500 test) to support statistically significant ablation studies. 
+We use WiLI-2018 to study data efficiency, base tokenizer choice, and the impact of input sequence length on classification accuracy, as it provides sufficient depth (1,000 samples per language, 500 train/500 test) \corrrev{to support ablations with 500 test samples per language}.
 We use the official train/test splits.
 
 \paragraph{Tatoeba (eval only) \cite{tiedemann-2020-tatoeba}.} Tatoeba is a large, community-curated multilingual corpus of short, user-contributed sentences covering hundreds of languages and language varieties.
@@ -1133,7 +1155,7 @@ We use the official train/test splits.
 \paragraph{CommonLID (eval only).} \camrev{CommonLID is a web-domain
 evaluation set of 373{,}230 lines drawn from Common Crawl, labeled with 109
 bare ISO 639-3 tags, including macrolanguage tags such as Arabic, Malay,
-and Chinese [citation to confirm]. Because its labels carry no script and
+and Chinese \corrrev{\citep{suarez-etal-2026-commonlid}}. Because its labels carry no script and
 include macrolanguages while \unilid predicts language--script labels, we
 map each prediction to its ISO 639-3 code and score with
 macrolanguage-aware accuracy: a prediction is correct if its code equals
@@ -1201,8 +1223,8 @@ unrestricted so that an error into any of the 1{,}940 labels counts against the
 gold language. \Cref{tab:cld3_refit} reports that transfer for \unilid and for its
 calibrated form, beside the subset-fitted \unilid of the main table: transfer
 costs 0.002 macro F1 on GlotLID-C, 0.009 on UDHR and 0.006 on FLORES-200. The
-calibration of \cref{tab:lid_main}'s subset rows moves each benchmark in the same
-direction as it moves the full system on the same slices: up on GlotLID-C and
+calibration of \cref{tab:lid_main}'s subset rows changes each benchmark's macro F1 in the same
+direction as it changes that of the full system on the same slices: up on GlotLID-C and
 FLORES-200, down on UDHR. Most of that GlotLID-C gain is one language: Corsican
 rises from F1 0.439 to 0.947, which is 0.0061 of the column's 0.0070.}
 
@@ -1224,16 +1246,16 @@ rises from F1 0.439 to 0.947, which is 0.0061 of the column's 0.0070.}
 \section{\fasttext Hyperparameter Sensitivity on Dialect Identification}
 \label{app:fasttext_epochs}
 
-To validate the \fasttext configuration used in our dialect experiments (\cref{sec:results}), we ran a hyperparameter sweep over the number of training epochs and the minimum word-count threshold ($MC$) on the DSL-ML 2024 train/dev splits. \Cref{tab:fasttext_epoch_sweep} reports per-dialect F1 along with the macro-averaged F1 across all 14 labels. Performance improves monotonically with more epochs, with the 100-epoch + \texttt{min-count}=1000 configuration achieving the best macro F1. We use this best-performing configuration as our \fasttext baseline throughout the paper. Crucially, the three South Slavic dialects (HR, BS, ME) remain at 0.000 F1 across \emph{every} \fasttext configuration in the sweep, indicating that \fasttext fails on these closely related dialects regardless of training budget.
+To validate the \fasttext configuration used in our dialect experiments (\cref{sec:results}), we ran a hyperparameter sweep over the number of training epochs and the minimum word-count threshold ($MC$) on the DSL-ML 2024 train/dev splits. \Cref{tab:fasttext_epoch_sweep} reports per-dialect F1 along with the macro-averaged F1 across all 14 labels. \corrrev{Macro F1 rises with the number of epochs at the default minimum word count, from 0.1154 at 1 epoch to 0.3026 at 5 and 0.3607 at 10, and the best configuration in the sweep is 100 epochs with \texttt{min-count}=1000, at 0.532. The one step that does not follow this pattern is \texttt{min-count}=10 at 10 epochs, which scores 0.3277, below the 0.3607 of 10 epochs at the default minimum word count.} We use \corrrev{the 100-epoch, \texttt{min-count}=1000} configuration as our \fasttext baseline throughout the paper. Crucially, the three South Slavic dialects (HR, BS, ME) remain at 0.000 F1 across \emph{every} \fasttext configuration in the sweep, indicating that \fasttext fails on these closely related dialects regardless of training budget.
 
 
 
 \section{Inference Latency and Training Time}
 \label{app:efficiency}
 
-For reference, \fasttext and \cld share a similar input-processing cost linear in $N$: \fasttext extracts character n-grams over a sliding window ($\mathcal{O}(N \cdot k)$ for window size $k$).
+For reference, \fasttext and \cld share a similar input-processing cost linear in \corrrev{the input string length $T$}: \fasttext extracts character n-grams over a sliding window (\corrrev{$\mathcal{O}(T \cdot k)$} for window size $k$).
 %and \cld does likewise before a shallow feed-forward classifier.
-It then averages n-gram embeddings ($\mathcal{O}(N \cdot d))$ and scores all languages with a single matrix multiplication ($\mathcal{O}(d \cdot|\languages|)$); \cld's scoring is asymptotically equivalent. The structural difference is that the language-scoring step in \fasttext and \cld is independent of input length, whereas UniLID's scales with $N$. In practice this is offset by the fact that the segmentation lattice is constructed once and reused across languages.
+It then averages n-gram embeddings (\corrrev{$\mathcal{O}(T \cdot d))$} and scores all languages with a single matrix multiplication ($\mathcal{O}(d \cdot|\languages|)$); \cld's scoring is asymptotically equivalent. The structural difference is that the language-scoring step in \fasttext and \cld is independent of input length, whereas \corrrev{\unilid's scales with $T$}. In practice this is offset by the fact that the segmentation lattice is constructed once and reused across languages.
 %and the branching factor $b$ is small (1–5 in our experiments).
 
 \Cref{tab:latency_glotlid,tab:latency_wili} \camrev{report} end-to-end inference latency and throughput for \unilid, \fasttext, and \cld measured on the same hardware. On GlotLID-C ($|\languages|=1940$), \unilid is approximately \camrev{$1.85\times$} slower than \fasttext per sample; on WiLI ($|\Lambda|=235$), \camrev{the difference narrows to $1.4\times$} and \unilid is over $2.7\times$ faster than \cld. \Cref{tab:training_time} compares wall-clock training time for the GlotLID-C training set.
@@ -1248,13 +1270,13 @@ It then averages n-gram embeddings ($\mathcal{O}(N \cdot d))$ and scores all lan
 
 \section{Performance Breakdown}\label{app:perf-breakdown} In order to understand its strengths and weaknesses, we analyze \unilid's performance along three axes: writing script, training-data quantity, and segmentation length under predicted vs. true language.
 \subsection{Script}
-\cref{tab:script-breakdown} partitions GlotLID-C test performance by Unicode script. UniLID performs almost identically to \fasttext on Latin-script languages (1,700 of the 1,940 labels; F1 \corrrev{0.944} vs. 0.946), but underperforms on every non-Latin script. The gaps are largest on Greek ($\Delta$ F1 = \corrrev{-0.250}), Hebrew (\corrrev{-0.229}), Devanagari (-0.121), and Bengali (\corrrev{-0.106}). \camrev{We attribute this to the base vocabulary ($\vocab$) of the tokenizer: $\vocab$ is learned by \unilm on 1{,}000 samples per language of the GlotLID-C training corpus, in which 1{,}700 of the 1{,}940 languages are Latin-script, so most of the vocabulary's training text is Latin-script.} A Latin-biased $\vocab$ leaves languages in other scripts with fewer informative subword units, which in turn limits how much signal per-language unigram estimation can recover.
+\cref{tab:script-breakdown} partitions GlotLID-C test performance by Unicode script. UniLID performs almost identically to \fasttext on Latin-script languages (1,700 of the 1,940 labels; F1 \corrrev{0.944} vs. 0.946), but underperforms on every non-Latin script. The gaps are largest on Greek ($\Delta$ F1 = \corrrev{-0.250}), Hebrew (\corrrev{-0.229}), Devanagari (-0.121), and Bengali (\corrrev{-0.106}). \camrev{We attribute this to the base vocabulary ($\vocab$) of the tokenizer: $\vocab$ is learned by \unilm on 1{,}000 samples per language of the GlotLID-C training corpus, in which 1{,}700 of the 1{,}940 languages are Latin-script, so most of the vocabulary's training text is Latin-script.} \corrrev{A vocabulary learned mostly from Latin-script text contains fewer multi-character tokens for other scripts. Per-language estimation can only reweight the tokens that exist in $\vocab$, so strings in those scripts are segmented into shorter tokens.}
 Larger vocabularies help modestly (\cref{app:additional_results}) but do not close the gap. The most direct solution would be  to train $\vocab$ on a script-balanced or script-upsampled corpus so that non-Latin substrings receive proportional coverage in $\vocab$. We leave this exploration to future work. 
 \input{tables/script-breakdown}
 
 
 \subsection{Resource Tier}
-\cref{tab:resource-tier} stratifies results by per-language training-sample count. \camrev{\unilid matches or exceeds \fasttext for languages with 500$+$ training samples.} The differences arise in the very low resource settings: \unilid lags slightly on languages with fewer than 500 training samples. Many of the low-resource languages in GlotLID-C are from non-Latin scripts. Because our experiments on low-resource languages of the same script (\cref{sec:results}) provide evidence that \unilid performs \emph{better} than \fasttext in this setting, we hypothesize that the aforementioned script-bias issue (a property of the vocabulary) is a confounder for these sets of experiments. 
+\cref{tab:resource-tier} stratifies results by per-language training-sample count. \camrev{\unilid matches or exceeds \fasttext for languages with 500$+$ training samples.} The differences arise in the very low resource settings: \unilid lags \fasttext on languages with fewer than 500 training samples, \corrrev{by 0.058 macro F1 in the within-stratum view of this table (0.857 against 0.915) and by 0.154 in the global view of \cref{tab:calibrated_views} (0.596 against 0.750)}. \corrrev{Many of the low-resource languages in GlotLID-C are written in non-Latin scripts, so this tier confounds training-sample count with script: many of the languages below 500 training samples are also languages for which $\vocab$ holds few multi-character tokens (\cref{tab:script-breakdown}), and the tier result therefore cannot be attributed to sample count alone. Our WiLI subsampling experiments (\cref{sec:results}) do not separate the two either, because they reduce the training data of all 235 WiLI languages at once, across scripts.}
 
 %; in the high-resource setting,  \fasttext has enough data to learn robust and informative $n$-gram embeddings. 
 
@@ -1273,19 +1295,19 @@ We checked whether this manifests as a systematic bias in errors and find that o
 \paragraph{Full mechanism specification.} Calibrated \unilid
 (\cref{sec:calibration}) re-examines a prediction when (i) the predicted
 language has fewer than 18{,}000 training samples, or is one of the four
-high-entropy languages defined next, and (ii) the top score exceeds the
-runner-up score by less than the predicted language's threshold
-$\tau_\lang$. A language belongs to the high-entropy group when the entropy
+high-entropy languages defined next, and (ii) \corrrev{the line's
+log-probability margin is smaller than the predicted language's threshold
+$\delta_\lang$}. A language belongs to the high-entropy group when the entropy
 of its estimated distribution $\unigramdistlang$, standardized among the
-languages sharing its script (a z-score computed with the median and the
-median absolute deviation), exceeds $1.5$ AND the language received more
-than twice as many misclassified validation samples as it has validation
+languages sharing its script (\corrrev{the entropy minus the median entropy of
+the languages in that script, divided by their median absolute deviation}), exceeds $1.5$ AND the language received more
+than twice as many misclassified \corrrev{selection-half} samples as it has \corrrev{selection-half}
 samples of its own, or when the standardized entropy alone exceeds $5$;
 restricted to languages with at least 18{,}000 training samples (so the two
 re-examined groups are disjoint), this selects Scots, Banjar, Aragonese, and
-West Flemish. \camrev{The margin of a line is the top score minus the
+West Flemish. \camrev{The \corrrev{log-probability} margin of a line is the top score minus the
 runner-up score, computed under the distributions with the unseen-token
-constant applied.} The percentile defining $\tau_\lang$ is
+constant applied.} The percentile defining \corrrev{$\delta_\lang$} is
 $q_\lang = 5\,(1 - N_\lang/18{,}000)$ for a language with $N_\lang$ training
 samples, and a fixed 5th percentile for the high-entropy group\camrev{; each
 threshold is estimated from the margins on up to 2{,}000 of the language's
@@ -1303,7 +1325,7 @@ re-examination, held-out macro F1 rises from \corrrev{0.916} to 0.930.
 
 \paragraph{Provenance of the constants.} The unseen-token constant
 \corrrev{$c = -17$ was chosen from a sweep over $\{-15, -17, -19, -21\}$} on \camrev{the
-excluded validation sample described in the development protocol below;
+\corrrev{selection half} described in the development protocol below;
 the proximity bound $21$ from a grid search over values from $0.5$ to $100$
 on the development part; overall macro F1 on that part varies by less than
 $0.0003$ across bounds from roughly $15$ to $35$, so $21$ is a
@@ -1316,9 +1338,9 @@ $18{,}000$-sample boundary, the entropy z-score thresholds of $1.5$ and
 $5$, the absorption factor $2$, the fixed 5th percentile, the form of
 $q_\lang$, and the rank cutoff of $5$) were fixed during development; no
 search over alternatives was recorded for them}. The
-misclassified-validation-sample count in the
-high-entropy-group criterion is computed on \camrev{the excluded validation
-sample}. All
+\corrrev{misclassified-sample count} in the
+high-entropy-group criterion is computed on \camrev{the \corrrev{selection
+half}}. All
 constants are frozen before evaluation on the held-out reporting subset,
 which was excluded from every one of these selections except the
 $100{,}000$-sample \camrev{requirement}, fixed from a false-positive profile measured on the
@@ -1326,10 +1348,14 @@ whole \camrev{45.0M-line pool remaining after the two draws were removed,}
 before this split existed.
 
 \paragraph{Development protocol.} \camrev{The GlotLID-C test data contains
-45{,}627{,}279 lines. A 250{,}000-line validation sample (half of a
-uniformly drawn 500{,}000-line sample, fixed seed) was set aside early in
-development and used only for selection; it is excluded from every number
-computed for this revision, leaving 45{,}377{,}279 scored lines.} The
+45{,}627{,}279 lines. \corrrev{A $500{,}000$-line sample was drawn uniformly
+from them with a fixed seed and split into two halves of $250{,}000$ lines. We
+call the first the \defn{selection half}: it was set aside early in development
+and used only to select constants, and it is excluded from the GlotLID-C
+numbers we report for \unilid and calibrated \unilid, leaving
+$45{,}377{,}279$ scored lines. We call the second the \defn{diagnostic half};
+it stays inside the scored pool and is the subset on which
+\cref{tab:lenbias-delta,tab:lenbias-norm} are computed.}} The
 constants were selected on data disjoint from
 the subset used to report their effect. From the 45{,}377{,}279 scored lines
 of the GlotLID-C test pool, we removed two balanced draws (188{,}061 and
@@ -1337,17 +1363,36 @@ of the GlotLID-C test pool, we removed two balanced draws (188{,}061 and
 the remaining 45{,}004{,}014 lines by a seeded 40/60 partition (seed 301)
 into a development part (18{,}001{,}573 lines) and a held-out part
 (27{,}002{,}441 lines). The unseen-token constant was selected on \camrev{the
-excluded validation sample}; the proximity bound on the
+\corrrev{selection half}}; the proximity bound on the
 development part; the re-examination thresholds on each language's own
 training samples. The held-out part was used only to confirm each candidate
 configuration once, and it is the subset on which the paired bootstrap
 intervals in this appendix are computed. \Cref{tab:calibration_provenance}
-lists each selected component with its selection data. \camrev{\Cref{tab:lid_main}
-reports the full scored pool for the rows computed in this revision; the
-rows carried over from the original submission were computed on all
-45{,}627{,}279 lines, and \fasttext macro F1 on the scored pool differs
-from the printed full-file cell by $3.4\times10^{-4}$;}
+lists each selected component with its selection data.
 \cref{tab:calibrated_heldout} repeats the comparison on the held-out part.
+
+\paragraph{Provenance of the main results table.} \corrrev{The
+GlotLID-C cells of the \unilid and calibrated \unilid rows of
+\cref{tab:lid_main} are macro-averaged
+over the 1{,}940 labels on the $45{,}377{,}279$ scored lines defined above. The
+GlotLID-C cells of the remaining rows are computed on all $45{,}627{,}279$
+test lines; \fasttext macro F1 on the smaller pool differs from the value
+printed for the full file by $3.4\times10^{-4}$. The calibrated row's
+full-pool GlotLID-C cells include the development part, on which two of the
+calibration constants were selected, which is why \cref{tab:calibrated_heldout}
+repeats the comparison on the held-out part alone. In the \cld-subset columns
+the \unilid row comes from models whose base vocabulary and per-language
+distributions are trained only on that subset's languages, by the procedure of
+\cref{sec:exp_setup}, and \fasttext is likewise trained on the subset languages
+alone. The calibrated row's \cld-subset cells apply the procedure of
+\cref{sec:calibration} to each subset model with every constant fixed on the
+full model and carried unchanged; no hyperparameter was swept for the subset,
+and only the language groups and the per-language thresholds are recomputed,
+which the procedure defines as functions of the model being calibrated. The
+high-entropy group is empty on all three subsets, so re-examination there
+applies to the low-resource group alone. The three \unilid-X rows use fixed
+pretrained vocabularies, which cannot be fitted to a subset, so their
+\cld-subset cells are not comparable with the subset-fitted \unilid row.}
 
 \input{tables/calibration_provenance}
 
@@ -1362,10 +1407,10 @@ for \unilid: a balanced draw removes most of the false-positive volume that
 \camrev{the calibration corrects}, so the gain does not appear there.
 \Cref{tab:commonlid} reports an out-of-domain web-domain evaluation
 (CommonLID): calibration raises macrolanguage-aware accuracy from \corrrev{0.848} to
-\corrrev{0.862} while tag-level macro F1 moves from \corrrev{0.722} to \corrrev{0.717}\camrev{: the
+\corrrev{0.862} while tag-level macro F1 \corrrev{falls} from \corrrev{0.722} to \corrrev{0.717}\camrev{: the
 calibration reduces predictions into languages outside the 109-tag set
 (\corrrev{32{,}525} to \corrrev{25{,}994} lines), which raises accuracy, while the
-re-examination also moves some correct low-margin lines, which lowers
+re-examination also \corrrev{reassigns} some correct low-margin lines, which lowers
 tag-level macro F1. Both measurements point to the setting in which the
 method's gains should be expected: test data whose per-language line counts
 follow the collection's natural imbalance, over a label set that includes
@@ -1373,32 +1418,29 @@ under-resourced languages.}
 
 \input{tables/commonlid}
 
-\paragraph{Alternatives measured during development.} Three within-family
-alternatives are informative. (i) Recalibrating each language's unseen-token
-mass from its own Good-Turing estimate, instead of the shared constant,
+\paragraph{Alternatives measured during development.} (i) Recalibrating each language's unseen-token
+mass from its own Good-Turing estimate \corrrev{(the estimate that assigns the
+unseen tokens the total probability of the tokens seen exactly once)}, instead of the shared constant,
 raises false positives into the under-1{,}000-sample languages from
 22{,}404 to 79{,}113 \camrev{(counted over the 45.0M-line pool remaining
 after the two draws were removed)}: each
 language's own calibration is \camrev{accurate} in isolation, but the cross-language
 comparison needs the shared value. (ii) Applying the unseen-token constant
 only to languages with fewer than 18{,}000 training samples (leaving the
-larger languages' unseen-token values as trained) is statistically
-indistinguishable from applying it to every language ($+0.0002$, 95\%
-interval $[-0.0003, +0.0006]$, held-out part). (iii) Replacing the per-language re-examination thresholds with one
+larger languages' unseen-token values as trained) \corrrev{changes held-out
+macro F1 by $+0.0002$ with 95\% interval $[-0.0003, +0.0006]$; the interval
+contains zero, so this measurement does not separate it from} applying it to every language. (iii) Replacing the per-language re-examination thresholds with one
 shared threshold, with the \camrev{replacement-candidate requirement} also lowered to
 18{,}000 samples, gives a higher aggregate (0.953 on the held-out part) but
-\camrev{the per-language F1 of 9 languages falls by more than 0.10 each: a
-per-language threshold set at a percentile of that language's own training
-margins bounds, on those training lines, the fraction that falls below it;
-one shared value gives no such per-language bound.}
+\camrev{the per-language F1 of 9 languages falls by more than 0.10 each\corrrev{; \cref{sec:calibration} states why the per-language thresholds are the default}.}
 
 \paragraph{Transfer to a pretrained-vocabulary variant.} To test whether the
 calibration depends on the dedicated tokenizer, we retrained the
-\unilid-Mistral-Nemo variant with the recipe of \cref{sec:exp_setup} (an
-independent training run; the published row in \cref{tab:lid_main} is
-unchanged) and re-derived every calibration component for the new
+\unilid-Mistral-Nemo variant with the recipe of \cref{sec:exp_setup} (\corrrev{a
+training run independent of the one behind the \unilid-Mistral-Nemo row of
+\cref{tab:lid_main}}) and re-derived every calibration component for the new
 vocabulary by the procedures of this appendix: its own thresholds
-$\tau_\lang$, its own unseen-token treatment (\corrrev{509 languages whose trained
+\corrrev{$\delta_\lang$}, its own unseen-token treatment (\corrrev{509 languages whose trained
 unseen-token values already lie at or below $c = -17$ are left unchanged}), and
 its own high-entropy group, for which the criteria above select Banjar,
 Scots, and Serbian in Latin script. \Cref{tab:calibrated_nemo} reports the
@@ -1416,7 +1458,7 @@ at least 18{,}000 training samples, and 88.6\% of those are confusions with
 another such language, concentrated in close pairs (Indonesian and Standard
 Malay, \corrrev{31{,}105} lines; Standard Arabic and Najdi Arabic; Mandarin and Wu
 Chinese). No unseen-token treatment changes such a pair's score comparison
-materially, so this is the boundary of the mechanism family; \cref{sec:disc}
+materially, so this is \corrrev{the limit of this class of corrections}; \cref{sec:disc}
 sketches what reaching past it would require.
 
 

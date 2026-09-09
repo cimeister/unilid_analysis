@@ -2,7 +2,7 @@
     \centering
     \begin{tabular}{lrr}
         \toprule
-        \textbf{Dialect} & \textbf{Train Samples} & \textbf{Test Size} \\
+        \textbf{Dialect} & \textbf{Train Samples} & \corrrev{\textbf{Dev Size}} \\
         \midrule
         FR-BE & 122,369 & 7,543 \\
         FR-CH & 116,490 & 1,027 \\
@@ -20,6 +20,6 @@
         ME    & 34      & 4     \\
         \bottomrule
     \end{tabular}
-    \caption{Train and test set sizes by dialect on DSL-ML 2024. We provide these details to help explain the results observed in \cref{tab:per_language_f1}.}
+    \caption{\corrrev{Train and dev set sizes by dialect on DSL-ML 2024; the dev split is the one all DSL-ML results in this paper are evaluated on (\cref{app:datasets}). We provide these details to help explain the results observed in \cref{tab:per_language_f1}.}}
     \label{tab:dialect_stats}
 \end{table}

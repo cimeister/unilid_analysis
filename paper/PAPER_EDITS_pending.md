@@ -1,5 +1,9 @@
 # Paper edits required by the corrected model
 
+*Internal documentation: an edit ledger for the paper, not prose for an external
+reader. It quotes the paper's own wording verbatim on both sides of every edit,
+so the quoted spans are evidence rather than this file's own prose.*
+
 Concrete edit list. Each row names the site, the current text, and either the new
 value or the run it waits on. Line numbers are `paper/submission.tex`.
 
@@ -1531,3 +1535,586 @@ subset-vocabulary trainings. What it implies for the VARIANT rows' subset
 cells (fixed LLM tokenizers cannot be subset-fitted, yet their measured
 restricted-argmax cells also miss) is under reassessment; PD-3/PD-5 stay
 closed pending it.
+
+
+---
+
+# R1: reviewer feedback round (2026-09-09)
+
+Input: `PAPER_FEEDBACK.md` (critical feedback on the ICML 2026 final draft), all
+three parts. Author instructions for this round, in substance: address the
+reviewer's points where possible and where they improve the paper; polish all
+pointed-out prose rather than pasting the reviewer's suggested wording; define
+the margin at its first use in Sec. 4 and name it the **log-probability
+margin**; and remove every enumeration-frame sentence of the "this happens for
+two reasons..." family throughout `submission.tex` and every table caption,
+including from the reviewer's own suggested Table 22 rewrite, which contains
+one.
+
+Two agents worked this round. Entries marked *(pred.)* were applied by the first
+agent and reconstructed here from `git diff`; entries marked *(compl.)* were
+applied by the second. Every prose span and every caption span added this round
+is wrapped in `\corrrev{}`, following the marking conventions section above.
+**121 new `\corrrev{}` spans** were added across `submission.tex` and 13 table
+files, against 192 pre-existing spans.
+
+**Line numbers below are navigation aids, not addresses**, following this file's
+opening convention. Every edit was matched on its text; the completing agent's
+seven edits shifted sites after `:312` by one to three lines, so a cited number
+locates the right paragraph rather than the exact line.
+
+Disposition vocabulary: **APPLIED** (in the working tree, with the site);
+**HOLD-AUTHOR** (needs a decision only the author or co-author can make, with
+the exact question); **HOLD-MEASUREMENT** (needs a run, with the run and its
+cost); **DECLINED** (with the reason).
+
+## Disposition summary
+
+| disposition | count |
+|---|---|
+| APPLIED | 71 |
+| HOLD-AUTHOR | 16 |
+| HOLD-MEASUREMENT | 9 |
+| DECLINED | 6 |
+| **total feedback points itemized** | **102** |
+
+Counting note: Part 1's three tables are counted per row, Part 3's four tables
+per row, and Parts 1 and 2's numbered lists per item.
+
+---
+
+## R1.A Part 1, Bayes decision rule
+
+| # | point | disposition |
+|---|---|---|
+| 1 | `\lidfunc` display in Sec. 4 uses the true posterior `p`; restate the uniform prior there | **APPLIED** *(pred.)*, `submission.tex:590`. The middle term is now `\model(\lang\mid\str)`, and a following sentence reads "The second equality uses the prior over $\languages$ assumed in \cref{eq:bayes}, which is uniform, and drops that equation's denominator, which does not depend on $\lang$." `eq:lang-id` at `:361` keeps plain `p`, correctly: that equation defines the task and the next line says the task is to approximate `p` with `\model` |
+| 2 | Calibrated UniLID is not a Bayes decision; write the two-stage rule in Sec. 4 | **APPLIED** *(pred.)*, `submission.tex:658-661`: "Calibrated \unilid is therefore a two-stage rule: it takes the argmax of the corrected scores, and then reassigns that prediction under the conditions just stated. The final prediction is not in general the argmax of \cref{eq:lang-id}." The pre-existing `\camrev{}` sentence claiming the posterior interpretation holds is left standing but is now bounded by this one, which states the exception explicitly |
+| 3 | eq. 11's `def ≈` is not a standard relation | **APPLIED** *(pred.)*, `submission.tex:578-580`. `\defapproxeq` replaced by `\approx`, with "where $\unigramdistlang$ is the estimate at which the EM iteration of \cref{sec:learning-params} converges, and the approximation is the one EM makes." The `\defapproxeq` macro definition at `:164` is now unused; harmless, left in place |
+| 4 | `T_V(s)` has no domain for `v` | **APPLIED** *(pred.)*, `submission.tex:445`: `\{\tokens \in \vocab^* : \detokfunc(\tokens) = \str\}` |
+| 5 | Sec. 1's "comparable to UnigramLM inference" contradicts Sec. 4 and Table 13 | **APPLIED** *(pred.)*, `submission.tex:333`. The comparability claim is replaced by the mechanism (one lattice construction plus one pass per language) and the measured end-to-end ratios: $1.85\times$ slower than \fasttext on GlotLID-C, $1.4\times$ on WiLI, with a pointer to `app:efficiency` |
+| 6 | branching factor `b` "typically 1-5", unmeasured | **HOLD-MEASUREMENT.** The claim is live at `submission.tex:606` (the two other occurrences, `:604` and `:1259`, are commented out). Cost: one scoring pass over the GlotLID-C test pool instrumented to accumulate lattice edge counts and divide by $\sum T$; no training, no new model. Not run here because it would put a new measured number in the paper without the author asking for one |
+
+## R1.B Part 1, symbol reuse
+
+Exhaustive occurrence audit, `submission.tex`, HEAD against working tree
+(`grep -o` counts, comments included):
+
+| pattern | HEAD | now |
+|---|---|---|
+| `\tau_` (threshold) | 7 | **0** |
+| `\tau` (all uses) | 8 | **1** (only `\newcommand{\tokfunc}{\tau}`) |
+| `s_\lang` (score) | 2 | **0** |
+| `g_\lang` (score, new name) | 0 | **3** |
+| `\delta_\lang` | 0 | **7** |
+| `\delta_{\hat\lang}` | 0 | **1** |
+| `\unigramdist^{(N)}` | 1 | **0** |
+| `$K$` as samples per language | 4 | **0** |
+| `$J$` | 0 | **4** |
+| `\mathcal{O}(N` | 3 | 1 + 1, both inside `%` comments |
+
+`\delta` has no other use anywhere in the document, and `g_` occurs only at the
+four new score sites (`:648`--`:654`), so neither rename introduces a new
+collision. No `tau_` occurrence remains in any file under `paper/tables/`.
+
+| symbol | point | disposition |
+|---|---|---|
+| τ | segmentation function vs. margin threshold | **APPLIED** *(pred.)*, threshold renamed **`\delta_\lang`** at all 8 sites: `submission.tex:653`, `:665`, `:667`, `:780`, `:1301`, `:1311`, `:1445`, plus `\delta_{\hat\lang}` at `:655`. `\tau` is now the segmentation function alone |
+| s | string `s` vs. score `s_ℓ(s)` | **APPLIED** *(pred.)*, score renamed **`g_\lang(\str)`** at all 3 sites in Sec. 4 |
+| T | string length vs. `T_V(s)` vs. `T_ℓ` vs. `T_max` vs. App. D's `N` | **APPLIED in part** *(pred.)*: App. D now uses `T` for input length throughout (`:1259`, `:1274`), so `N` no longer means string length. The remaining three senses are typographically distinct: plain `T`, calligraphic `\mathcal{T}_V` (the macro `\allsegmentations`), and subscripted `T_\lang` / `T_{\mathrm{max}}`. **HOLD-AUTHOR** on whether to disambiguate further: renaming `T_\lang` or `T_{\mathrm{max}}` touches the two complexity displays in Sec. 3.3 and Sec. 4 and both are `\camrev{}` spans from the camera-ready pass |
+| N | EM iteration `φ^(N)` vs. `N_ℓ` vs. App. D input length vs. Tables 18/19 count columns | **APPLIED** *(pred.)*: final EM round renamed **`R`** with a gloss ("the estimate after the final EM round $R$", `:541`); App. D's `N` renamed `T`; Table 18's `N` header renamed `# Errors` and Table 19's renamed `# Lines`. `N_\lang` (training-sample count) is now the only `N` in the document |
+| K | corpus size in eq. 7 vs. samples per language in Sec. 6 and Fig. 1 | **APPLIED** *(pred.)*: samples per language renamed **`J`** at all 4 sites (`:990`, `:991` ×2, `:992`). eq. 7's `K` is unchanged |
+| M | "token sequence length" vs. eq. 4 running to `\|v\|` | **APPLIED** *(pred.)*, `submission.tex:460`: the product upper limit is now `\toklength` (= `M`), matching the surrounding text |
+| c | expected count `c_v(v)` vs. unseen-token constant `c = −17` | **HOLD-AUTHOR (invasive).** The two are typographically distinct ($\hat c$ against $c$), so the document is not ambiguous, but the reviewer read them as one symbol. Renaming the constant is invasive: `c` appears in eight prose sites, in `tab:calibration_provenance`, in this ledger, in `outputs_corrected_round/release/calibration_glotlidc_corrected.json`, and in the released code and weight pack, where it is the documented name. Question in R1.HOLD-3 |
+| p^ℓ_θ | introduced in Sec. 4, never used again | **APPLIED** *(pred.)*, `submission.tex:567`: replaced by `\model(\str\mid\lang)`, which is the notation the rest of Sec. 4 uses |
+| macro F1 naming and casing | "Ma-FPR (x1e5)" in Tables 21 and 24; ".933" vs "0.933" | **APPLIED**. Headers: `tab:calibrated_heldout` and `tab:calibrated_nemo` now read `\textbf{Macro FPR ($\times 10^{5}$)}` *(pred.)*. Casing: `submission.tex:347` now reads 0.933 and 0.956 *(pred.)*. `tab:script-breakdown`'s caption opener changed from `Macro-F1` to `Macro F1` *(compl.)*. `tab:lid_main`'s body keeps the leading-dot convention (`.933`) throughout, which is internally consistent and is a table-wide typographic choice, not a naming inconsistency; noted rather than changed |
+| UniLID-X names | Table 1's `UniLID-DeepSeek3.2`, `UniLID-Qwen3` vs. Sec. 6's `DeepSeek-3.2, Qwen-3` | **APPLIED** *(pred.)*, `submission.tex:1012`: the Sec. 6 list now reads `\unilid-Mistral-Nemo, \unilid-DeepSeek3.2, \unilid-Qwen3`, matching Table 1, and the bare `UniLID-X` at the start of that sentence is now the `\unilid` macro |
+
+## R1.C Part 1, claims against reported results
+
+| claim | disposition |
+|---|---|
+| ~70% with five samples | **APPLIED** *(pred.)*, scoped to WiLI in three places: abstract `:297` ("reaches 69\% accuracy with five labeled samples per language and 89\% with 25 when the WiLI training set is subsampled"), Sec. 1 `:345`, and the "This work" paragraph `:426` |
+| ~90% with fewer than 50 samples | **APPLIED** *(pred.)*, `submission.tex:345` and `:993`: "89\% at 25 samples and 93\% at 50", with a pointer to `tab:samples-accuracy` |
+| large dialect gains | **APPLIED in part** *(pred.)*, `submission.tex:901`: the support counts are now in the text ("16 for HR, 16 for BS and 4 for ME (\cref{tab:dialect_stats}), so one flipped prediction changes an F1 in those columns by roughly 0.25"). The abstract's "large gains" is left; see R1.HOLD-9 |
+| incremental addition without retraining | **HOLD-AUTHOR.** Sec. 7 already states that `V` is fixed and App. E.1 states what a script-biased `V` costs, but the abstract and Sec. 1 still assert the property without that qualifier. Question in R1.HOLD-4 |
+| integration into existing tokenization pipelines | **HOLD-AUTHOR**, same question as above. What Table 1's UniLID-X rows show is that LLM vocabularies work, not that an integration was tested |
+| data- and compute-efficient | **HOLD-AUTHOR.** Training time is supported conditionally (Table 15, at 100 epochs); inference is now stated honestly at Sec. 1 `:333` as $1.85\times$ slower than fastText; memory is never reported. Question in R1.HOLD-5, which also covers Part 1 fairness #3 |
+| "consistently maintaining low FPR across both large-scale settings and low-resource datasets" | **APPLIED** *(pred.)*, `submission.tex:847`. The sentence is replaced by the four-way split the table supports: "Its macro FPR is below \fasttext's on GlotLID-C (2.02e-5 against 2.71e-5) and on UDHR (1.52e-4 against 1.87e-4), and above \fasttext's on FLORES-200 (2.83e-4 against 2.38e-4) and in all three \cld-subset columns" |
+| "substantially improves sample efficiency in low-resource settings" | **APPLIED**. The abstract *(pred.)* now names the WiLI subsampling setting. The GlotLID-C `<500` tier numbers are stated where that tier is discussed, App. E.2 `:1279` *(pred.)*: 0.857 against 0.915 within-stratum and 0.596 against 0.750 global, replacing "lags slightly" |
+| calibrated UniLID above every full-label system | **APPLIED as provenance** *(pred.)*: the differing line counts and the $3.4\times10^{-4}$ fastText difference moved into the new App. F provenance paragraph. The headline number itself is R1.HOLD-9 |
+| French 0.534 vs 0.385 "for the top shared-task system" | **APPLIED** *(pred.)*, `submission.tex:887-899`, the DSL-ML replacement. Full text quoted in R1.E below |
+| "improves monotonically with more epochs" (App. C) | **APPLIED** *(pred.)*, `submission.tex:1257`. "Monotonically" is gone; the actual sequence is given (0.1154 at 1 epoch, 0.3026 at 5, 0.3607 at 10) and the MC=10 exception is named: "The one step that does not follow this pattern is \texttt{min-count}=10 at 10 epochs, which scores 0.3277, below the 0.3607 of 10 epochs at the default minimum word count" |
+| "our experiments on low-resource languages of the same script" (App. E.2) | **APPLIED** *(pred.)*, `submission.tex:1279`. The false claim is gone. The replacement states the confound and then states that the WiLI subsampling experiments do not separate it either, "because they reduce the training data of all 235 WiLI languages at once, across scripts" |
+| Kargaran et al. cited for an LLM claim | **APPLIED** *(compl.)*, `submission.tex:312`. Kargaran et al. 2023 (GlotLID) evaluate LID systems, not language models, so the sentence is rewritten to what the citation supports: "Even the language identification systems in widest use fail to consistently identify less common languages". Flagged as R1.HOLD-10 in case the author wants to keep an LLM-specific point with a citation that supports it |
+| "reported in §B" for other base tokenizers (Sec. 5.4) | **APPLIED** *(pred.)*, `submission.tex:794`: "\Cref{tab:lid_main} also reports \unilid-DeepSeek3.2 and \unilid-Qwen3 on the same benchmarks, and \cref{tab:unilid_llm_comparison} reports six pretrained base tokenizers on WiLI" |
+
+## R1.D Part 1, baseline fairness
+
+| # | point | disposition |
+|---|---|---|
+| 1 | CLD3 subset columns: "publicly available pretrained model" vs. "CLD3 likewise trained on the subset languages alone" | **APPLIED (weakened to what is known)** + **HOLD-AUTHOR**. The `tab:lid_main` caption no longer says anything about CLD3's fitting *(pred.)*; the new App. F provenance paragraph names UniLID and fastText only. Sec. 5.2's newly added sentence had reintroduced the contradiction inside one paragraph ("Each system in those columns is fitted to the subset's languages", two lines after "We use the publicly available pre-trained model"); it now reads "In those columns \unilid and \fasttext are each fitted to the subset's languages; \cld is the pretrained model described above" *(compl.)*. Question in R1.HOLD-1 |
+| 2 | fastText configuration not stated (dim, minn, maxn, wordNgrams, minCount, bucket, lr, loss); footnote 14 points to App. C, which holds only DSL-ML | **HOLD-AUTHOR.** The configuration is the co-author's and is not recorded in this repository. Question in R1.HOLD-6 |
+| 3 | model size / memory never reported | **HOLD-MEASUREMENT (cheap).** UniLID's is arithmetic already in the reviewer's note ($1{,}940\times100{,}000$ float values); fastText's needs its `.bin` header read, and the fastText models are not on this filesystem (PD-7). Cost once a model file exists: seconds. Rolled into R1.HOLD-5 |
+| 4 | per-language EM training set not stated; whether fastText trained on the same set | **HOLD-AUTHOR.** App. A `:1127` states the 100k-per-language cap on the training set, which is the answer for UniLID, but the paper never says fastText trained on that same capped set. One sentence from the co-author closes it. Rolled into R1.HOLD-6 |
+| 5 | GlotLID-M version, label set, out-of-label scoring; footnote 11 contamination should be said where Table 1 is discussed | **APPLIED in part** *(pred.)*, `submission.tex:752`: "For those 57 languages the UDHR column of \cref{tab:lid_main} favors \glotlid." The version and label set are still unstated: **HOLD-AUTHOR**, rolled into R1.HOLD-6 |
+| 6 | DSL-ML: fastText's 100-epoch selection used the reported split; where UniLID's own hyperparameters were selected is unstated | **APPLIED in part.** The fastText half is already disclosed in the footnote at `:721` (pre-existing). For UniLID, App. F now states which data selected each calibration constant, but the base hyperparameters (100k vocabulary, 20 EM rounds, floor $10^{-12}$) have no stated selection basis: **HOLD-AUTHOR**, R1.HOLD-6 |
+| 7 | hardware for Tables 13--15 unspecified | **HOLD-AUTHOR**, R1.HOLD-6. Not recoverable from this repository |
+| 8 | Table 7's two rows with unconfirmed tokenizer provenance | **DECLINED as a paper edit.** PD-9 settled the disclosure: `tab:unilid_llm_comparison`'s caption names exactly UniLID-Mistral and UniLID-LLaMA2 as the unconfirmed pair and records the dropped carriage-return entries. Dropping the rows is the reviewer's alternative; the author already chose disclosure over deletion in A2.1. Recorded, not re-litigated |
+| 9 | fastText's WiLI numbers disagree across Tables 5, 7, 11, 12 | **HOLD-AUTHOR.** Note that Table 11 (noise) is **not in the document**: see R1.HOLD-2. Of the rest, Table 7 (0.946 / 2.331e-4) and Table 12 (94.54) and Table 5 at $J{=}500$ (94.55) are all carried fastText numbers under PD-1, and PD-7 records that the fastText models are unavailable here, so none can be re-measured. Question in R1.HOLD-7 |
+| 10 | Table 5, fastText at $J = 10$: 0.85 ± 0.00% | **HOLD-AUTHOR.** Confirmed in the table: 0.85 ± 0.00, below the 10.53 at $J = 5$, with zero variance across runs. This is a broken configuration, and the reviewer will read it as one. It cannot be rerun here (PD-7: no seeds, no fastText models). No paper text quotes it: both new prose sites quote the $J = 5$ row (10.5%). Question in R1.HOLD-8 |
+| 11 | revision bookkeeping in the final PDF; "[citation to confirm]"; CommonLID missing from references | **APPLIED** *(pred.)*, all five sites. `tab:lid_main` caption: the fourteen-sentence provenance block removed and rewritten as a Sec. F paragraph (see R1.F). `tab:vocab_size_efficiency` caption: "the published one" replaced by "The latency and throughput columns were measured in a separate run from the macro F1 and macro FPR columns." `tab:calibrated_nemo` caption: "the published variant row" replaced by "the \unilid-Mistral-Nemo row of \cref{tab:lid_main}". App. F `:1372`, `:1441`: "computed for this revision" and "the published row ... is unchanged" reworded. CommonLID `[citation to confirm]` at `:1159` replaced by `\citep{suarez-etal-2026-commonlid}`; see R1.G for the bibliography |
+| 12 | Mistral-Nemo miscited as Jiang et al. 2023 | **APPLIED** *(pred.)*, `submission.tex:794`: `\cite{mistral}` replaced by `\cite{mistral-nemo-2024}`; see R1.G |
+
+## R1.E The DSL-ML replacement (Part 1 claims table row 12; Part 2 #8)
+
+Vetted recommendation: `outputs/rerelease/dslml2024_vetting.md`, amendment **A**
+(matched-protocol figures belong in the comparison, not in a caption), with
+amendments **B**, **C** and **D** folded into the wording. The replacement was
+verified cell by cell against the vetting's amendment-A table before this entry
+was written. **This changes a comparative claim**: the paper previously said
+UniLID beats the top shared-task system on four of four named groups; it now
+says UniLID is above a matched-protocol baseline on three of five.
+
+Replaced span, `submission.tex:876` as it stood
+("\unilid demonstrates strong performance in comparison to participant
+submissions in the DSL-ML 2024 shared task. On French dialects, \unilid achieves
+a macro-F1 of 0.534 in comparison to 0.385 for the top shared-task system.
+\unilid provides smaller but consistent gains on the other dialect groups as
+well: Spanish (0.850 vs 0.823), Portuguese (0.770 vs 0.752), and BCMS (0.769 vs
+0.762)."). New text, `submission.tex:887-899`, verbatim:
+
+> \corrrev{We compare \unilid against the organizers' SVM baseline on the same dev
+> split, scored with the shared task's official scoring script
+> \cite{chifu-etal-2024-vardial}. That script averages F1 over a group's atomic
+> variety labels under a multi-label protocol, while \unilid is scored
+> single-label, so we also score the baseline on the dev instances whose gold
+> label set holds exactly one label; that restriction is the protocol-matched
+> comparison. Against the protocol-matched baseline, \unilid is higher on English
+> (0.835 against 0.775), Spanish (0.850 against 0.726) and Portuguese (0.770
+> against 0.667), and lower on French (0.534 against 0.638) and BCMS (0.769
+> against 0.826). \unilid predicts over all 14 labels while the baseline chooses
+> among the 2 or 4 labels of a single group, so a confusion across groups costs
+> \unilid and costs the baseline nothing: the three margins in \unilid's favour
+> are lower bounds and the two against it are upper bounds. We do not compare
+> against the shared task's ranked submissions, which are scored on a private
+> test split under the multi-label protocol.}
+
+Check against the vetting's amendment-A table, all five groups: English
+0.835/0.775, Spanish 0.850/0.726, Portuguese 0.770/0.667, French 0.534/0.638,
+BCMS 0.769/0.826. All five match. The 3-of-5 reading, the official-scorer
+provenance, the label-space asymmetry of amendment D, the inclusion of English
+per amendment C, and the refusal to compare against rank-1 test-split entries
+per amendment B are all present.
+
+Two supporting table edits from the same vetting *(pred.)*:
+
+- **Amendment G**, `tab:dialect_stats`: the `Test Size` column header, which
+  holds dev counts, renamed to `Dev Size`, and the caption now says "the dev
+  split is the one all DSL-ML results in this paper are evaluated on". The
+  vetting names this header as the single most likely reason a reviewer would
+  read the paper's dialect results as test-split results.
+- `tab:per_language_f1` caption: "Both systems predict a single label over all 14
+  labels and are scored on the shared task's dev split."
+
+Two open items the vetting leaves with the co-author, unchanged by this round:
+the rule that reduced each multi-label dev instance to one gold label (matters
+most for Spanish, 32.2% ambiguous, and BCMS, 20.5%), and whether
+`dslml_corpus_all` holds anything beyond the train split.
+
+## R1.F The Table 1 caption provenance move (Part 3, last row)
+
+*(pred.)* The fourteen-sentence provenance block is out of `tab:lid_main`'s
+caption. What remains there is what the table shows plus two pointers. The
+provenance moved to a new App. F paragraph, **"Provenance of the main results
+table"** (`submission.tex:1375-1397`), which states: the scored-pool line counts
+per row group; the $3.4\times10^{-4}$ fastText difference; that the calibrated
+row's full-pool cells include the development part; what produced the CLD3-subset
+cells for the UniLID row, the fastText row and the calibrated row; that the
+high-entropy group is empty on all three subsets; and that the three UniLID-X
+rows use fixed pretrained vocabularies which cannot be subset-fitted, so their
+CLD3-subset cells are not comparable with the subset-fitted UniLID row. It says
+nothing about CLD3's own fitting, per R1.HOLD-1.
+
+## R1.G Bibliography
+
+`paper/custom.bib` is **not in this repository**, so the three new entries could
+not be merged into it. They are in **`paper/r1_bib_entries.bib`**, which must be
+pasted into `custom.bib` or added to the `\bibliography` command before the paper
+compiles. All three were verified by opening the cited page on 2026-09-09
+*(both agents; the completing agent re-opened all three independently)*:
+
+| key | verification |
+|---|---|
+| `mistral-nemo-2024` | `https://mistral.ai/news/mistral-nemo/` resolves. Title "Mistral NeMo", 18 July 2024, "a 12B model built in collaboration with NVIDIA". No paper or arXiv report exists for this model, so it is cited as a `@misc` release page with an access date |
+| `suarez-etal-2026-commonlid` | `https://aclanthology.org/2026.acl-long.1527/` resolves. "CommonLID: Re-evaluating State-of-the-Art Language Identification Performance on Web Data", ACL 2026, pages 33063--33080, 109 languages, which matches App. A's description. The author list was truncated when the entry was drafted; it is now **complete**, read off the Anthology page *(compl.)* |
+| `dempster1977maximum` | DOI `10.1111/j.2517-6161.1977.tb01600.x` resolves (via `academic.oup.com/jrsssb/article/39/1/1/7027539`) to JRSS-B 39(1), 1--22, 1977, Dempster, Laird and Rubin |
+
+`chifu-etal-2024-vardial` is already cited elsewhere in the paper and needs no
+new entry; the Anthology key was confirmed against
+`https://aclanthology.org/2024.vardial-1.1/` in the DSL-ML vetting.
+
+## R1.H Part 2, reviewer-facing risk
+
+| # | point | disposition |
+|---|---|---|
+| 1 | no ablation isolating language-specific segmentation (the shared-φ multinomial naive Bayes control) | **HOLD-MEASUREMENT.** The control is: segment every string once under the base tokenizer's single φ, estimate per-language unigram counts on that fixed segmentation, apply the same Bayes rule. Cost: one segmentation pass over the training pool, 1,940 count vectors, one scoring pass over the test pool; no EM, no vocabulary training. This is the single highest-value run on the list, because the reviewer names it as the control for the paper's central claim |
+| 2 | novelty statement: naive Bayes with a latent segmentation | **HOLD-AUTHOR.** A framing paragraph, not a measurement. Proposal in R1.HOLD-11 |
+| 3 | HeLI, gzip+kNN, OpenLID/NLLB-LID absent | **HOLD-MEASUREMENT / HOLD-AUTHOR.** Citing HeLI is free and should be done. Running HeLI-OTS on DSL-ML is a new baseline install plus one eval pass. Running OpenLID or NLLB-LID is one eval pass each on downloaded checkpoints. All three are the author's call on scope |
+| 4 | Table 5's ±0.00 at $J=10$ will discount the low-resource comparison | same as Part 1 fairness #10: **HOLD-AUTHOR**, R1.HOLD-8 |
+| 5 | no uncertainty on any main comparison except calibration | **HOLD-MEASUREMENT.** Bootstrap intervals on the Table 1 differences are one resampling pass over saved prediction arrays, which exist for the UniLID and calibrated rows. Table 2's small classes and Fig. 1's run count are R1.HOLD-8. Partially answered already: Sec. 6 `:863` now spells out the resampling procedure in words |
+| 6 | calibration constants; 0.956 reads as a GlotLID-C-specific patch | **HOLD-AUTHOR**, R1.HOLD-9. Noted that the held-out 0.949 is already on record in `tab:calibrated_heldout` and in App. F, so adopting it as the headline is an editorial move, not a new measurement |
+| 7 | the word "calibration" | **HOLD-AUTHOR** with a concrete proposal, R1.HOLD-11 |
+| 8 | DSL-ML is a multi-label task | **APPLIED**, see R1.E. The revised text states the multi-label protocol, states that UniLID is scored single-label, and reports the matched-protocol comparison |
+| 9 | the unmeasured morphology claim in Sec. 1 | **APPLIED** *(pred.)*, `submission.tex:331`. The claim is hedged to what the cited work supports and the gap is stated: "Within a single language, unigram segmentation has been reported to place token boundaries closer to morphological units than BPE does \cite{bostrom-durrett-2020-byte,klein-tsarfaty-2020-getting}; whether per-language distributions over a shared vocabulary inherit that property is not measured here." The measurement option (segmentation agreement with a morphological analyzer on a few languages) is recorded here rather than in the paper |
+| 10 | script bias absent from the abstract and Sec. 7 limitations | **HOLD-AUTHOR.** App. E.1 now explains the mechanism *(pred.)*, but the abstract and Sec. 7 still do not mention it. The proposed fix (a script-balanced subsample for training `V`) is one tokenizer training run: **HOLD-MEASUREMENT**, roughly the cost of one base-vocabulary training plus one full EM pass and one eval |
+| 11 | the 9× training-time figure against fastText at 100 epochs | **HOLD-MEASUREMENT.** Needs a fastText accuracy-versus-epochs curve on GlotLID-C, that is, fastText trainings at several epoch counts on the full GlotLID-C training set plus one eval each. This is the most expensive item on the list and it can invert the claim (the reviewer's arithmetic: if fastText reaches 0.94 at 10 epochs, 9× becomes 0.9×) |
+| 12 | train/test deduplication not described | **HOLD-MEASUREMENT (cheap).** One pass hashing the GlotLID-C train and test lines and intersecting. App. A `:1127` describes contamination removal for the eval-only sets only, which is what the reviewer says |
+| 13 | Table 3, fastText at 0.160 on Tatoeba | **HOLD-AUTHOR.** The label mapping between Tatoeba's ISO 639-3 codes and WiLI's labels is not described in the paper and is not recorded here. PD-1 carries the fastText row. Rolled into R1.HOLD-6 |
+| 14 | EM proof reference is the first author's blog post | **APPLIED** *(pred.)*, `submission.tex:521`: "we refer the reader to \citet{dempster1977maximum} for the general EM result and to the exposition on \unilm in \citet{meister2025unigramlm}". Bib entry verified, R1.G |
+| 15 | CLD3 latency: 0.187 ms on GlotLID-C, 0.427 on WiLI | **HOLD-MEASUREMENT.** The instruction was to apply it only if verifiable from the repository's latency records. There are **no** `outputs/tables/latency_*` files and no latency record anywhere under `outputs/`; `tab:latency_glotlid` and `tab:latency_wili` give sample counts but no input-length statistic, and no mean-input-length measurement for either benchmark exists here. Writing "input length is the likely cause" would be an unmeasured assertion. Cost to close: one pass computing mean character length of the GlotLID-C and WiLI test files, which is minutes. Note that App. D already states that fastText's and CLD3's input-processing cost is linear in `T`, so the explanation is half-present as theory |
+| 16 | App. E.3 tests only α = 1 | **HOLD-MEASUREMENT.** Rescoring at α = 0.25 and 0.5 on the diagnostic half is two more passes of the same scorer that produced `tab:lenbias-norm`; the α = 0 pass in that table already validates the code path |
+| 17 | the per-language-guarantee argument belongs in Sec. 4 | **APPLIED** *(pred.)*, `submission.tex:665-671`. The argument is now in Sec. 4, at the point where `\delta_\lang` is defined: "One threshold shared by all languages gives a higher aggregate on the held-out part (0.953 against 0.949) but no such per-language statement, and under it the per-language F1 of nine languages falls by more than 0.10 each, which is why the per-language thresholds are the default". App. F's item (iii) is shortened to the measurement plus a pointer back to Sec. 4, so the argument is stated once |
+
+## R1.I Part 3, prose quality
+
+### Anthropomorphisms and metaphors: 22 of 22 APPLIED
+
+Every row of the reviewer's table was applied *(pred., except where noted)*, in
+the paper's own wording rather than the reviewer's:
+
+abstract "leveraging its probabilistic framing..." → "using its generative model,
+its EM parameter estimation, and its Viterbi inference"; Sec. 3.2 ×2 "parameter
+beliefs" → "at the current estimate $\unigramdistcur$"; Sec. 3.2 "hurts corpus
+log-likelihood" → "lowers"; Sec. 6 Dialect "a regime that Fig. 1 likewise
+evinces" → "a setting in which \fasttext also scores low when the WiLI training
+set is subsampled (\cref{fig:samples-accuracy}: 10.5\% at five samples per
+language)"; Sec. 6 Robustness "a regime in which most LID systems struggle" →
+the measured length differences (2.3 points at 101--150 characters against 0.3
+above 1000); Sec. 6 OOD "a domain in which current SOTA systems struggle" →
+deleted with the sentence, and the UDHR figure added (0.866 against 0.849); Sec.
+6 OOD "These results evince the generalization abilities" → deleted; Sec. 4 ×2
+"symptoms" → "arise from" / "the two patterns"; Sec. 6 Calibration "The
+re-examination touches few lines" → "the re-examination changes few predictions:
+on FLORES-200 it examines 1{,}484 of 192{,}280 lines and reassigns 799"; Sec. 6
+Calibration "The gain sits where Table 22 reports UniLID's weakness" → "The gain
+is in the tiers where \cref{tab:calibrated_views} reports \unilid's lowest F1";
+Table 21 caption "levels sit below" → "the held-out values are below the
+full-pool values"; Sec. 6 and App. F ×3 "moves from 0.722 to 0.717" → "falls
+from"; App. B.1 "moves each benchmark in the same direction" → "changes each
+benchmark's macro F1 in the same direction"; Sec. 4 and App. F "the prediction
+moves to" → "is reassigned to" (also in `tab:commonlid`'s caption); Sec. 6 Base
+"a training corpus dominated by noise" → "a training corpus in which
+misclassified lines outnumber correct ones"; Table 16 caption "dominated by
+Latin-script text" → "in which 1{,}700 of the 1{,}940 GlotLID-C languages are
+Latin-script"; Sec. 6 Dialect "part of this result is driven by" → "Part of that
+difference is the 0.00 F1 \fasttext obtains on HR, BS, and ME"; Table 18 caption
+"driven by a minority of samples" → "produced by the 25\% of misclassifications
+in which the predicted language uses fewer tokens"; App. B.3 "absorb localized
+character corruptions more robustly" → **not present**, that subsection was
+removed by A2.13 (see R1.HOLD-2); Sec. 1 "today's NLP landscape" → "pipelines";
+App. A "a robust measuring stick" → "a controlled test set"; Sec. 7 and App. F
+"the boundary of the mechanism family" / "Three within-family alternatives" →
+"the limit of this class of corrections" / the count-announcing frame deleted
+outright *(compl.)*, see R1.J.
+
+One further instance of the same defect, not on the reviewer's list, was found
+by the sweep and fixed *(compl.)*: Sec. 2.2 `:414` "even state-of-the-art models
+struggle with distinguishing between them" → "current LID systems make more
+errors on these distinctions than on unrelated languages".
+
+### Vague evaluative language: 4 of 4 APPLIED *(pred.)*
+
+Sec. 2.2 "highly similar statistical properties, with a strong overlap in
+subword-structure and orthography" → "share most of their orthography and much of
+their subword inventory"; Sec. 6 Base "Overall, these results demonstrate
+UniLID's efficacy as a general-purpose LID system." → deleted; Sec. 6 Dialect
+"UniLID demonstrates strong performance in comparison to participant
+submissions" → deleted, subsumed by the R1.E rewrite; Sec. 6 Vocabulary "at no
+additional vocabulary cost" → "without training a second vocabulary".
+
+### Statistical terms defined at first use: 11 of 13 APPLIED
+
+| term | disposition |
+|---|---|
+| mean ± std | **APPLIED in part** *(pred.)*, Fig. 1 caption and `tab:samples-accuracy` caption both now read "the mean and standard deviation over repeated subsampling runs". The number of runs and what varies between them are **HOLD-AUTHOR**: PD-7 records that the seeds and repeat count are not available |
+| "consistently low variance across runs" | **APPLIED** *(pred.)*, Fig. 1 caption: "its standard deviation is below 1 accuracy point at every subsample size" |
+| paired bootstrap / 95% interval | **APPLIED** *(pred.)*, `submission.tex:863`, at the first use in the main text, ahead of Table 21's caption: "we resample the 1{,}940 languages with replacement 10{,}000 times, compute the difference in macro F1 on each resample, and report the 2.5th and 97.5th percentiles of those differences" |
+| "statistically indistinguishable" (App. F ii) | **APPLIED** *(pred.)*: "changes held-out macro F1 by $+0.0002$ with 95\% interval $[-0.0003, +0.0006]$; the interval contains zero, so this measurement does not separate it from applying it to every language" |
+| "is a confounder" (App. E.2) | **APPLIED** *(pred.)*, restated in plain words: "this tier confounds training-sample count with script ... and the tier result therefore cannot be attributed to sample count alone" |
+| "statistically significant ablation studies" (App. A) | **APPLIED** *(pred.)*: "to support ablations with 500 test samples per language" |
+| "monotonically" (App. C) | **APPLIED** *(pred.)*, see R1.C |
+| Good-Turing estimate (App. F i) | **APPLIED** *(pred.)*: "(the estimate that assigns the unseen tokens the total probability of the tokens seen exactly once)" |
+| total variation distance (fn 12) | **APPLIED** *(pred.)*: "half the sum, over the vocabulary, of the absolute differences between the two rounds' token probabilities" |
+| "the correlation ... is −0.99" (Sec. 4) | **APPLIED** *(pred.)*: named as the Pearson correlation |
+| z-score with median and MAD (App. F) | **APPLIED** *(pred.)*: "the entropy minus the median entropy of the languages in that script, divided by their median absolute deviation" |
+| MLE (Sec. 3.2) | **APPLIED** *(pred.)*: expanded at first use to "maximum likelihood estimation (MLE)" |
+| SOTA, TF-IDF | **APPLIED** *(pred.)*: TF-IDF expanded at `:394` to "term frequency scaled by inverse document frequency (TF-IDF)". "SOTA" no longer occurs anywhere in the document: its only two uses were inside sentences the reviewer asked to delete |
+
+### Sentences requiring two concepts at once: 8 of 8 APPLIED *(pred.)*
+
+Sec. 1's likelihood sentence split into three; Sec. 3.2's EM sentence split into
+E-step and M-step; Sec. 4's unseen-token correction restructured (the mechanism
+first, the clamp second, the counts third); Sec. 4's τ-percentile sentence
+**genuinely re-explained** rather than trimmed, `:665-671`: it now says what
+`\delta_\lang` is set from, what setting it at the $q$th percentile means for the
+training lines, and why the test statement is only approximate, in four
+sentences, with the duplicate follow-on sentence "Each $\tau_\lang$ comes from
+language $\lang$'s own training samples" deleted as the reviewer asked; Sec. 4's
+constant-selection sentence split into four; Sec. 6's UDHR/FLORES sentence split
+into three; Table 22's caption rewritten **without** the reviewer's own
+enumeration frame (see R1.J); App. E.1's Latin-biased-`V` sentence split into
+two.
+
+### Naming consistency: 2 of 2 APPLIED *(pred.)*
+
+- **The 500,000-line draw.** The three names ("the validation sample", "the test
+  half of the seed-42 500,000-line draw", "the 250,000-line golden subset") are
+  replaced by two defined terms in App. F's development protocol: the
+  **selection half** (excluded from every reported GlotLID-C number, used only
+  to select constants) and the **diagnostic half** (inside the scored pool, the
+  subset `tab:lenbias-delta` and `tab:lenbias-norm` are computed on). Both are
+  `\defn{}`-marked at their definition and used consistently in App. F,
+  `tab:lenbias-delta` and `tab:lenbias-norm`. The one surviving "validation
+  sample" is at `:677`, inside a `\camrev{}` span describing a *different* set
+  (the sample excluded from every evaluation), and is correct there.
+  `tab:calibration_provenance` still says "excluded 250k validation sample" in
+  its selection-data column: **cosmetic residual**, worth aligning on "selection
+  half" if the author accepts the term.
+- **Viterbi.** "Viterbi-style" no longer occurs; both sites (Sec. 3.3 `:554`,
+  Sec. 4 `:599`) now read "Viterbi decoding".
+
+## R1.J The log-probability margin, and the enumeration-frame sweep
+
+**Margin definition** *(pred.)*, the author's explicit instruction. Before this
+round, Sec. 4 used "low-margin" three times with no definition, and the only
+definition sat in App. F near `:1286`. The quantity is a difference of
+log-probability scores, and it is now defined at its first Sec. 4 use,
+`submission.tex:653-657`:
+
+> \corrrev{The \defn{log-probability margin} of the prediction is the top
+> language's log-probability score minus the runner-up's, that is,
+> $g_{\hat\lang}(\str)$ minus the second-largest value of $g_\lang(\str)$ over
+> $\lang\in\languages$.}
+
+The name is then used consistently: "whose log-probability margin is small"
+(`:652`), "its log-probability margin is smaller than a per-language threshold
+$\delta_{\hat\lang}$" (`:655`), "log-probability margin threshold $\delta_\lang$"
+(Sec. 5.3, `:780`), "the line's log-probability margin is smaller than the
+predicted language's threshold $\delta_\lang$" (App. F, `:1301`), and "The
+log-probability margin of a line is the top score minus the runner-up score,
+computed under the distributions with the unseen-token constant applied" (App. F,
+`:1311`). The App. F sentence is kept as a restatement where the value is used,
+not as the first definition. The threshold rename is audited in R1.B.
+
+**Enumeration-frame sweep.** Pattern family: a sentence that announces a count of
+items before giving them. Swept across all of `submission.tex` and all 24 files
+under `paper/tables/`. Hits and dispositions:
+
+| site | text | disposition |
+|---|---|---|
+| Sec. 6 Dialect `:876` | "There are several potential reasons why \unilid performs particularly well in this regime: First, ... Second, ..." | **APPLIED** *(pred.)*: rewritten as two plain statements with the explanatory limit named, "Neither explanation is isolated by an experiment here" |
+| Sec. 7 `:1070` | "two directions could be explored: hierarchical decoding, ... and sparse per-language distribution representations, ..." | **APPLIED** *(pred.)*: each direction is now its own sentence, with the shared consequence last |
+| Table 22 caption | the reviewer's own suggested rewrite: "for two reasons. Calibrated UniLID removes ...; Re-examination reassigns ..." | **APPLIED** *(pred.)*: the count-announcing clause was **not** copied. The caption reads "The two views rank the methods oppositely in the two smallest tiers. Calibrated \unilid removes false positives into small languages, and only the global view counts those. Re-examination also reassigns ... and only the within-stratum view counts those." |
+| App. F `:1421` | "Three alternatives within this class of corrections were measured." followed by (i)(ii)(iii) | **APPLIED** *(compl.)*: the frame sentence deleted. The paragraph heading "Alternatives measured during development." already carries it, and the list now starts at (i) |
+| Sec. 3.2 `:497` | "The EM algorithm alternates two steps ... In the context of \unilm, the two steps take the following form:" | **APPLIED** *(compl.)*: both count announcements removed. Now "alternates an E-step and an M-step ... In the context of \unilm:" |
+| Sec. 2.2 `:426` | "UniLID directly targets the first two challenges." | **APPLIED** *(compl.)*: the two are named instead of counted, "UniLID targets varietal discrimination and low-resource performance." This also removes the dependency A2.13 recorded, where deleting the orthographic-noise paragraph would have broken the count |
+| Sec. 3.3 `:531` | "a heuristic approach which works as follows." | **APPLIED** *(compl.)*: the frame deleted; the sentence now ends at "a heuristic approach." |
+
+Remaining `(i)`/`(ii)`/`(iii)` lists at `:306`, `:533`, `:1057`, `:1296` and
+`:1421` are itemizations of content that announce no count, and are left.
+"Both patterns" at `:624` and "two halves" at `:1352` state facts about a
+two-element set rather than framing a list, and are left.
+
+## R1.K `paper/tables/noise_robustness.tex`: diff attribution
+
+The working-tree modification to this file is **the author's data re-add**, per
+the "Noise table reinstatement (author, 2026-08-25)" section above, and nothing
+in it was reverted or restyled by either agent this round. What changed against
+HEAD, attributed:
+
+- **Author, data.** All 15 numbers replaced by the fixed-code rerun, at four
+  significant figures with $\pm$ standard deviations on the four noisy rows
+  (e.g. UniLID at 25% moves 0.824 → $0.8562\pm0.0003$ accuracy, fastText at 50%
+  moves 0.675 → $0.6256\pm0.0005$). Bolding follows the new values, which moves
+  the 10% row's accuracy and FPR bold from fastText to UniLID.
+- **Author, formatting.** `\unilid` and `\fasttext` macros replaced by literal
+  "UniLID" and "fastText" in the header; column headers destyled from
+  `\textbf{Accuracy}$\uparrow$` etc. to plain `Acc`, `F1`, `FPR`; column spec
+  regrouped `{c c c c c c c}` → `{c ccc ccc}`; a trailing blank line added.
+- **Neither agent.** No edit was made to this file this round.
+
+**The table is not in the document.** `submission.tex` contains no
+`\input{tables/noise_robustness}`; A2.13 removed that line together with the
+whole App. B.3 subsection, the introduction clause and the Sec. 6 results
+sentences, and only the table file has been updated since. A build from this tree
+produces a paper with no Table 11 and no noise analysis. The reviewer's feedback
+quotes Table 11's fastText row at $p = 0\%$ (F1 0.9533, FPR 2.023e-4, accuracy
+0.9527), which are exactly the new numbers in this file, so the reviewed PDF was
+built from a tree in which the table *was* wired in. This is R1.HOLD-2 and is the
+most consequential open item of the round.
+
+The caption's "\unilid maintains a small edge at low noise; \fasttext degrades
+more gracefully at higher noise rates" carries the same vague-evaluative and
+agentive-verb defects this round removed elsewhere. It was left alone because
+the file is the author's, and because Part 3's list does not include it. If the
+table is re-added, that caption sentence should get the same treatment as the
+rest; the numbers to replace it with are in the table itself.
+
+## R1.HOLD: the questions for the author
+
+**R1.HOLD-1 (CLD3 subset columns).** For the three CLD3-subset column groups of
+`tab:lid_main` (GlotLID-C 83 languages, UDHR 80, FLORES-200 77): did CLD3 predict
+over its full 107-language label set, or was its output restricted to the
+subset's labels? Section 5.2 says the publicly available pretrained model was
+used, which implies the former; the old caption said CLD3 was "likewise trained
+on the subset languages alone", which implies the latter and is not possible for
+a pretrained model. If CLD3 predicted over 107 labels while UniLID and fastText
+predicted over 83, its F1 and FPR are computed on a different output space and
+the columns are not like-for-like. The caption and Sec. 5.2 now assert nothing
+about CLD3 either way, so the paper is no longer self-contradictory, but the
+comparability question is open. This is the last unanswered part of the C3 ask.
+
+**R1.HOLD-2 (the noise table).** `paper/tables/noise_robustness.tex` carries the
+fixed-code rerun, but `submission.tex` has no `\input` for it and no App. B.3.
+Re-add the four spans recorded verbatim in A2.13, with the Sec. 6 and
+introduction sentences rewritten to the new numbers, or leave the analysis out?
+If re-adding: the new 25% accuracy pair is 0.8562 against 0.8925, not the 0.824
+against 0.906 the old Sec. 6 sentence quoted, so that sentence cannot be pasted
+back unchanged. Also decide whether the caption's evaluative sentence should be
+rewritten to the numbers.
+
+**R1.HOLD-3 (the constant `c`).** Rename the unseen-token constant away from the
+expected-count symbol $\hat c$? They are typographically distinct and the
+reviewer still read them as one symbol. Renaming touches eight prose sites,
+`tab:calibration_provenance`, this ledger, the release JSON, and the released
+code and weight pack, where `c` is the documented name. Recommended default:
+leave `c` and add one clause at its first use saying it is unrelated to the
+expected counts of Sec. 3.2.
+
+**R1.HOLD-4 (incremental addition, pipeline integration).** The abstract and Sec.
+1 assert both properties; the paper contains a design argument for the first and
+Table 1's UniLID-X rows for the second, and no experiment for either. Scope both
+to what is shown, or run something? The cheapest demonstration of incremental
+addition is adding one held-out language to a trained model and reporting the
+before/after macro F1 on the rest, which is one EM run for one language plus one
+eval pass.
+
+**R1.HOLD-5 (efficiency claim).** "Data- and compute-efficient" currently rests
+on training time at a fixed 100 epochs (Table 15) and is contradicted on
+inference (now stated honestly in Sec. 1 as $1.85\times$ slower). Memory is never
+reported, and UniLID stores $1{,}940\times100{,}000$ values. Add a memory column,
+scope the claim to training data volume, or both? A memory column needs the
+fastText `.bin` file, which PD-7 records as unavailable here.
+
+**R1.HOLD-6 (facts only the co-author holds).** Six unrelated gaps, all one
+sentence each once answered: (a) the fastText configuration on GlotLID-C and
+WiLI (dim, minn, maxn, wordNgrams, minCount, bucket, lr, loss), and whether the
+DSL-ML `MC=1000` selection carried to the other benchmarks; (b) whether fastText
+trained on the same 100k-per-language capped set as UniLID's EM runs; (c)
+GlotLID-M's version and label set, and how predictions outside the 366 UDHR
+labels are scored; (d) where UniLID's base hyperparameters (100k vocabulary, 20
+EM rounds, floor $10^{-12}$) were selected; (e) the hardware behind Tables 13 to
+15; (f) the Tatoeba label mapping behind Table 3.
+
+**R1.HOLD-7 (fastText's WiLI numbers).** Table 7 gives F1 0.946 / FPR 2.331e-4;
+Table 12 gives accuracy 94.54; Table 5 at $J = 500$ gives 94.55; the noise table,
+if re-added, gives 0.9533 / 2.023e-4 / 0.9527 at $p = 0\%$. Are these one fastText
+model measured under different protocols, or two models? All are carried numbers
+under PD-1 and none can be re-measured here (no fastText models on this
+filesystem). If they are one model, one sentence explaining the protocol
+difference closes it; if two, one of them has to go.
+
+**R1.HOLD-8 (Table 5's $J = 10$ row, and run counts).** fastText reads
+0.85 ± 0.00 at 10 samples per language, below its own 10.53 at 5, with zero
+variance across runs. That is what a constant predictor produces. PD-7 closed
+the seeds and the models as unavailable, so it cannot be rerun here. Drop the
+row, mark it as a failed fastText configuration in the caption, or leave it? The
+same PD-7 closure blocks stating the run count and the varying factor behind
+every "mean ± std" in the paper, which the reviewer also asks for.
+
+**R1.HOLD-9 (the 0.956 headline).** The reviewer suggests reporting the held-out
+0.949 as the headline and keeping 0.956 in App. F, on the grounds that two of the
+calibration constants were selected on data inside the scored pool. The held-out
+0.949 is already on record in `tab:calibrated_heldout` and App. F, so this is an
+editorial choice with no new measurement behind it. It would change the abstract,
+Sec. 1 `:347`, Sec. 6, and `tab:lid_main`'s bolding.
+
+**R1.HOLD-10 (the Kargaran sentence).** Sec. 1 `:312` previously said "Even
+state-of-the-art language models fail to consistently identify less common
+languages" and cited Kargaran et al. 2023, who evaluate LID systems rather than
+language models. The sentence now says "the language identification systems in
+widest use", which the citation supports. If the point about large language
+models is wanted, it needs a citation that measures LLMs on LID; none was added,
+because none was verified.
+
+**R1.HOLD-11 (two framing proposals).** (a) *Novelty statement*, Part 2 #2:
+recommended addition to Sec. 2 or Sec. 4, "The model is a multinomial naive Bayes
+classifier over subword tokens in which the segmentation is latent rather than
+fixed. What is new here is that the segmentation is estimated per language, that
+the marginal over segmentations is approximated by its Viterbi maximum, and that
+the vocabulary can be an existing language model's." (b) *The word "calibration"*,
+Part 2 #7: in ML the term means matching predicted probabilities to observed
+frequencies, and no reliability measurement is reported; the procedure changes
+decisions. Recommended replacement, if the author wants one: **unseen-token floor
+and low-margin reassignment**, with "calibrated UniLID" kept as the system name
+and the term defined once at Sec. 4's opening. This touches Sec. 4's title,
+`sec:calibration`, the `tab:lid_main` row label, four table captions and roughly
+20 prose sites, so it is a rename to decide once rather than drift into.
+
+**R1.HOLD-12 (bibliography merge).** `paper/custom.bib` is not in this
+repository. `paper/r1_bib_entries.bib` must be pasted into it, or added to the
+`\bibliography` command, before the paper compiles: three `\cite` keys now depend
+on it.
+
+**R1.HOLD-13 (cosmetic residuals).** (a) `tab:calibration_provenance` still says
+"excluded 250k validation sample" where App. F now says "selection half". (b) No
+cell in `tab:lid_main`'s UDHR-subset FPR column is bold although that column has
+a minimum (\glotlid's 2.09e-5); carried from the 2026-08-25 census. (c) The
+abstract, Sec. 1 `:343` and Sec. 7 `:1082` all describe UniLID's benchmark
+performance as "competitive", which is the vague-evaluative pattern this round
+removed elsewhere; it was left because the reviewer did not flag it and because
+it is a framing the author has carried through several rounds.
+
+## R1.DECLINED
+
+| item | reason |
+|---|---|
+| Part 1 fairness #8, drop the two Table 7 rows with unconfirmed tokenizer provenance | The author chose disclosure over deletion in A2.1 and PD-9 closed the third row. The caption names the two rows and the dropped carriage-return entries |
+| the reviewer's Table 22 caption wording | Adopted in substance, but its "for two reasons" frame was not copied, per the author's instruction |
+| the reviewer's Sec. 3.2 EM wording | Adopted in substance; its "iterativly" typo and its "alternating between two steps" count frame were not copied |
+| the reviewer's Sec. 4 unseen-token wording | Adopted in substance. Its parenthetical "because token probabilities are just normalized counts, this is often 1/corpus size in tokens" was not copied: the paper floors token probabilities at $10^{-12}$ during training, so the smallest value is not in general the reciprocal of the corpus token count, and App. F's own measurement (every value above the floor, smallest distance 7.7 nats) is the accurate statement |
+| the reviewer's Sec. 6 Robustness rewrite, "where published systems score lowest (cite)" | No such citation was verified, so the sentence was rewritten to the paper's own measured length differences instead |
+| renaming `T_\lang` and `T_{\mathrm{max}}` | Both sit inside `\camrev{}` complexity displays from the camera-ready pass and are typographically distinct from plain `T`. Raised as HOLD rather than applied |
+
+## R1 mechanical checks
+
+Run after the last edit, on all 14 modified files:
+
+- **Braces.** Comment-stripped, escape-aware depth scan: final depth 0 and no
+  negative excursion in `submission.tex` at HEAD and in the working tree alike,
+  and in every table file. The delta this ledger records at line 542 does not
+  appear under an escape-aware count; either way it is **unchanged** by this
+  round.
+- **`$` parity.** 498 at HEAD, 530 now, both even; parity unchanged.
+- **Per-row ampersands.** Every changed table checked against its column spec,
+  counting `\multicolumn` spans. Zero real mismatches. The two reported hits in
+  `tab:lid_main` are the checker breaking on that table's nested
+  `\begin{tabular}[c]{@{}c@{}}` header cells; `tab:lid_main`'s body was not
+  touched this round, only its caption.
+- **`\cref` targets.** Every label referenced from `submission.tex` or a table
+  file is defined. **None missing.**
+- **Unreferenced table files.** `noise_robustness` is the only `tables/*.tex`
+  never `\input`; see R1.K and R1.HOLD-2.
+- **Style check.** `~/.claude/style/style-check.sh` run over the 121 newly added
+  `\corrrev{}` spans, extracted programmatically as the set difference against
+  HEAD's spans. One hit, `\bdeltas?\b` matching the label
+  `tab:lenbias-delta` inside a `\cref`; no prose hits. No em-dash or en-dash in
+  any new span. Running the check over whole changed *lines* instead raises
+  "competitive", "regime", "gaps", "need" and "see", all of which are in the
+  unchanged remainder of long LaTeX paragraph lines or inside `\clara{}` /
+  `\response{tiago}` author comments; "competitive" is R1.HOLD-13(c).
+- **Citation URLs.** All four opened on 2026-09-09 by the completing agent,
+  independently of the drafting agent: the Mistral NeMo release page, the ACL
+  Anthology CommonLID page, the JRSS-B Dempster record via its DOI, and the
+  VarDial 2024 overview page. All four resolve and show what is attributed to
+  them. No URL in this round is unverified.

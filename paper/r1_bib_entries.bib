@@ -1,0 +1,61 @@
+% Bibliography entries added by the R1 reviewer-feedback round (2026-09-09).
+%
+% paper/custom.bib is NOT in this repository, so these entries could not be
+% merged into it here. Paste them into custom.bib before compiling, or add this
+% file to the \bibliography command. Three keys in submission.tex depend on them:
+%   mistral-nemo-2024        (replaces the wrong \cite{mistral} = Jiang et al. 2023,
+%                             the Mistral 7B report, at submission.tex:793)
+%   suarez-etal-2026-commonlid (replaces "[citation to confirm]" at submission.tex:1158)
+%   dempster1977maximum      (new, at submission.tex:521)
+% chifu-etal-2024-vardial is already cited elsewhere in the paper and needs no
+% new entry.
+%
+% Every field below was verified by fetching the cited page on 2026-09-09.
+% Verification notes:
+%   mistral-nemo-2024: https://mistral.ai/news/mistral-nemo/ resolves, title
+%     "Mistral NeMo", release date 18 July 2024, publisher Mistral AI (with
+%     NVIDIA). The Hugging Face card for mistralai/Mistral-Nemo-Base-2407 names
+%     this post as the release document. No paper or arXiv report exists.
+%   suarez-etal-2026-commonlid: https://aclanthology.org/2026.acl-long.1527/
+%     resolves. The paper's Section 4.3 states "CommonLID contains 373,230 lines
+%     in total", 109 languages, bare ISO 639-3 labels, Common Crawl provenance,
+%     which matches the description in App. A of this paper exactly. The full
+%     author list was read off the Anthology landing page on 2026-09-09 and is
+%     reproduced in the entry below; the page states 109 languages and the ACL
+%     2026 volume, pages 33063--33080.
+%   dempster1977maximum: DOI 10.1111/j.2517-6161.1977.tb01600.x resolves to the
+%     OUP record for JRSS-B 39(1), 1-22, 1977.
+
+@misc{mistral-nemo-2024,
+  author       = {{Mistral AI}},
+  title        = {Mistral {NeMo}},
+  howpublished = {Mistral AI blog},
+  year         = {2024},
+  month        = jul,
+  url          = {https://mistral.ai/news/mistral-nemo/},
+  note         = {Accessed 2026-09-09}
+}
+
+@article{dempster1977maximum,
+  author  = {Dempster, A. P. and Laird, N. M. and Rubin, D. B.},
+  title   = {Maximum Likelihood from Incomplete Data via the {EM} Algorithm},
+  journal = {Journal of the Royal Statistical Society: Series B (Methodological)},
+  volume  = {39},
+  number  = {1},
+  pages   = {1--22},
+  year    = {1977},
+  doi     = {10.1111/j.2517-6161.1977.tb01600.x}
+}
+
+@inproceedings{suarez-etal-2026-commonlid,
+  title     = "{C}ommon{LID}: Re-evaluating State-of-the-Art Language Identification Performance on Web Data",
+  author    = "Suarez, Pedro Ortiz and Burchell, Laurie and Arnett, Catherine and Mosquera, Rafael and Monsalve, Sara Hincapi{\'e} and Vaughan, Thom and Stewart, Damian and Ostendorff, Malte and Abdulmumin, Idris and Marivate, Vukosi and Muhammad, Shamsuddeen Hassan and Tonja, Atnafu Lambebo and Al-Khalifa, Hend and Hammouda, Nadia Ghezaiel and Otiende, Verrah Akinyi and Wong, Tack Hwa and Saydaliev, Jakhongir and Nobakhtian, Melika and Habibi, Muhammad Ravi Shulthan and Kranti, Chalamalasetti and Muchemi, Carol and Nguyen, Khang and Adam, Faisal Muhammad and Salim, Luis Frentzen and Alqifari, Reem and Amol, Cynthia Jayne and Imperial, Joseph Marvin and Kesen, Ilker and Mustafid, Ahmad and Stepachev, Pavel and Choshen, Leshem and Anugraha, David and Nayel, Hamada and Yimam, Seid Muhie and Putra, Vallerie Alexandra and Nguyen, My Chiffon and Wasi, Azmine Toushik and Vadithya, Gouthami and van der Goot, Rob and ar C'horr, Lanwenn and Dua, Karan and Yates, Andrew and Bangera, Mithil and Bangera, Yeshil and Patel, Hitesh Laxmichand and Okabe, Shu and Ilasariya, Fenal Ashokbhai and Gaynullin, Dmitry and Winata, Genta Indra and Li, Yiyuan and Mart{\'i}nez, Juan Pablo and Agarwal, Amit and Hanif, Ikhlasul Akmal and Abu Ahmad, Raia and Adenuga, Esther and Tjiaranata, Filbert Aurelian and Buaphet, Weerayut and Anugraha, Michael and Vajjala, Sowmya and Rice, Benjamin L and Amirudin, Azril Hafizi and Alabi, Jesujoba Oluwadara and Panda, Srikant and Toughrai, Yassine and Kyomuhendo, Bruhan and Ruffinelli, Daniel and Akshata and Goul{\~a}o, Manuel and Zhou, Ej and Franco Ramirez, Ingrid Gabriela and Aggazzotti, Cristina and Dobler, Konstantin and Kevin, Jun and Pag{\`e}s, Quentin and Andrews, Nicholas and Ibrahim, Nuhu and Ruckdeschel, Mattes and Keleg, Amr and Zhang, Mike and Muziri, Casper Rufaro and Samuel, Saron and Takeshita, Sotaro and Kerdthaisong, Kun and Foppiano, Luca and Dent, Rasul and Green, Tommaso and Wali, Ahmad Mustapha and Makaaka, Kamohelo and Feliren, Vicky and Idris, Inshirah and Celikkanat, Hande and Abubakar, Abdulhamid and Maillard, Jean and Sagot, Beno{\^i}t and Cl{\'e}rice, Thibault and Murray, Kenton and Luger, Sarah K. K.",
+  booktitle = "Proceedings of the 64th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)",
+  month     = jul,
+  year      = "2026",
+  address   = "San Diego, California, United States",
+  publisher = "Association for Computational Linguistics",
+  url       = "https://aclanthology.org/2026.acl-long.1527/",
+  doi       = "10.18653/v1/2026.acl-long.1527",
+  pages     = "33063--33080"
+}

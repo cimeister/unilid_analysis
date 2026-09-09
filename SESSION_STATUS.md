@@ -8,9 +8,14 @@ at the bottom, now a shipped record).
 ## Read these first
 
 - `paper/PAPER_EDITS_pending.md`: the itemized paper edit list, marked applied or
-  blocked. **14 edits are already applied to `submission.tex`**, wrapped in a
-  `\corrrev{}` macro (blue) so this round stays separable from the camera-ready
-  `\camrev{}` pass. Accept all with `\newcommand{\corrrev}[1]{#1}`.
+  blocked. Its last section, **R1 (2026-09-09)**, is the reviewer-feedback round
+  and is the current front. All edits are wrapped in a `\corrrev{}` macro (blue)
+  so this round stays separable from the camera-ready `\camrev{}` pass; 121 new
+  spans were added in R1, against 192 pre-existing. Accept all with
+  `\newcommand{\corrrev}[1]{#1}`.
+- `PAPER_FEEDBACK.md`: the reviewer feedback driving R1.
+- `paper/r1_bib_entries.bib`: three verified bib entries that must be merged into
+  `custom.bib` (not in this repo) before the paper compiles.
 - `~/.claude/plans/this-session-focuses-on-shimmering-dusk.md`: the approved WiLI
   training plan, revised after an adversarial review.
 - `EXPERIMENTS_RESULTS.md`: entries dated 2026-08-17 through 2026-08-23 at the top.
@@ -124,6 +129,23 @@ Agents in flight (2026-08-24):
 - **Latency is closed** (author, 2026-08-19).
 
 ## Open decisions
+
+### R1 reviewer round (2026-09-09), awaiting the author
+
+Full text of each question: section **R1.HOLD** of `paper/PAPER_EDITS_pending.md`.
+102 feedback points itemized: 71 applied, 16 HOLD-AUTHOR, 9 HOLD-MEASUREMENT, 6 declined.
+
+- **R1.HOLD-2, most consequential**: `paper/tables/noise_robustness.tex` carries the author's fixed-code rerun but `submission.tex` has no `\input` for it and no App. B.3 (A2.13 removed all four spans) -- re-add per A2.13, with the Sec. 6 sentence rewritten to the new 25% pair (0.8562 vs 0.8925), or leave the analysis out?
+- **R1.HOLD-1**: for the CLD3-subset columns, did CLD3 predict over its 107 labels or over the subset's? The paper now asserts nothing either way; comparability is open. Last unanswered part of C3.
+- **R1.HOLD-6**: six co-author facts, one sentence each -- fastText config on GlotLID-C/WiLI; whether fastText used the same 100k cap; GlotLID-M version and out-of-label scoring; where UniLID's base hyperparameters were selected; hardware for Tables 13-15; the Tatoeba label mapping.
+- **R1.HOLD-9**: report the held-out 0.949 as the headline instead of 0.956? Editorial, no new measurement (0.949 already on record).
+- **R1.HOLD-11**: two framing proposals drafted -- the naive-Bayes novelty statement, and renaming "calibration" to "unseen-token floor and low-margin reassignment" (a ~25-site rename, decide once).
+- **R1.HOLD-7 / -8**: fastText's WiLI numbers disagree across Tables 5/7/12; Table 5's fastText row at 10 samples reads 0.85 +/- 0.00, below its own 5-sample 10.53. Neither is re-measurable here (PD-7: no fastText models, no seeds).
+- **R1.HOLD-12, blocks compilation**: `paper/custom.bib` is not in this repo; `paper/r1_bib_entries.bib` must be merged before the paper builds (3 new `\cite` keys depend on it).
+- Also open: R1.HOLD-3 (rename constant `c`?), -4 (scope the incremental-addition and pipeline claims), -5 (memory column for the efficiency claim), -10 (Kargaran sentence rewritten to LID systems; want an LLM citation instead?), -13 (three cosmetic residuals).
+- **R1 HOLD-MEASUREMENT, highest value**: the shared-phi naive-Bayes control that isolates the paper's central claim (one segmentation pass + 1,940 count vectors + one scoring pass). Also queued: branching factor `b`; train/test dedup; fastText epoch curve on GlotLID-C (expensive, can invert the 9x claim); alpha = 0.25/0.5 length normalization; mean input length for the CLD3 latency explanation.
+
+### Repo-side remainder
 
 The paper-side decisions are itemized as PD-1..PD-9 in
 `paper/PAPER_EDITS_pending.md` (fastText carry; the three linked breakdown
